@@ -26,6 +26,16 @@ video out.
   - `ep1-password/` — "Where Your Password Actually Goes" (hashing/salting/bcrypt)
   - `ep4-captcha/` — "How Sites Know You're Not a Robot" (CAPTCHA/bot-detection)
 
+## First time on a new machine
+
+Run `./setup_check.sh` — it reports what's missing (ffmpeg with libass, the `tool/`
+Python venv, Node/npx for HyperFrames, ElevenLabs/HeyGen credentials) without you
+having to hunt for it. See `CLAUDE.md` — if you're driving this repo through Claude
+Code, it's instructed to run this automatically and walk you through any gaps.
+
+See `STYLE.md` for the confirmed-good editorial conventions (title/caption placement,
+music/SFX approach, overlay design rules) this series has already converged on.
+
 ## Rebuilding an episode
 
 ```bash
