@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body {
+        font-family: "Helvetica Neue", -apple-system, sans-serif;
+      }
+
+      #fade-wrap {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+
+      /* opaque base fill -- lives on a child, never on #root/.clip */
+      #bg-fill {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+            ellipse 900px 900px at 50% 42%,
+            #1c0d16 0%,
+            #0f070c 55%,
+            #060305 100%
+          );
+      }
+
+      #bg-photo-wrap {
+        position: absolute;
+        left: 50%;
+        top: 640px;
+        width: 900px;
+        height: 600px;
+        transform-origin: 50% 50%;
+        opacity: 0.32;
+        filter: brightness(0.35) saturate(0.5) contrast(1.05) hue-rotate(-8deg) blur(3px);
+      }
+      #bg-photo-wrap img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: 50% 30%;
+      }
+
+      #vignette {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 720px 900px at 50% 45%,
+          rgba(0, 0, 0, 0) 0%,
+          rgba(0, 0, 0, 0) 45%,
+          rgba(3, 2, 4, 0.55) 78%,
+          rgba(2, 1, 3, 0.92) 100%
+        );
+      }
+
+      .swarm-img {
+        position: absolute;
+        width: 460px;
+        height: auto;
+        pointer-events: none;
+        filter: brightness(1.85) contrast(1.35) saturate(1.3) hue-rotate(-8deg)
+          drop-shadow(0 0 14px rgba(239, 68, 68, 0.9))
+          drop-shadow(0 0 46px rgba(239, 68, 68, 0.55));
+      }
+
+      #form-card {
+        position: absolute;
+        left: 180px;
+        top: 620px;
+        width: 720px;
+        height: 470px;
+        border-radius: 28px;
+        background: linear-gradient(
+          160deg,
+          rgba(24, 14, 22, 0.94),
+          rgba(10, 6, 10, 0.97)
+        );
+        border: 2px solid rgba(96, 165, 250, 0.4);
+        padding: 56px 64px;
+      }
+
+      #card-glow-blue {
+        position: absolute;
+        inset: -6px;
+        border-radius: 32px;
+        box-shadow: 0 0 70px 6px rgba(59, 130, 246, 0.35);
+        opacity: 1;
+        pointer-events: none;
+      }
+      #card-glow-red {
+        position: absolute;
+        inset: -6px;
+        border-radius: 32px;
+        box-shadow: 0 0 110px 20px rgba(239, 68, 68, 0.85);
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      #form-title {
+        color: #f3f4f6;
+        font-size: 46px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+      }
+      #form-sub {
+        margin-top: 10px;
+        color: #9ca3af;
+        font-size: 24px;
+        font-weight: 400;
+      }
+
+      .field-label {
+        margin-top: 34px;
+        color: #7d8590;
+        font-size: 20px;
+        font-weight: 600;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+      .field-bar {
+        margin-top: 12px;
+        width: 100%;
+        height: 62px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(148, 163, 184, 0.28);
+      }
+
+      #submit-btn {
+        margin-top: 40px;
+        width: 100%;
+        height: 74px;
+        border-radius: 14px;
+        background: #3b82f6;
+        color: #f8fafc;
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #flash-overlay {
+        position: absolute;
+        inset: 0;
+        background: #fca5a5;
+        opacity: 0;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="5.60"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="5.60"
+        data-track-index="1"
+      >
+        <div id="fade-wrap">
+          <div id="bg-fill"></div>
+
+          <div id="bg-photo-wrap">
+            <img src="assets/image_002.jpg" alt="" />
+          </div>
+
+          <div id="vignette"></div>
+
+          <!-- swarm instances behind the card -->
+          <img
+            class="swarm-img swarm-back"
+            data-layout-allow-overflow="true"
+            id="s1"
+            src="assets/image_001.png"
+            style="left: 0px; top: 0px; z-index: 3"
+          />
+          <img
+            class="swarm-img swarm-back"
+            data-layout-allow-overflow="true"
+            id="s2"
+            src="assets/image_001.png"
+            style="left: 0px; top: 0px; z-index: 3"
+          />
+          <img
+            class="swarm-img swarm-back"
+            data-layout-allow-overflow="true"
+            id="s3"
+            src="assets/image_001.png"
+            style="left: 0px; top: 0px; z-index: 3"
+          />
+
+          <div id="form-card" style="z-index: 4">
+            <div id="card-glow-blue"></div>
+            <div id="card-glow-red"></div>
+            <div id="form-title" data-layout-allow-occlusion="true">Create Account</div>
+            <div id="form-sub" data-layout-allow-occlusion="true">Join in seconds</div>
+            <div class="field-label">Email</div>
+            <div class="field-bar"></div>
+            <div class="field-label">Password</div>
+            <div class="field-bar"></div>
+            <div id="submit-btn">Sign Up</div>
+          </div>
+
+          <!-- swarm instances in front of the card -->
+          <img
+            class="swarm-img swarm-front"
+            data-layout-allow-overflow="true"
+            id="s4"
+            src="assets/image_001.png"
+            style="left: 0px; top: 0px; z-index: 5"
+          />
+          <img
+            class="swarm-img swarm-front"
+            data-layout-allow-overflow="true"
+            id="s5"
+            src="assets/image_001.png"
+            style="left: 0px; top: 0px; z-index: 5"
+          />
+          <img
+            class="swarm-img swarm-front"
+            data-layout-allow-overflow="true"
+            id="s6"
+            src="assets/image_001.png"
+            style="left: 0px; top: 0px; z-index: 5"
+          />
+          <img
+            class="swarm-img swarm-front"
+            data-layout-allow-overflow="true"
+            id="s7"
+            src="assets/image_001.png"
+            style="left: 0px; top: 0px; z-index: 5"
+          />
+
+          <div id="flash-overlay" style="z-index: 6"></div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ---------- initial states ----------
+      gsap.set("#fade-wrap", { opacity: 1 });
+      gsap.set("#bg-photo-wrap", { xPercent: -50, y: 0, scale: 1 });
+      gsap.set("#form-card", { opacity: 0, scale: 0.9, y: 20 });
+      gsap.set("#card-glow-blue", { opacity: 0 });
+      gsap.set("#card-glow-red", { opacity: 0 });
+      gsap.set("#submit-btn", { backgroundColor: "#3b82f6" });
+      gsap.set("#form-card", { borderColor: "rgba(96,165,250,0.4)" });
+
+      // swarm instances: [id, startX, startY, startRot, endX, endY, endRot, endScale]
+      const swarms = [
+        { sel: "#s1", sx: -520, sy: 380, sr: -30, ex: -100, ey: 500, er: -8, sc: 0.6 },
+        { sel: "#s2", sx: 1360, sy: 300, sr: 25, ex: 720, ey: 460, er: 10, sc: 0.58 },
+        { sel: "#s3", sx: 400, sy: 1500, sr: 15, ex: 160, ey: 1000, er: 6, sc: 0.5 },
+        { sel: "#s4", sx: -560, sy: 1180, sr: -20, ex: -60, ey: 980, er: -12, sc: 0.62 },
+        { sel: "#s5", sx: 1420, sy: 1180, sr: 18, ex: 700, ey: 980, er: 14, sc: 0.58 },
+        { sel: "#s6", sx: 260, sy: -280, sr: -10, ex: 220, ey: 440, er: -6, sc: 0.48 },
+        { sel: "#s7", sx: 820, sy: 1620, sr: 8, ex: 560, ey: 1160, er: 5, sc: 0.52 },
+      ];
+
+      swarms.forEach((s) => {
+        gsap.set(s.sel, {
+          x: s.sx,
+          y: s.sy,
+          rotation: s.sr,
+          scale: 0.3,
+          opacity: 0,
+        });
+      });
+
+      // ---------- background drift (slow, one-shot, not linear) ----------
+      tl.to(
+        "#bg-photo-wrap",
+        { scale: 1.05, duration: 4.4, ease: "sine.inOut" },
+        0
+      );
+
+      // ---------- calm establishing beat: form fades/settles in ----------
+      tl.to(
+        "#form-card",
+        { opacity: 1, scale: 1, y: 0, duration: 0.45, ease: "power3.out" },
+        0.05
+      );
+      tl.to(
+        "#card-glow-blue",
+        { opacity: 1, duration: 0.5, ease: "power3.out" },
+        0.1
+      );
+
+      // ---------- swarm rushes in, staggered, converging on the form ----------
+      const swarmStart = 0.5;
+      const swarmStagger = 0.1;
+      const swarmDur = 0.5;
+      swarms.forEach((s, i) => {
+        const t = swarmStart + i * swarmStagger;
+        tl.to(
+          s.sel,
+          {
+            x: s.ex,
+            y: s.ey,
+            rotation: s.er,
+            scale: s.sc,
+            opacity: 0.85,
+            duration: swarmDur,
+            ease: "power3.out",
+          },
+          t
+        );
+      });
+      // last swarm (s7, i=6) lands at 0.5 + 6*0.1 + 0.5 = 1.6s -> payoff moment
+
+      // ---------- payoff: overload flash at ~1.6s, synced to "...times a second." ----------
+      const payoff = 1.6;
+      const flashTl = gsap.timeline();
+      flashTl
+        .to("#flash-overlay", { opacity: 0.55, duration: 0.05, ease: "power3.out" })
+        .to("#flash-overlay", { opacity: 0.12, duration: 0.08, ease: "power3.out" })
+        .to("#flash-overlay", { opacity: 0.4, duration: 0.05, ease: "power3.out" })
+        .to("#flash-overlay", { opacity: 0, duration: 0.14, ease: "power3.out" });
+      tl.add(flashTl, payoff);
+
+      tl.to(
+        "#form-card",
+        { scale: 1.04, duration: 0.12, ease: "power3.out" },
+        payoff
+      ).to("#form-card", { scale: 1, duration: 0.3, ease: "power3.out" }, payoff + 0.12);
+
+      tl.to(
+        "#form-card",
+        { borderColor: "rgba(239,68,68,0.9)", duration: 0.1, ease: "power3.out" },
+        payoff
+      ).to(
+        "#form-card",
+        { borderColor: "rgba(96,165,250,0.4)", duration: 0.6, ease: "power3.out" },
+        payoff + 0.5
+      );
+
+      tl.to(
+        "#submit-btn",
+        { backgroundColor: "#ef4444", duration: 0.1, ease: "power3.out" },
+        payoff
+      ).to(
+        "#submit-btn",
+        { backgroundColor: "#3b82f6", duration: 0.6, ease: "power3.out" },
+        payoff + 0.5
+      );
+
+      tl.to(
+        "#card-glow-red",
+        { opacity: 1, duration: 0.12, ease: "power3.out" },
+        payoff
+      ).to(
+        "#card-glow-red",
+        { opacity: 0, duration: 0.55, ease: "power3.out" },
+        payoff + 0.15
+      );
+      tl.to("#card-glow-blue", { opacity: 0.25, duration: 0.12 }, payoff).to(
+        "#card-glow-blue",
+        { opacity: 1, duration: 0.55 },
+        payoff + 0.4
+      );
+
+      // ---------- swarm recedes / dims ----------
+      const recede = payoff + 0.05;
+      swarms.forEach((s, i) => {
+        tl.to(
+          s.sel,
+          {
+            scale: s.sc * 0.55,
+            opacity: 0,
+            duration: 0.5,
+            ease: "power3.out",
+          },
+          recede + i * 0.03
+        );
+      });
+
+      // ---------- brief hold: one gentle breathing pulse on the glow ----------
+      tl.to(
+        "#card-glow-blue",
+        { opacity: 0.8, duration: 0.7, ease: "sine.inOut", yoyo: true, repeat: 1 },
+        2.6
+      );
+
+      // ---------- fade out well before clip end, leaving dead-air tail ----------
+      tl.to("#fade-wrap", { opacity: 0, duration: 0.3, ease: "power3.out" }, 4.2);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

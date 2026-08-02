@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "sources": {
+    "EP4A": "/Users/gordon.jin/Downloads/Teleprompter-2026-07-07_21-49-20.mp4",
+    "EP4B": "/Users/gordon.jin/Downloads/Teleprompter-2026-07-07_21-53-04.mp4"
+  },
+  "ranges": [
+    {
+      "source": "EP4A", "start": 50.47, "end": 56.94,
+      "beat": "HOOK",
+      "quote": "Those click-all-the-traffic-lights tests are doing two jobs at once. Let me show you.",
+      "reason": "Second delivery — first attempt (24.72-27.38) cut off mid-sentence.",
+      "zoom": {"at": 5.19, "scale": 1.2}
+    },
+    {
+      "source": "EP4A", "start": 66.61, "end": 79.34,
+      "beat": "PROBLEM",
+      "quote": "Bots can hammer a sign-up form thousands of times a second. Fake accounts, spam, credential stuffing. You need to tell humans apart from scripts without annoying real users.",
+      "reason": "Single clean take, matches script.",
+      "zoom": {"at": 8.33, "scale": 1.2}
+    },
+    {
+      "source": "EP4A", "start": 93.61, "end": 105.44,
+      "beat": "BUILD",
+      "quote": "The first line of defense is invisible. Behavioral signals, how your mouse moves, timing between keystrokes, browser fingerprint. Bots move in suspiciously perfect lines.",
+      "reason": "Second take — first attempt (80.48-87.88) stopped short before 'browser fingerprint' and the closing line.",
+      "zoom": {"at": 1.97, "scale": 1.2}
+    },
+    {
+      "source": "EP4A", "start": 106.73, "end": 123.44,
+      "beat": "NEW_COMPONENT",
+      "quote": "Only if you look suspicious do you get the visible challenge, a CAPTCHA. Classic ones ask you to label images, which conveniently generated training data for computer vision models. The bar keeps rising because AI now solves the old ones.",
+      "reason": "Clean take, matches the approved script exactly (the alternate take in EP4B adds an unwanted Turing-test tangent).",
+      "zoom": {"at": 13.95, "scale": 1.2}
+    },
+    {
+      "source": "EP4B", "start": 38.13, "end": 49.96,
+      "beat": "AI_ANGLE",
+      "quote": "It's an arms race. The same vision models that read street signs for self-driving cars can also solve image CAPTCHAs, so defenses keep shifting towards behavior and device signals.",
+      "reason": "One continuous-breath delivery, cleaner than the alternate take split across multiple pauses in EP4A.",
+      "zoom": {"at": 1.33, "scale": 1.2}
+    },
+    {
+      "source": "EP4B", "start": 52.55, "end": 60.94,
+      "beat": "PAYOFF_NEXT",
+      "quote": "You proving you're human is also teaching machines to see. Next episode, we'll learn why you never get charged twice.",
+      "reason": "Clean take matching script exactly (EP4A's first attempt at this line was a flub; its retake added an extra filler word).",
+      "zoom": {"at": 3.73, "scale": 1.2}
+    }
+  ],
+  "grade": "eq=contrast=1.15:saturation=1.05,colorbalance=rs=-0.04:gs=0.02:bs=0.05:rm=0.01:gm=0.0:bm=-0.01:rh=0.06:gh=0.02:bh=-0.06,vignette=angle=0.7,unsharp=5:5:0.5:5:5:0.0,noise=alls=7:allf=t+u",
+  "overlays": [
+    {"file": "animations/slot_title/render.webm", "start_in_output": 0.0, "duration": 2.766},
+    {"file": "animations/slot_hook/render.webm", "start_in_output": 2.8, "duration": 3.400},
+    {"file": "animations/slot_problem/render.webm", "start_in_output": 7.9, "duration": 5.600},
+    {"file": "animations/slot_build/render.webm", "start_in_output": 19.5, "duration": 4.000},
+    {"file": "animations/slot_new_component/render.webm", "start_in_output": 32.6, "duration": 7.900},
+    {"file": "animations/slot_ai_angle/render.webm", "start_in_output": 47.8, "duration": 6.200},
+    {"file": "animations/slot_payoff/render.webm", "start_in_output": 61.3, "duration": 3.700}
+  ],
+  "subtitles": "master.ass",
+  "total_duration_s": 67.96
+}

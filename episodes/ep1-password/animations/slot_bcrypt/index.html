@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>bcrypt</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: "Helvetica Neue", -apple-system, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      #band {
+        position: absolute;
+        left: 60px;
+        top: 1210px;
+        width: 960px;
+        height: 480px;
+        overflow: hidden;
+      }
+
+      #backdrop-panel {
+        position: absolute;
+        inset: 0;
+        border-radius: 34px;
+        background: radial-gradient(ellipse 68% 72% at 50% 46%, rgba(202,138,4,0.17), rgba(11,10,8,0.90) 74%);
+        box-shadow: inset 0 0 90px rgba(0,0,0,0.55);
+        opacity: 0;
+      }
+
+      #vignette {
+        position: absolute;
+        inset: 0;
+        border-radius: 34px;
+        background: radial-gradient(ellipse 58% 62% at 50% 46%, transparent 28%, rgba(0,0,0,0.94) 100%);
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      #kicker {
+        position: absolute;
+        left: 0;
+        top: 10px;
+        width: 960px;
+        text-align: center;
+        opacity: 0;
+      }
+      #kicker .main {
+        font-size: 30px;
+        font-weight: 800;
+        letter-spacing: 5px;
+        color: #e6b73f;
+      }
+      #kicker .sub {
+        margin-top: 4px;
+        font-size: 16px;
+        font-weight: 500;
+        letter-spacing: 2px;
+        color: rgba(230,215,190,0.72);
+      }
+
+      #assembly {
+        position: absolute;
+        inset: 0;
+      }
+
+      #ring {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 960px;
+        height: 480px;
+        opacity: 0;
+      }
+
+      #glow {
+        position: absolute;
+        left: 330px;
+        top: 100px;
+        width: 300px;
+        height: 300px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(232,196,90,0.95), rgba(202,138,4,0) 70%);
+        filter: blur(20px);
+        opacity: 0;
+      }
+
+      #hourglass-wrap {
+        position: absolute;
+        left: 280px;
+        top: 50px;
+        width: 400px;
+        height: 400px;
+        filter: drop-shadow(0 10px 30px rgba(0,0,0,0.85));
+      }
+
+      #hourglass-img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+
+      #sand-mask {
+        position: absolute;
+        left: 30%;
+        top: 51%;
+        width: 40%;
+        height: 45%;
+        overflow: hidden;
+        clip-path: polygon(50% 0%, 80% 22%, 92% 55%, 82% 88%, 50% 100%, 18% 88%, 8% 55%, 20% 22%);
+      }
+
+      #sand-fill {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 0%;
+        background: linear-gradient(180deg, rgba(226,184,97,0.88), rgba(168,116,28,0.92));
+      }
+
+      #trickle {
+        position: absolute;
+        left: 49%;
+        top: 46%;
+        width: 5px;
+        height: 70px;
+        background: linear-gradient(180deg, rgba(230,183,63,0.9), rgba(230,183,63,0));
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="3.50" data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="3.50" data-track-index="1">
+        <div id="band">
+          <div id="backdrop-panel"></div>
+          <div id="vignette"></div>
+
+          <div id="kicker">
+            <div class="main">DELIBERATELY SLOW</div>
+            <div class="sub">BCRYPT &middot; COST FACTOR 12</div>
+          </div>
+
+          <div id="assembly" data-layout-allow-overflow="true">
+            <svg id="ring" viewBox="0 0 960 480" xmlns="http://www.w3.org/2000/svg">
+              <circle
+                id="ring-circle"
+                cx="480"
+                cy="250"
+                r="228"
+                fill="none"
+                stroke="#ca8a04"
+                stroke-width="2"
+                stroke-dasharray="4 10"
+                opacity="0.55"
+              />
+            </svg>
+
+            <div id="glow"></div>
+
+            <div id="hourglass-wrap">
+              <img id="hourglass-img" src="assets/image_009.png" alt="" />
+              <div id="sand-mask">
+                <div id="sand-fill"></div>
+              </div>
+              <div id="trickle"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ---- Phase 0 (t=0 -> 0.35): establish — panel, hourglass, ring frame in ----
+      tl.set("#assembly", { scale: 0.94, transformOrigin: "480px 250px" }, 0);
+      tl.set("#band", { opacity: 1 }, 0);
+
+      tl.to("#backdrop-panel", { opacity: 1, duration: 0.3, ease: "power3.out" }, 0);
+      tl.to("#assembly", { opacity: 1, scale: 1, duration: 0.35, ease: "power3.out" }, 0);
+      tl.fromTo("#hourglass-wrap", { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.35, ease: "power3.out", transformOrigin: "200px 200px" }, 0);
+      tl.fromTo("#ring", { opacity: 0, rotation: 0 }, { opacity: 0.55, rotation: 18, duration: 0.35, ease: "power3.out", transformOrigin: "480px 250px" }, 0.05);
+      tl.fromTo("#kicker", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.35, ease: "power3.out" }, 0.1);
+
+      // ---- Phase 1 (t=0.45 -> 2.30): the wait — sand rises, vignette builds, slow breathing zoom ----
+      tl.to("#sand-fill", { height: "76%", duration: 1.82, ease: "sine.inOut" }, 0.45);
+      tl.to("#vignette", { opacity: 0.55, duration: 1.85, ease: "sine.inOut" }, 0.45);
+      tl.to("#ring-circle", { rotation: 46, duration: 1.85, ease: "sine.inOut", transformOrigin: "480px 250px" }, 0.45);
+      tl.to("#kicker", { opacity: 0, y: -10, duration: 0.35, ease: "power2.out" }, 0.5);
+
+      // heavy, almost-imperceptible breathing zoom on the whole assembly — deliberately slow, sine.inOut, finite
+      tl.to("#assembly", { scale: 1.018, duration: 0.3, ease: "sine.inOut", repeat: 5, yoyo: true, transformOrigin: "480px 250px" }, 0.45);
+
+      // thin trickle pulsing at the neck — still falling, finite repeats
+      tl.fromTo("#trickle", { opacity: 0.15 }, { opacity: 0.85, duration: 0.18, ease: "sine.inOut", repeat: 8, yoyo: true }, 0.5);
+      tl.to("#trickle", { opacity: 0, duration: 0.2, ease: "power2.out" }, 2.35);
+
+      // ---- Phase 2 (t=2.30 -> 2.90): release — punctuation glow lands with "too." ----
+      tl.to("#sand-fill", { height: "84%", duration: 0.25, ease: "power2.out" }, 2.3);
+      tl.set("#glow", { scale: 0.75, transformOrigin: "480px 250px" }, 2.35);
+      tl.to("#glow", { opacity: 0.8, scale: 1.25, duration: 0.15, ease: "power2.out", transformOrigin: "480px 250px" }, 2.35);
+      tl.to("#vignette", { opacity: 0.18, duration: 0.3, ease: "power2.out" }, 2.45);
+      tl.to("#assembly", { scale: 1.045, duration: 0.15, ease: "power2.out", transformOrigin: "480px 250px" }, 2.4);
+      tl.to("#assembly", { scale: 1, duration: 0.2, ease: "power2.in", transformOrigin: "480px 250px" }, 2.55);
+      tl.to("#glow", { opacity: 0, duration: 0.4, ease: "power2.in" }, 2.5);
+
+      // ---- Hold through ~3.25, then fade ----
+      tl.to("#band", { opacity: 0, duration: 0.25, ease: "power2.out" }, 3.25);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

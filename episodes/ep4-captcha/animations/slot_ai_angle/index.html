@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body {
+        font-family: "Helvetica Neue", -apple-system, sans-serif;
+      }
+      .mono {
+        font-family: "JetBrains Mono", monospace;
+      }
+      #root,
+      .clip {
+        position: absolute;
+        inset: 0;
+        width: 1080px;
+        height: 1920px;
+      }
+
+      /* ---- bottom accent band (y 1210-1690, x 60-1020) ---- */
+      #band {
+        position: absolute;
+        left: 60px;
+        top: 1210px;
+        width: 960px;
+        height: 480px;
+        overflow: hidden;
+        opacity: 0;
+      }
+
+      /* tension row (tug-of-war escalation cue) */
+      #tensionRow {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 960px;
+        height: 90px;
+      }
+      #tensionLine {
+        position: absolute;
+        left: 300px;
+        top: 42px;
+        width: 360px;
+        height: 4px;
+        background: #dc2626;
+        transform-origin: 50% 50%;
+      }
+      .arrow {
+        position: absolute;
+        top: 22px;
+        width: 40px;
+        height: 40px;
+        background: #dc2626;
+      }
+      #arrowLeft {
+        left: 260px;
+        clip-path: polygon(0 0, 100% 50%, 0 100%);
+      }
+      #arrowRight {
+        left: 660px;
+        clip-path: polygon(100% 0, 0 50%, 100% 100%);
+      }
+
+      /* street-sign centerpiece */
+      #signWrap {
+        position: absolute;
+        left: 360px;
+        top: 170px;
+        width: 240px;
+        height: 240px;
+        opacity: 0;
+      }
+      #signWrap img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+      }
+
+      /* CV detection bounding-box corner brackets */
+      .corner {
+        position: absolute;
+        width: 44px;
+        height: 44px;
+        opacity: 0;
+      }
+      #cornerTL {
+        left: 335px;
+        top: 145px;
+        border-top: 6px solid #ea580c;
+        border-left: 6px solid #ea580c;
+        transform-origin: top left;
+      }
+      #cornerTR {
+        left: 581px;
+        top: 145px;
+        border-top: 6px solid #ea580c;
+        border-right: 6px solid #ea580c;
+        transform-origin: top right;
+      }
+      #cornerBL {
+        left: 335px;
+        top: 391px;
+        border-bottom: 6px solid #ea580c;
+        border-left: 6px solid #ea580c;
+        transform-origin: bottom left;
+      }
+      #cornerBR {
+        left: 581px;
+        top: 391px;
+        border-bottom: 6px solid #ea580c;
+        border-right: 6px solid #ea580c;
+        transform-origin: bottom right;
+      }
+
+      /* confidence label */
+      #confLabel {
+        position: absolute;
+        left: 335px;
+        top: 100px;
+        padding: 7px 12px;
+        background: linear-gradient(90deg, #7a1414 0%, #b8360f 100%);
+        color: #fff;
+        font-size: 24px;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+        opacity: 0;
+      }
+      #confValue {
+        color: #ffd9c2;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="6.20"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="clip1" class="clip" data-start="0" data-duration="6.20" data-track-index="1">
+        <div id="band">
+          <div id="tensionRow">
+            <div id="tensionLine"></div>
+            <div id="arrowLeft" class="arrow"></div>
+            <div id="arrowRight" class="arrow"></div>
+          </div>
+
+          <div id="signWrap">
+            <img src="assets/image_007.png" alt="stop sign" />
+          </div>
+
+          <div id="cornerTL" class="corner"></div>
+          <div id="cornerTR" class="corner"></div>
+          <div id="cornerBL" class="corner"></div>
+          <div id="cornerBR" class="corner"></div>
+
+          <div id="confLabel" class="mono">
+            <span id="labelText">STOP SIGN</span> <span id="confValue">0.0%</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      const conf = { v: 0 };
+      const confEl = document.getElementById("confValue");
+      const labelEl = document.getElementById("labelText");
+      function renderConf() {
+        confEl.textContent = conf.v.toFixed(1) + "%";
+      }
+
+      // ---- band + sign settle in ----
+      tl.to("#band", { opacity: 1, duration: 0.15, ease: "power3.out" }, 0);
+      tl.fromTo(
+        "#signWrap",
+        { opacity: 0, scale: 0.92 },
+        { opacity: 1, scale: 1, duration: 0.35, ease: "power3.out" },
+        0
+      );
+
+      // ---- tension / tug-of-war cue converging to a decisive snap at "arms race." (~1.3s) ----
+      tl.to(
+        "#arrowLeft",
+        { x: 160, duration: 0.65, ease: "back.out(2.2)" },
+        0.65
+      );
+      tl.to(
+        "#arrowRight",
+        { x: -160, duration: 0.65, ease: "back.out(2.2)" },
+        0.65
+      );
+      tl.fromTo(
+        "#tensionLine",
+        { scaleX: 0 },
+        { scaleX: 1, duration: 0.65, ease: "back.out(2.2)" },
+        0.65
+      );
+
+      // clear the tension cue right after the snap so only one idea reads at a time
+      tl.to(
+        "#tensionRow",
+        { opacity: 0, duration: 0.3, ease: "power3.out" },
+        1.45
+      );
+
+      // ---- detection HUD reveal: bounding-box corners draw in ----
+      tl.fromTo(
+        "#cornerTL",
+        { opacity: 0, scale: 0.6 },
+        { opacity: 1, scale: 1, duration: 0.32, ease: "back.out(1.8)" },
+        1.45
+      );
+      tl.fromTo(
+        "#cornerTR",
+        { opacity: 0, scale: 0.6 },
+        { opacity: 1, scale: 1, duration: 0.32, ease: "back.out(1.8)" },
+        1.53
+      );
+      tl.fromTo(
+        "#cornerBL",
+        { opacity: 0, scale: 0.6 },
+        { opacity: 1, scale: 1, duration: 0.32, ease: "back.out(1.8)" },
+        1.61
+      );
+      tl.fromTo(
+        "#cornerBR",
+        { opacity: 0, scale: 0.6 },
+        { opacity: 1, scale: 1, duration: 0.32, ease: "back.out(1.8)" },
+        1.69
+      );
+
+      // confidence label reveal + tick-up (lands through "street signs for self-driving cars")
+      tl.fromTo(
+        "#confLabel",
+        { opacity: 0, y: 8 },
+        { opacity: 1, y: 0, duration: 0.3, ease: "power3.out" },
+        1.75
+      );
+      tl.to(
+        conf,
+        { v: 98.7, duration: 0.6, ease: "power3.out", onUpdate: renderConf },
+        1.9
+      );
+
+      // hold on "STOP SIGN 98.7%" through the self-driving-cars clause
+      // ---- re-detection pulse on "...can also solve image CAPTCHAs" (~3.6s) ----
+      tl.to(
+        "#confLabel",
+        { opacity: 0, duration: 0.15, ease: "power3.out" },
+        3.6
+      );
+      tl.to(
+        ["#cornerTL", "#cornerTR", "#cornerBL", "#cornerBR"],
+        { scale: 1.06, duration: 0.15, ease: "power3.out" },
+        3.6
+      );
+      tl.to(
+        ["#cornerTL", "#cornerTR", "#cornerBL", "#cornerBR"],
+        { scale: 1, duration: 0.2, ease: "power3.out" },
+        3.75
+      );
+      tl.call(
+        () => {
+          labelEl.textContent = "CAPTCHA TILE";
+          conf.v = 0;
+          renderConf();
+        },
+        [],
+        3.75
+      );
+      tl.to(
+        "#confLabel",
+        { opacity: 1, duration: 0.15, ease: "power3.out" },
+        3.8
+      );
+      tl.to(
+        conf,
+        { v: 96.4, duration: 0.5, ease: "power3.out", onUpdate: renderConf },
+        3.9
+      );
+
+      // hold through the final clause, then fade the whole band out
+      tl.to("#band", { opacity: 0, duration: 0.3, ease: "power3.out" }, 5.9);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

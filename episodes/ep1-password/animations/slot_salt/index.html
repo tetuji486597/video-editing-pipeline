@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>salt</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: "Helvetica Neue", -apple-system, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      .band {
+        position: absolute;
+        left: 60px;
+        top: 1210px;
+        width: 960px;
+        height: 480px;
+        overflow: visible;
+      }
+
+      .bandInner {
+        position: relative;
+        width: 960px;
+        height: 480px;
+        filter: drop-shadow(0 6px 22px rgba(0,0,0,0.85)) drop-shadow(0 0 34px rgba(0,0,0,0.55));
+      }
+
+      svg.layer { position: absolute; left: 0; top: 0; width: 960px; height: 480px; overflow: visible; }
+
+      .fruitWrap {
+        position: absolute;
+        left: 205px;
+        top: 185px;
+        width: 110px;
+        height: 110px;
+        overflow: hidden;
+        border-radius: 10px;
+      }
+      .fruitImg {
+        position: absolute;
+        left: -55px;
+        top: -200px;
+        width: 540px;
+        height: 360px;
+      }
+
+      .grain {
+        position: absolute;
+        overflow: hidden;
+        border-radius: 5px;
+        filter: drop-shadow(0 0 5px rgba(255,255,255,0.95)) drop-shadow(0 0 10px rgba(148,197,255,0.5));
+      }
+      .grainImg {
+        position: absolute;
+        width: 1140px;
+        height: 760px;
+      }
+
+      .sparkle {
+        position: absolute;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(200,230,255,0.55) 35%, rgba(16,185,129,0) 72%);
+        pointer-events: none;
+      }
+
+      .dot { filter: drop-shadow(0 0 5px rgba(0,0,0,0.35)); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="4.51" data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="4.51" data-track-index="1">
+        <div class="band" id="band">
+          <div class="bandInner" id="bandInner">
+
+            <!-- LAYER A: blender base + pitcher glass + tinted mush -->
+            <svg class="layer" id="svgA" viewBox="0 0 960 480">
+              <defs>
+                <clipPath id="pitcherClip">
+                  <path d="M170,90 L340,90 L308,320 L202,320 Z" />
+                </clipPath>
+                <linearGradient id="mushGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#34d399" />
+                  <stop offset="100%" stop-color="#059669" />
+                </linearGradient>
+              </defs>
+
+              <!-- motor base -->
+              <rect x="150" y="320" width="210" height="60" rx="14" fill="#1c2128" stroke="rgba(255,255,255,0.08)" stroke-width="2" />
+              <circle cx="192" cy="350" r="10" fill="#3a4149" />
+              <circle cx="228" cy="350" r="10" fill="#10b981" />
+              <circle cx="318" cy="350" r="13" fill="#3a4149" stroke="rgba(255,255,255,0.25)" stroke-width="2" />
+
+              <!-- pitcher glass -->
+              <path id="pitcherPath" d="M170,90 L340,90 L308,320 L202,320 Z" fill="rgba(255,255,255,0.16)" stroke="rgba(255,255,255,0.9)" stroke-width="3.5" />
+              <!-- glass shine streak -->
+              <polygon points="196,110 214,110 190,300 178,300" fill="rgba(255,255,255,0.22)" />
+
+              <!-- tinted mush fill, revealed after blend -->
+              <rect id="mush" x="185" y="130" width="150" height="190" clip-path="url(#pitcherClip)" fill="url(#mushGrad)" opacity="0" />
+            </svg>
+
+            <!-- fruit real photo, clipped to pitcher interior -->
+            <div class="fruitWrap" id="fruitWrap">
+              <img class="fruitImg" src="assets/image_008.png" alt="" data-layout-allow-overflow="true" />
+            </div>
+
+            <!-- salt grains: real photo crops, individually placed + rotated -->
+            <div class="grain" id="g1" style="left:207px; top:137px; width:46px; height:46px;">
+              <img class="grainImg" src="assets/image_007.png" style="left:-477px; top:-277px;" data-layout-allow-overflow="true" />
+            </div>
+            <div class="grain" id="g2" style="left:237px; top:127px; width:42px; height:42px;">
+              <img class="grainImg" src="assets/image_007.png" style="left:-625px; top:-375px;" data-layout-allow-overflow="true" />
+            </div>
+            <div class="grain" id="g3" style="left:262px; top:142px; width:44px; height:44px;">
+              <img class="grainImg" src="assets/image_007.png" style="left:-377px; top:-427px;" data-layout-allow-overflow="true" />
+            </div>
+            <div class="grain" id="g4" style="left:222px; top:152px; width:38px; height:38px;">
+              <img class="grainImg" src="assets/image_007.png" style="left:-727px; top:-227px;" data-layout-allow-overflow="true" />
+            </div>
+            <div class="grain" id="g5" style="left:247px; top:132px; width:40px; height:40px;">
+              <img class="grainImg" src="assets/image_007.png" style="left:-277px; top:-527px;" data-layout-allow-overflow="true" />
+            </div>
+
+            <!-- sparkle impact bursts on landing -->
+            <div class="sparkle" id="s1" style="left:207px; top:137px; width:46px; height:46px;"></div>
+            <div class="sparkle" id="s2" style="left:238px; top:128px; width:44px; height:44px;"></div>
+            <div class="sparkle" id="s3" style="left:263px; top:143px; width:44px; height:44px;"></div>
+            <div class="sparkle" id="s4" style="left:222px; top:153px; width:40px; height:40px;"></div>
+            <div class="sparkle" id="s5" style="left:248px; top:133px; width:42px; height:42px;"></div>
+
+            <!-- LAYER B: rainbow cheat-sheet callback + break payoff -->
+            <svg class="layer" id="svgB" viewBox="0 0 960 480">
+              <g id="rainbowRow" opacity="0">
+                <circle class="dot" id="d1" cx="570" cy="240" r="26" fill="#ef4444" stroke="rgba(255,255,255,0)" stroke-width="0" />
+                <circle class="dot" id="d2" cx="625" cy="240" r="26" fill="#f97316" stroke="rgba(255,255,255,0)" stroke-width="0" />
+                <circle class="dot" id="d3" cx="680" cy="240" r="26" fill="#22c55e" stroke="rgba(255,255,255,0)" stroke-width="0" />
+                <circle class="dot" id="d4" cx="735" cy="240" r="26" fill="#3b82f6" stroke="rgba(255,255,255,0)" stroke-width="0" />
+              </g>
+
+              <!-- shatter payoff -->
+              <g id="breakGroup" opacity="0">
+                <circle id="shock" cx="652" cy="240" r="8" fill="none" stroke="#f8fafc" stroke-width="5" opacity="0.9" />
+                <line class="crack" id="c1" x1="652" y1="240" x2="560" y2="190" stroke="#f8fafc" stroke-width="3" stroke-linecap="round" stroke-dasharray="105" stroke-dashoffset="105" opacity="0.9" />
+                <line class="crack" id="c2" x1="652" y1="240" x2="560" y2="290" stroke="#f8fafc" stroke-width="3" stroke-linecap="round" stroke-dasharray="105" stroke-dashoffset="105" opacity="0.9" />
+                <line class="crack" id="c3" x1="652" y1="240" x2="745" y2="195" stroke="#f8fafc" stroke-width="3" stroke-linecap="round" stroke-dasharray="104" stroke-dashoffset="104" opacity="0.9" />
+                <line class="crack" id="c4" x1="652" y1="240" x2="745" y2="285" stroke="#f8fafc" stroke-width="3" stroke-linecap="round" stroke-dasharray="104" stroke-dashoffset="104" opacity="0.9" />
+                <line class="crack" id="c5" x1="652" y1="240" x2="652" y2="168" stroke="#f8fafc" stroke-width="3" stroke-linecap="round" stroke-dasharray="72" stroke-dashoffset="72" opacity="0.9" />
+                <line class="crack" id="c6" x1="652" y1="240" x2="652" y2="315" stroke="#f8fafc" stroke-width="3" stroke-linecap="round" stroke-dasharray="75" stroke-dashoffset="75" opacity="0.9" />
+              </g>
+            </svg>
+
+          </div>
+        </div>
+      </section>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      const bandInner = document.getElementById("bandInner");
+      const fruitWrap = document.getElementById("fruitWrap");
+      const mush = document.getElementById("mush");
+      const rainbowRow = document.getElementById("rainbowRow");
+      const breakGroup = document.getElementById("breakGroup");
+      const dots = ["d1", "d2", "d3", "d4"].map((id) => document.getElementById(id));
+      const cracks = gsap.utils.toArray(".crack");
+      const shock = document.getElementById("shock");
+
+      const grainDefs = [
+        { id: "g1", sparkle: "s1", dy: -125, dx: -10, rot: -18 },
+        { id: "g2", sparkle: "s2", dy: -115, dx: 8, rot: 22 },
+        { id: "g3", sparkle: "s3", dy: -130, dx: -6, rot: -10 },
+        { id: "g4", sparkle: "s4", dy: -140, dx: 10, rot: 30 },
+        { id: "g5", sparkle: "s5", dy: -120, dx: -8, rot: -25 },
+      ];
+
+      // initial states
+      gsap.set(bandInner, { opacity: 0, scale: 0.92, transformOrigin: "50% 100%" });
+      gsap.set(fruitWrap, { opacity: 1 });
+      grainDefs.forEach((g) => {
+        gsap.set(`#${g.id}`, { opacity: 0, x: g.dx, y: g.dy, rotation: g.rot, filter: "blur(7px)" });
+        gsap.set(`#${g.sparkle}`, { opacity: 0, scale: 0 });
+      });
+      gsap.set(rainbowRow, { opacity: 0, scale: 0.85, transformOrigin: "652px 240px" });
+      gsap.set(breakGroup, { opacity: 0 });
+
+      // entrance of the whole assembly
+      tl.to(bandInner, { opacity: 1, scale: 1, duration: 0.35, ease: "power3.out" }, 0);
+
+      // Phase 1: salt grains fall (real photo crops), motion-blur trail, then sparkle burst on landing
+      grainDefs.forEach((g, i) => {
+        const startAt = 0.3 + i * 0.13;
+        tl.to(`#${g.id}`, { opacity: 1, x: 0, y: 0, rotation: g.rot * 0.35, duration: 0.42, ease: "power3.out" }, startAt);
+        tl.to(`#${g.id}`, { filter: "blur(0px)", duration: 0.34, ease: "power3.out" }, startAt + 0.06);
+        // tiny settle bounce after landing
+        tl.to(`#${g.id}`, { y: 4, duration: 0.1, ease: "power3.out", yoyo: true, repeat: 1 }, startAt + 0.42);
+        // impact sparkle
+        tl.to(`#${g.sparkle}`, { opacity: 0.95, scale: 1.5, duration: 0.16, ease: "power3.out" }, startAt + 0.4);
+        tl.to(`#${g.sparkle}`, { opacity: 0, duration: 0.2, ease: "power3.out" }, startAt + 0.52);
+      });
+
+      // blend jitter (finite vibration on the whole assembly)
+      tl.to(bandInner, { x: 3, y: -2, duration: 0.045, ease: "power3.out", repeat: 9, yoyo: true }, 1.55);
+
+      // settle into a tinted smoothie mush; fruit blends away; grains disappear into the mix
+      tl.to(mush, { opacity: 1, duration: 0.3, ease: "power3.out" }, 1.95);
+      tl.to(fruitWrap, { opacity: 0, duration: 0.3, ease: "power3.out" }, 1.95);
+      grainDefs.forEach((g) => {
+        tl.to(`#${g.id}`, { opacity: 0, duration: 0.25, ease: "power3.out" }, 2.0);
+      });
+
+      // Phase 2: rainbow cheat-sheet callback appears plainly (its own beat, no overlap)
+      tl.to(rainbowRow, { opacity: 1, scale: 1, duration: 0.32, ease: "power3.out" }, 2.55);
+
+      // Phase 3: payoff -- the cheat-sheet shatters right as "useless" lands (~t=3.5)
+      tl.to(breakGroup, { opacity: 1, duration: 0.01 }, 3.42);
+      tl.to(shock, { attr: { r: 130 }, opacity: 0, duration: 0.38, ease: "power3.out" }, 3.42);
+      tl.to(cracks, { attr: { "stroke-dashoffset": 0 }, duration: 0.3, ease: "power3.out", stagger: 0.035 }, 3.42);
+      dots.forEach((dot, i) => {
+        tl.to(dot, { opacity: 0.45, duration: 0.09, ease: "power3.out", yoyo: true, repeat: 1 }, 3.44 + i * 0.03);
+        tl.to(dot, { fill: "#9ca3af", attr: { stroke: "#e5e7eb", "stroke-width": 3 }, duration: 0.42, ease: "power3.out" }, 3.5 + i * 0.03);
+      });
+      tl.to(cracks, { opacity: 0.35, duration: 0.3, ease: "power3.out" }, 3.9);
+
+      // hold broken state, then fade the whole overlay out
+      tl.to(bandInner, { opacity: 0, duration: 0.26, ease: "power3.out" }, 4.25);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

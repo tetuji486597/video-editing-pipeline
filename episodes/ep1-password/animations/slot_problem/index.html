@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>problem</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: "Helvetica Neue", -apple-system, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      /* full-bleed fill child -- never paint background on #root/.clip directly */
+      #bg {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        background:
+          radial-gradient(ellipse 820px 760px at 50% 38%, rgba(245, 158, 11, 0.10) 0%, rgba(245, 158, 11, 0) 60%),
+          radial-gradient(ellipse 900px 700px at 12% 92%, rgba(120, 24, 16, 0.28) 0%, rgba(120, 24, 16, 0) 65%),
+          radial-gradient(ellipse 1300px 1500px at 50% 58%, #1c0f0a 0%, #120a08 55%, #0a0706 100%),
+          linear-gradient(180deg, #110b09 0%, #0b0807 100%);
+      }
+
+      #cameraWrap {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        transform-origin: 50% 44%;
+      }
+
+      /* ---- background ledger layer (parallax, dim, blurred) ---- */
+      #ledgerLayer {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 118px;
+        height: 560px;
+        overflow: hidden;
+        filter: blur(0.6px);
+        opacity: 0;
+        background: repeating-linear-gradient(
+          to bottom,
+          transparent 0px,
+          transparent 76px,
+          rgba(245, 158, 11, 0.06) 77px,
+          transparent 78px
+        );
+      }
+      #ledgerLayer .row {
+        position: absolute;
+        left: 140px;
+        width: 800px;
+        font-family: "Courier New", monospace;
+        font-size: 27px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        color: rgb(197, 148, 79);
+        white-space: nowrap;
+      }
+      #ledgerLayer .row.alt { color: rgb(176, 171, 166); }
+      #ledgerLayer .row.hit { color: #ffb020; }
+
+      /* ---- jar scene (foreground, real photo + vector hybrid) ---- */
+      #jarWrapper {
+        position: absolute;
+        left: 50%;
+        top: 560px;
+        width: 560px;
+        height: 900px;
+      }
+
+      #jarShadow {
+        position: absolute;
+        left: 50%;
+        top: 500px;
+        width: 380px;
+        height: 56px;
+        transform: translateX(-50%);
+        border-radius: 50%;
+        background: radial-gradient(ellipse, rgba(0, 0, 0, 0.65) 0%, rgba(0, 0, 0, 0) 72%);
+        filter: blur(6px);
+      }
+
+      #jarImgMask {
+        position: absolute;
+        left: 40px;
+        top: 30px;
+        width: 480px;
+        height: 480px;
+        overflow: hidden;
+        -webkit-mask-image: radial-gradient(closest-side, black 76%, transparent 100%);
+        mask-image: radial-gradient(closest-side, black 76%, transparent 100%);
+      }
+
+      #jarImg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        filter: contrast(1.14) brightness(0.86) saturate(0.85) drop-shadow(0 30px 40px rgba(0, 0, 0, 0.5));
+      }
+
+      #jarTint {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(155deg, rgba(245, 158, 11, 0.38) 0%, rgba(20, 8, 6, 0.1) 42%, rgba(15, 6, 5, 0.62) 100%);
+        mix-blend-mode: color;
+        pointer-events: none;
+      }
+
+      #glassHighlight {
+        position: absolute;
+        left: -336px;
+        top: 0;
+        width: 258px;
+        height: 100%;
+        background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.55) 50%, transparent 70%);
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      #crackSvg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+
+      /* real shattered-glass photo, integrated via blend-mode + amber tint (not pasted flat) */
+      .shatterImg {
+        position: absolute;
+        left: 20px;
+        top: 40px;
+        width: 440px;
+        height: 450px;
+        object-fit: contain;
+        mix-blend-mode: screen;
+        opacity: 0;
+        filter: brightness(1.05) drop-shadow(0 0 18px rgba(245, 158, 11, 0.5));
+      }
+      /* trail duplicates use CSS background-image (not <img>) to avoid duplicate media discovery */
+      .shatterTrailImg {
+        background-image: url("assets/image_003.png");
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+      }
+      #shatterTint {
+        position: absolute;
+        left: 20px;
+        top: 40px;
+        width: 440px;
+        height: 450px;
+        background: radial-gradient(circle at 55% 45%, rgba(245, 158, 11, 0.55) 0%, rgba(120, 20, 10, 0.25) 55%, transparent 78%);
+        mix-blend-mode: color;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      #flash {
+        position: absolute;
+        left: 50%;
+        top: 1000px;
+        width: 900px;
+        height: 900px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(255, 244, 214, 0.95) 0%, rgba(245, 158, 11, 0.55) 35%, rgba(245, 158, 11, 0) 70%);
+        mix-blend-mode: screen;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      /* label */
+      #labelChip {
+        position: absolute;
+        left: 130px;
+        top: 300px;
+        width: 300px;
+        height: 128px;
+        border-radius: 8px;
+        background: rgba(6, 4, 3, 0.55);
+        border: 1px solid rgba(245, 158, 11, 0.25);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+      #labelChip .charRow { display: flex; }
+      #labelChip .tag { font-size: 19px; font-weight: 700; letter-spacing: 2px; color: #f59e0b; }
+      #labelChip .val { font-size: 26px; font-weight: 700; letter-spacing: 1px; color: #ffffff; font-family: "Courier New", monospace; }
+      #labelChip .ch { display: inline-block; will-change: transform, opacity; }
+
+      .glitchLayer {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        opacity: 0;
+        pointer-events: none;
+      }
+      .glitchLayer.r { color: #ff3b3b; mix-blend-mode: screen; }
+      .glitchLayer.c { color: #33e6ff; mix-blend-mode: screen; }
+      .glitchLayer .tag { font-size: 19px; font-weight: 700; letter-spacing: 2px; }
+      .glitchLayer .val { font-size: 26px; font-weight: 700; letter-spacing: 1px; font-family: "Courier New", monospace; }
+
+      /* particles: elongated streak shards for motion-blur trails */
+      #particles { position: absolute; left: 50%; top: 430px; width: 0; height: 0; }
+      .shardWrap { position: absolute; left: 0; top: 0; }
+      .shard {
+        position: absolute;
+        left: -3px;
+        top: -20px;
+        width: 6px;
+        height: 20px;
+        border-radius: 3px;
+        transform-origin: 50% 100%;
+        background: linear-gradient(to top, rgba(245, 158, 11, 0) 0%, #f59e0b 45%, #fff4d6 100%);
+        opacity: 0;
+      }
+
+      /* bottom band kept dark/uncluttered for captions living at y ~1720-1900 */
+      #bottomFade {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 460px;
+        z-index: 5;
+        background: linear-gradient(
+          to bottom,
+          rgba(9, 6, 5, 0) 0%,
+          rgba(8, 5, 4, 0.55) 35%,
+          rgba(7, 4, 3, 0.92) 65%,
+          #060403 100%
+        );
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="3.78" data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="3.78" data-track-index="1">
+        <div id="bg"></div>
+
+        <div id="cameraWrap">
+          <div id="ledgerLayer">
+            <div class="row" style="top:20px;">admin      :: correcthorse</div>
+            <div class="row alt" style="top:98px;">jsmith     :: qwertyuiop</div>
+            <div class="row hit" style="top:176px;">the_user   :: hunter2024</div>
+            <div class="row" style="top:254px;">root       :: p@ssword!</div>
+            <div class="row alt" style="top:332px;">guest      :: 123456</div>
+            <div class="row" style="top:410px;">dbadmin    :: letmein99</div>
+          </div>
+
+          <div id="jarWrapper">
+            <div id="jarShadow"></div>
+
+            <div id="jarImgMask">
+              <img id="jarImg" src="assets/image_002.png" alt="" />
+              <div id="jarTint"></div>
+              <div id="glassHighlight" data-layout-allow-overflow></div>
+            </div>
+
+            <svg id="crackSvg" viewBox="0 0 560 900" preserveAspectRatio="xMidYMid meet">
+              <path id="crackGlowA" d="M330,70 L360,150 L318,205 L352,268 L300,330 L330,380" fill="none" stroke="#f59e0b" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity="0" filter="blur(7px)" stroke-dasharray="330" stroke-dashoffset="330" />
+              <path id="crackA" d="M330,70 L360,150 L318,205 L352,268 L300,330 L330,380" fill="none" stroke="#ffd699" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="330" stroke-dashoffset="330" />
+              <path id="crackGlowB" d="M318,205 L250,222 L210,270" fill="none" stroke="#f59e0b" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" opacity="0" filter="blur(6px)" stroke-dasharray="120" stroke-dashoffset="120" />
+              <path id="crackB" d="M318,205 L250,222 L210,270" fill="none" stroke="#ffd699" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="120" stroke-dashoffset="120" />
+            </svg>
+
+            <img class="shatterImg" id="shatterMain" src="assets/image_003.png" alt="" />
+            <div id="shatterTint"></div>
+            <div class="shatterImg shatterTrailImg" id="shatterTrail1"></div>
+            <div class="shatterImg shatterTrailImg" id="shatterTrail2"></div>
+
+            <div id="flash"></div>
+
+            <div id="labelChip" data-layout-allow-overflow>
+              <div class="charRow tag" id="tagRow"></div>
+              <div class="charRow val" id="valRow"></div>
+            </div>
+            <div class="glitchLayer r" id="glitchR">
+              <div class="tag">PASSWORD:</div>
+              <div class="val">hunter2024</div>
+            </div>
+            <div class="glitchLayer c" id="glitchC">
+              <div class="tag">PASSWORD:</div>
+              <div class="val">hunter2024</div>
+            </div>
+
+            <div id="particles"></div>
+          </div>
+        </div>
+
+        <div id="bottomFade"></div>
+      </section>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+
+      // ---- build label characters (deterministic scatter offsets, no Math.random) ----
+      function buildChars(rowEl, text) {
+        const spans = [];
+        for (let i = 0; i < text.length; i++) {
+          const ch = text[i];
+          const span = document.createElement("span");
+          span.className = "ch";
+          span.textContent = ch === " " ? " " : ch;
+          rowEl.appendChild(span);
+          spans.push(span);
+        }
+        return spans;
+      }
+      const tagChars = buildChars(document.getElementById("tagRow"), "PASSWORD:");
+      const valChars = buildChars(document.getElementById("valRow"), "hunter2024");
+      const allChars = tagChars.concat(valChars);
+
+      // ---- build particle shards (deterministic angles/distances) ----
+      const shardAngles = [-160, -140, -115, -95, -70, -45, -20, 10, 35, 60, 85, 110, 140, 165];
+      const shardDist = [230, 300, 260, 340, 240, 320, 270, 350, 230, 310, 250, 330, 260, 300];
+      const particlesRoot = document.getElementById("particles");
+      const shardEls = shardAngles.map((angle, i) => {
+        const wrap = document.createElement("div");
+        wrap.className = "shardWrap";
+        wrap.style.transform = "rotate(" + angle + "deg)";
+        const shard = document.createElement("div");
+        shard.className = "shard";
+        wrap.appendChild(shard);
+        particlesRoot.appendChild(wrap);
+        return { el: shard, dist: shardDist[i], delay: i * 0.02 };
+      });
+
+      const tl = gsap.timeline({ paused: true });
+
+      // base states
+      gsap.set("#jarWrapper", { xPercent: -50, scale: 0.9, opacity: 0, y: 14 });
+      gsap.set("#ledgerLayer", { y: 26 });
+      gsap.set("#cameraWrap", { scale: 1 });
+      gsap.set(".shatterImg", { opacity: 0, scale: 0.85, transformOrigin: "55% 45%" });
+      gsap.set("#shatterTint", { opacity: 0 });
+      gsap.set("#flash", { xPercent: -50, yPercent: -50, scale: 0.7, opacity: 0 });
+      gsap.set("#glassHighlight", { x: 0 });
+      gsap.set(".glitchLayer", { opacity: 0 });
+      gsap.set(allChars, { display: "inline-block", x: 0, y: 0, rotation: 0, opacity: 1 });
+      gsap.set(shardEls.map((s) => s.el), { opacity: 0, y: 0, scaleY: 1 });
+
+      // slow cinematic push-in across the whole duration
+      tl.to("#cameraWrap", { scale: 1.07, duration: 3.78, ease: "sine.inOut" }, 0);
+
+      // (a) entrance: ledger rows fade up behind, jar+label pop in while
+      // "store your password in a table as plain text" plays
+      tl.to("#ledgerLayer", { opacity: 0.62, y: 0, duration: 0.55, ease: "power3.out" }, 0.05);
+      tl.to("#jarWrapper", { opacity: 1, scale: 1, y: 0, duration: 0.42, ease: "back.out(1.4)" }, 0.08);
+
+      // slow parallax drift on the ledger (background layer moves less/slower than foreground)
+      tl.to("#ledgerLayer", { y: -46, duration: 3.05, ease: "sine.inOut" }, 0.68);
+
+      // specular highlight sweep across the jar glass (one clean pass) -- transform-only motion
+      tl.fromTo("#glassHighlight", { opacity: 0 }, { opacity: 0.8, duration: 0.15, ease: "power3.out", immediateRender: false }, 0.7);
+      tl.to("#glassHighlight", { x: 1008, duration: 0.85, ease: "power2.inOut" }, 0.7);
+      tl.to("#glassHighlight", { opacity: 0, duration: 0.3, ease: "power3.out" }, 1.35);
+
+      // idle breathing hold on the jar (finite repeats only)
+      tl.to("#jarWrapper", { scale: 1.018, duration: 0.55, ease: "sine.inOut", repeat: 1, yoyo: true }, 0.5);
+
+      // (b) ~1.75s: hairline cracks grow across the glass + faint pre-crack shatter texture
+      tl.to("#crackA", { strokeDashoffset: 0, duration: 0.8, ease: "power3.out" }, 1.75);
+      tl.to("#crackGlowA", { opacity: 0.75, strokeDashoffset: 0, duration: 0.8, ease: "power3.out" }, 1.75);
+      tl.to("#crackB", { strokeDashoffset: 0, duration: 0.55, ease: "power3.out" }, 2.15);
+      tl.to("#crackGlowB", { opacity: 0.65, strokeDashoffset: 0, duration: 0.55, ease: "power3.out" }, 2.15);
+      tl.to("#crackGlowA", { opacity: 0.3, duration: 0.4, ease: "power3.out" }, 2.55);
+      tl.fromTo("#shatterMain", { opacity: 0, scale: 0.85 }, { opacity: 0.32, scale: 0.95, duration: 0.5, ease: "power3.out", immediateRender: false }, 2.2);
+      tl.to("#shatterTint", { opacity: 0.4, duration: 0.5, ease: "power3.out" }, 2.2);
+
+      // tension build: subtle jitter + label pre-glitch flicker (2.9 - 3.35)
+      const jitterTimes = [2.9, 2.95, 3.0, 3.06, 3.12, 3.2, 3.28];
+      jitterTimes.forEach((t, i) => {
+        const dx = i % 2 === 0 ? 3 : -3;
+        tl.to("#jarWrapper", { x: dx, duration: 0.05, ease: "power1.inOut" }, t);
+      });
+      tl.to("#jarWrapper", { x: 0, duration: 0.06, ease: "power1.inOut" }, 3.34);
+
+      tl.to(".glitchLayer", { opacity: 0.6, duration: 0.03 }, 3.28);
+      tl.to("#glitchR", { x: 4, duration: 0.04 }, 3.3);
+      tl.to("#glitchC", { x: -4, duration: 0.04 }, 3.31);
+      tl.to(".glitchLayer", { opacity: 0, duration: 0.04 }, 3.36);
+
+      // (c) ~3.4s payoff -- burst, timed so it reads through "wide open" (t~3.53-3.78)
+      tl.to("#flash", { opacity: 1, scale: 1.1, duration: 0.11, ease: "power3.out" }, 3.4);
+      tl.to("#flash", { opacity: 0, duration: 0.32, ease: "power3.out" }, 3.51);
+
+      tl.to("#shatterMain", { opacity: 1, scale: 1.32, duration: 0.4, ease: "power3.out" }, 3.4);
+      tl.to("#shatterTint", { opacity: 0.55, duration: 0.4, ease: "power3.out" }, 3.4);
+      tl.fromTo("#shatterTrail1", { opacity: 0, scale: 0.95 }, { opacity: 0.4, scale: 1.5, duration: 0.42, ease: "power3.out", immediateRender: false }, 3.44);
+      tl.fromTo("#shatterTrail2", { opacity: 0, scale: 1.0 }, { opacity: 0.22, scale: 1.7, duration: 0.44, ease: "power3.out", immediateRender: false }, 3.48);
+      tl.to(["#shatterMain", "#shatterTrail1", "#shatterTrail2"], { opacity: 0, duration: 0.3, ease: "power3.out" }, 3.62);
+
+      tl.to("#crackGlowA", { opacity: 0.9, duration: 0.12, ease: "power3.out" }, 3.4);
+      tl.to("#crackGlowB", { opacity: 0.9, duration: 0.12, ease: "power3.out" }, 3.4);
+
+      // label glitches then scatters apart character by character
+      allChars.forEach((el, i) => {
+        const dx = (i % 2 === 0 ? 1 : -1) * (55 + i * 20);
+        const dy = -70 - (i % 4) * 26;
+        const rot = (i % 2 === 0 ? 1 : -1) * (28 + i * 7);
+        tl.to(el, { x: dx, y: dy, rotation: rot, opacity: 0, duration: 0.42, ease: "power3.out" }, 3.4 + i * 0.014);
+      });
+      tl.to("#labelChip", { opacity: 0, duration: 0.1, ease: "power3.out" }, 3.62);
+
+      // particle shard burst with motion-blur trail stretch
+      shardEls.forEach(({ el, dist, delay }) => {
+        tl.fromTo(
+          el,
+          { y: 0, scaleY: 1, opacity: 1 },
+          { y: -dist, scaleY: 2.4, opacity: 0, duration: 0.46, ease: "power3.out", immediateRender: false },
+          3.4 + delay
+        );
+      });
+
+      // final: quick fade-out on all foreground content so the hard on/off compositing switch doesn't pop
+      tl.to("#cameraWrap", { opacity: 0, duration: 0.28, ease: "power3.out" }, 3.5);
+      tl.to("#bg", { opacity: 0.85, duration: 0.28, ease: "power3.out" }, 3.5);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

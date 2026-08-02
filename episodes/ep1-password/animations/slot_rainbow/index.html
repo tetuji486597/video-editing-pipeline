@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>rainbow</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: "Helvetica Neue", -apple-system, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      /* full-bleed opaque background on a child div, per gotcha #1 */
+      .bg {
+        position: absolute; inset: 0;
+        background:
+          radial-gradient(ellipse 900px 700px at 50% 40%, rgba(88, 28, 135, 0.35) 0%, rgba(10, 7, 20, 0) 60%),
+          linear-gradient(165deg, #170b24 0%, #0a0714 55%, #08060f 100%);
+      }
+
+      /* scaled wrapper for the subtle camera push-in + full fade-out at the end */
+      .scene { position: absolute; inset: 0; transform-origin: 50% 50%; }
+
+      .ambient-glow {
+        position: absolute;
+        left: 190px; top: 560px; width: 700px; height: 700px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(168, 85, 247, 0.22) 0%, rgba(168, 85, 247, 0) 70%);
+        opacity: 0;
+      }
+
+      /* --- background layer: the precomputed ledger, tilted, dimmed --- */
+      .ledger-wrap {
+        position: absolute;
+        left: 70px; top: 708px; width: 940px; height: 525px;
+        transform: rotate(-4deg);
+        transform-origin: 50% 50%;
+        opacity: 0;
+        filter: brightness(0.5) saturate(0.7) contrast(1.05);
+      }
+      .ledger-wrap img {
+        width: 100%; height: 100%; object-fit: contain;
+        filter: drop-shadow(0 30px 50px rgba(0,0,0,0.6));
+      }
+
+      /* --- prism + dispersed light beam --- */
+      .prism-wrap {
+        position: absolute;
+        left: 370px; top: 60px; width: 340px; height: 247px;
+        opacity: 0;
+        mix-blend-mode: screen;
+      }
+      .prism-wrap img { width: 100%; height: 100%; object-fit: contain; }
+
+      .beam-soft, .beam-sharp {
+        position: absolute;
+        left: 290px; top: 290px; width: 500px; height: 460px;
+        clip-path: polygon(46% 0%, 54% 0%, 100% 100%, 0% 100%);
+        background: linear-gradient(180deg,
+          rgba(255,255,255,0.9) 0%,
+          #ef4444 14%,
+          #f97316 30%,
+          #eab308 46%,
+          #22c55e 62%,
+          #3b82f6 78%,
+          #a855f7 94%,
+          rgba(168,85,247,0) 100%);
+        mix-blend-mode: screen;
+        opacity: 0;
+      }
+      .beam-soft { filter: blur(10px); }
+      .beam-sharp { filter: blur(1px); }
+
+      /* --- glow burst behind the matched row (sits UNDER row text in DOM order) --- */
+      .match-glow {
+        position: absolute;
+        left: 90px; top: 980px; width: 900px; height: 140px;
+        border-radius: 50%;
+        background: radial-gradient(ellipse, rgba(168, 85, 247, 0.55) 0%, rgba(168, 85, 247, 0) 72%);
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      /* --- rainbow-table entry rows, resting on the ledger --- */
+      .row {
+        position: absolute;
+        left: 160px; width: 760px; height: 60px;
+        border-radius: 10px;
+        background: rgba(8, 6, 14, 0.68);
+        border: 1px solid rgba(255, 255, 255, 0.10);
+        display: flex; align-items: center; gap: 18px;
+        padding: 0 22px;
+        transform-origin: 50% 50%;
+        opacity: 0;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+      }
+      .row .swatch {
+        width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+      }
+      .row .hash {
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 23px;
+        letter-spacing: 0.5px;
+        color: rgba(255, 255, 255, 0.72);
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+      }
+      .row .arrow {
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 22px;
+        color: #c084fc;
+        flex-shrink: 0;
+      }
+      .row .plain {
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 26px;
+        font-weight: 700;
+        color: #ffffff;
+        min-width: 190px;
+        text-align: right;
+        flex-shrink: 0;
+      }
+
+      .scan-glow {
+        position: absolute;
+        left: 160px; top: 810px; width: 760px; height: 3px;
+        background: linear-gradient(90deg, rgba(168,85,247,0) 0%, #d8b4fe 20%, #d8b4fe 80%, rgba(168,85,247,0) 100%);
+        box-shadow: 0 0 18px 3px rgba(216, 180, 254, 0.8);
+        opacity: 0;
+      }
+
+      /* --- foreground lookup tool: magnifier + its own bloom --- */
+      .lookup-tool {
+        position: absolute;
+        left: 470px; top: 450px; width: 140px; height: 140px;
+      }
+      .tool-glow {
+        position: absolute;
+        left: -30px; top: -30px; width: 200px; height: 200px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(168, 85, 247, 0.8) 0%, rgba(168, 85, 247, 0) 70%);
+        opacity: 0;
+      }
+      .magnifier-icon {
+        position: absolute; inset: 0;
+        opacity: 0;
+        transform-origin: 50% 50%;
+      }
+
+      /* --- payoff: diagonal light sweep across the whole grid --- */
+      .sweep-clip {
+        position: absolute;
+        left: 130px; top: 760px; width: 820px; height: 500px;
+        overflow: hidden;
+        pointer-events: none;
+      }
+      .sweep-bar {
+        position: absolute;
+        left: -220px; top: -20px; width: 200px; height: 540px;
+        transform: skewX(-18deg);
+        background: linear-gradient(90deg,
+          rgba(255,255,255,0) 0%,
+          rgba(255,255,255,0.5) 45%,
+          rgba(255,255,255,0.5) 55%,
+          rgba(255,255,255,0) 100%);
+        mix-blend-mode: screen;
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="3.82" data-width="1080" data-height="1920">
+      <section id="scene-root" class="clip" data-start="0" data-duration="3.82" data-track-index="1">
+        <div class="bg"></div>
+
+        <div class="scene" id="scene">
+          <div class="ambient-glow" id="ambientGlow"></div>
+
+          <!-- background layer: precomputed ledger surface -->
+          <div class="ledger-wrap" id="ledger">
+            <img src="assets/ledger.png" alt="" />
+          </div>
+
+          <!-- prism + dispersed beam feeding the ledger -->
+          <div class="prism-wrap" id="prism">
+            <img src="assets/prism.jpg" alt="" />
+          </div>
+          <div class="beam-soft" id="beamSoft"></div>
+          <div class="beam-sharp" id="beamSharp"></div>
+
+          <!-- glow burst for the matched row — behind entries in DOM order, never occludes text -->
+          <div class="match-glow" id="matchGlow"></div>
+
+          <!-- midground: color-coded precomputed entries -->
+          <div class="row" id="row1" style="top:780px;">
+            <div class="swatch" style="background:#ef4444; box-shadow:0 0 14px rgba(239,68,68,0.7);"></div>
+            <div class="hash">5f4dcc3b5aa765d6&hellip;</div>
+            <div class="arrow">&rarr;</div>
+            <div class="plain">password</div>
+          </div>
+          <div class="row" id="row2" style="top:860px;">
+            <div class="swatch" style="background:#f97316; box-shadow:0 0 14px rgba(249,115,22,0.7);"></div>
+            <div class="hash">e10adc3949ba59ab&hellip;</div>
+            <div class="arrow">&rarr;</div>
+            <div class="plain">123456</div>
+          </div>
+          <div class="row" id="row3" style="top:940px;">
+            <div class="swatch" style="background:#eab308; box-shadow:0 0 14px rgba(234,179,8,0.7);"></div>
+            <div class="hash">d8578edf8458ce06&hellip;</div>
+            <div class="arrow">&rarr;</div>
+            <div class="plain">qwerty</div>
+          </div>
+          <div class="row" id="row4" style="top:1020px;">
+            <div class="swatch" style="background:#22c55e; box-shadow:0 0 14px rgba(34,197,94,0.7);"></div>
+            <div class="hash">25d55ad283aa400a&hellip;</div>
+            <div class="arrow">&rarr;</div>
+            <div class="plain">12345678</div>
+          </div>
+          <div class="row" id="row5" style="top:1100px;">
+            <div class="swatch" style="background:#3b82f6; box-shadow:0 0 14px rgba(59,130,246,0.7);"></div>
+            <div class="hash">7c6a180b36896a0a&hellip;</div>
+            <div class="arrow">&rarr;</div>
+            <div class="plain">password1</div>
+          </div>
+          <div class="row" id="row6" style="top:1180px;">
+            <div class="swatch" style="background:#a855f7; box-shadow:0 0 14px rgba(168,85,247,0.7);"></div>
+            <div class="hash">e99a18c428cb38d5&hellip;</div>
+            <div class="arrow">&rarr;</div>
+            <div class="plain">abc123</div>
+          </div>
+
+          <div class="scan-glow" id="scanGlow"></div>
+
+          <!-- foreground: the attacker's lookup tool -->
+          <div class="lookup-tool" id="lookupTool">
+            <div class="tool-glow" id="toolGlow" data-layout-allow-overflow></div>
+            <svg class="magnifier-icon" id="magnifierIcon" width="140" height="140" viewBox="0 0 140 140">
+              <circle cx="56" cy="56" r="37" fill="none" stroke="#a855f7" stroke-width="9" stroke-linecap="round"/>
+              <line x1="82" y1="82" x2="116" y2="116" stroke="#a855f7" stroke-width="11" stroke-linecap="round"/>
+            </svg>
+          </div>
+
+          <!-- payoff: light sweep across the whole grid -->
+          <div class="sweep-clip">
+            <div class="sweep-bar" id="sweepBar" data-layout-allow-overflow></div>
+          </div>
+        </div>
+      </section>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      const rowIds = ["#row1", "#row2", "#row3", "#row4", "#row5", "#row6"];
+
+      // ------------------------------------------------------------------
+      // initial states
+      // ------------------------------------------------------------------
+      gsap.set("#scene", { scale: 1, transformOrigin: "50% 50%" });
+      gsap.set("#ambientGlow", { opacity: 0 });
+      gsap.set("#ledger", { opacity: 0, scale: 0.96, transformOrigin: "50% 50%" });
+      gsap.set("#prism", { opacity: 0, scale: 0.9, transformOrigin: "50% 50%" });
+      gsap.set("#beamSoft", { opacity: 0 });
+      gsap.set("#beamSharp", { opacity: 0 });
+      gsap.set("#matchGlow", { opacity: 0, scale: 0.85, transformOrigin: "50% 50%" });
+      gsap.set(rowIds, { opacity: 0, scale: 0.9, y: 14, transformOrigin: "50% 50%" });
+      gsap.set("#scanGlow", { opacity: 0, y: 0 });
+      gsap.set("#lookupTool", { x: 0, y: 0 });
+      gsap.set("#toolGlow", { opacity: 0, scale: 0.85, transformOrigin: "50% 50%" });
+      gsap.set("#magnifierIcon", { opacity: 0, scale: 0, transformOrigin: "50% 50%" });
+      gsap.set("#sweepBar", { opacity: 0 });
+
+      // ------------------------------------------------------------------
+      // continuous background motion: slow camera push-in over the whole clip
+      // ------------------------------------------------------------------
+      tl.to("#scene", { scale: 1.055, duration: 3.55, ease: "power1.inOut" }, 0);
+      tl.to("#ambientGlow", { opacity: 1, duration: 0.6, ease: "power3.out" }, 0);
+
+      // ------------------------------------------------------------------
+      // phase A (0.0 - 0.5): establish — ledger surface, prism, soft beam
+      // ------------------------------------------------------------------
+      tl.to("#ledger", { opacity: 1, scale: 1, duration: 0.4, ease: "power3.out" }, 0.0);
+      tl.to("#prism", { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(1.3)" }, 0.12);
+      tl.to("#beamSoft", { opacity: 0.55, duration: 0.4, ease: "power3.out" }, 0.28);
+
+      // ------------------------------------------------------------------
+      // phase B (0.5 - 1.5): the cheat-sheet builds, entry by entry (staggered)
+      // ------------------------------------------------------------------
+      const rowStarts = [0.5, 0.62, 0.74, 0.86, 0.98, 1.1];
+      rowIds.forEach((id, i) => {
+        tl.to(id, { opacity: 1, scale: 1, y: 0, duration: 0.35, ease: "back.out(1.4)" }, rowStarts[i]);
+      });
+
+      // ------------------------------------------------------------------
+      // phase C (1.65 - 2.1): lookup tool establishes, then scans down and
+      // connects to the matching entry (row 4 / green / "12345678")
+      // ------------------------------------------------------------------
+      tl.to("#magnifierIcon", { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.4)" }, 1.65);
+      tl.to("#toolGlow", { opacity: 0.5, scale: 1, duration: 0.3, ease: "power3.out" }, 1.65);
+
+      tl.to("#scanGlow", { opacity: 1, duration: 0.15, ease: "power3.out" }, 1.85);
+      tl.to("#scanGlow", { y: 240, duration: 0.4, ease: "power3.out" }, 1.85);
+      tl.to("#lookupTool", { x: 460, y: 530, duration: 0.4, ease: "power3.out" }, 1.85);
+      tl.to("#scanGlow", { opacity: 0, duration: 0.15, ease: "power3.out" }, 2.2);
+
+      // ------------------------------------------------------------------
+      // phase D (2.3 - 2.6): payoff pulse, timed to "passwords." landing ~2.5
+      // a match is found — row 4 flashes, tool glow bursts, grid sweep
+      // ------------------------------------------------------------------
+      tl.to("#matchGlow", { opacity: 1, scale: 1, duration: 0.18, ease: "power3.out" }, 2.3);
+      tl.to("#matchGlow", { opacity: 0.4, duration: 0.4, ease: "power3.out" }, 2.55);
+      tl.to("#row4", { scale: 1.07, duration: 0.16, ease: "back.out(1.5)" }, 2.3);
+      tl.to("#row4", { scale: 1.0, duration: 0.3, ease: "power3.out" }, 2.46);
+      tl.to("#toolGlow", { opacity: 0.95, scale: 1.35, duration: 0.18, ease: "back.out(1.3)" }, 2.3);
+      tl.to("#magnifierIcon", { scale: 1.2, duration: 0.18, ease: "back.out(1.6)" }, 2.3);
+      tl.to("#magnifierIcon", { scale: 1.0, duration: 0.3, ease: "power3.out" }, 2.48);
+      tl.to("#toolGlow", { opacity: 0.4, scale: 1.0, duration: 0.35, ease: "power3.out" }, 2.48);
+
+      // beam sharpens into focus at the payoff
+      tl.to("#beamSharp", { opacity: 0.85, duration: 0.3, ease: "power3.out" }, 2.3);
+      tl.to("#beamSoft", { opacity: 0.3, duration: 0.3, ease: "power3.out" }, 2.3);
+
+      // grid-wide light sweep, the "aha" beat
+      tl.to("#sweepBar", { opacity: 1, duration: 0.1, ease: "power3.out" }, 2.32);
+      tl.to("#sweepBar", { x: 1040, duration: 0.5, ease: "power3.out" }, 2.32);
+      tl.to("#sweepBar", { opacity: 0, duration: 0.2, ease: "power3.out" }, 2.72);
+
+      // ------------------------------------------------------------------
+      // phase E (2.9 - 3.55): hold the payoff briefly
+      // ------------------------------------------------------------------
+      // (deliberately no new motion here — camera push-in continues underneath)
+
+      // ------------------------------------------------------------------
+      // phase F (3.55 - 3.82): fade the whole overlay out before the hard cut
+      // ------------------------------------------------------------------
+      tl.to(["#scene", ".bg"], { opacity: 0, duration: 0.27, ease: "power2.in" }, 3.55);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

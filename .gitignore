@@ -1,0 +1,7 @@
+.DS_Store
+*.mp4
+*.wav
+*.mov
+*.webm
+.env
+.env.local

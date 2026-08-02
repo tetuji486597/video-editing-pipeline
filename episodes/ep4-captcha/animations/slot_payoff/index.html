@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body {
+        font-family: "Helvetica Neue", -apple-system, sans-serif;
+      }
+
+      #band {
+        position: absolute;
+        left: 60px;
+        top: 1210px;
+        width: 960px;
+        height: 480px;
+      }
+
+      /* ambient glow behind the glass */
+      #glow {
+        position: absolute;
+        left: 250px;
+        top: 10px;
+        width: 460px;
+        height: 460px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          rgba(59, 130, 246, 0.55) 0%,
+          rgba(59, 130, 246, 0.22) 40%,
+          rgba(59, 130, 246, 0) 72%
+        );
+        opacity: 0;
+        transform-origin: 50% 50%;
+        will-change: opacity, transform;
+      }
+
+      /* cheap insurance vs. VP9 alpha banding on the soft radial gradient */
+      #dither {
+        position: absolute;
+        left: 250px;
+        top: 10px;
+        width: 460px;
+        height: 460px;
+        opacity: 0.05;
+        mix-blend-mode: normal;
+        pointer-events: none;
+      }
+
+      #glass-wrap {
+        position: absolute;
+        left: 320px;
+        top: 80px;
+        width: 320px;
+        height: 320px;
+        transform-origin: 50% 50%;
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow:
+          0 0 0 1px rgba(147, 197, 253, 0.25),
+          0 0 40px 6px rgba(59, 130, 246, 0.28),
+          0 18px 46px rgba(2, 6, 23, 0.35);
+        will-change: transform;
+      }
+
+      #glass-img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0.88;
+        filter: saturate(0.85) brightness(1.05);
+      }
+
+      /* soft rim-light tint over the photo so it reads as blue-lit glass, not raw stock art */
+      #rim-tint {
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(135deg, rgba(59, 130, 246, 0.32) 0%, rgba(59, 130, 246, 0) 45%),
+          linear-gradient(315deg, rgba(96, 165, 250, 0.22) 0%, rgba(59, 130, 246, 0) 40%);
+        pointer-events: none;
+      }
+
+      /* glass sheen sweep - plain gradient, no blend-mode */
+      #sheen {
+        position: absolute;
+        top: -20%;
+        left: -60%;
+        width: 60%;
+        height: 140%;
+        background: linear-gradient(
+          75deg,
+          rgba(255, 255, 255, 0) 0%,
+          rgba(255, 255, 255, 0.28) 48%,
+          rgba(255, 255, 255, 0) 100%
+        );
+        will-change: transform;
+      }
+
+      .glyph {
+        position: absolute;
+        opacity: 0;
+        will-change: opacity, transform;
+      }
+
+      #glyph-human {
+        left: 380px;
+        top: 165px;
+        width: 100px;
+        height: 150px;
+      }
+
+      #glyph-eye {
+        left: 445px;
+        top: 190px;
+        width: 170px;
+        height: 90px;
+      }
+
+      #payoff-container {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        transform-origin: 50% 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="3.70"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="payoff-scene" class="clip" data-start="0" data-duration="3.70" data-track-index="1">
+        <div id="payoff-container">
+          <div id="band">
+            <div id="glow"></div>
+
+            <svg id="dither" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <filter id="grain">
+                <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" />
+                <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.35 0" />
+              </filter>
+              <rect width="100" height="100" filter="url(#grain)" />
+            </svg>
+
+            <div id="glass-wrap">
+              <img id="glass-img" src="assets/image_009.jpg" alt="" />
+              <div id="rim-tint"></div>
+              <div id="sheen" data-layout-allow-overflow="true"></div>
+            </div>
+
+            <svg id="glyph-human" class="glyph" viewBox="0 0 100 150" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="50" cy="35" r="30" fill="#3b82f6" />
+              <path d="M10 150 Q10 90 50 90 Q90 90 90 150 Z" fill="#3b82f6" />
+            </svg>
+
+            <svg id="glyph-eye" class="glyph" viewBox="0 0 170 90" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M5 45 Q85 -2 165 45 Q85 92 5 45 Z"
+                fill="none"
+                stroke="#3b82f6"
+                stroke-width="4"
+              />
+              <circle cx="85" cy="45" r="18" fill="#3b82f6" opacity="0.75" />
+              <circle cx="85" cy="45" r="7" fill="#eff6ff" opacity="0.9" />
+            </svg>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // initial state
+      tl.set("#payoff-container", { opacity: 0, y: 20, scale: 0.92 });
+      tl.set("#glow", { opacity: 0, scale: 1 });
+      tl.set("#glass-wrap", { scale: 1 });
+      tl.set("#glyph-human", { opacity: 0, x: -10 });
+      tl.set("#glyph-eye", { opacity: 0, x: 10 });
+      tl.set("#sheen", { xPercent: -40, skewX: -12 });
+
+      // --- settle-in, t 0 - 0.8s ---
+      tl.to("#payoff-container", { opacity: 1, y: 0, scale: 1, duration: 0.8, ease: "power3.out" }, 0);
+      tl.to("#glow", { opacity: 0.42, duration: 0.7, ease: "power3.out" }, 0.1);
+      tl.to("#glyph-human", { opacity: 0.32, x: 0, duration: 0.7, ease: "power3.out" }, 0.35);
+      tl.to("#glyph-eye", { opacity: 0.32, x: 0, duration: 0.7, ease: "power3.out" }, 0.4);
+
+      // --- ambient glow breathing + slow glass sheen sweep, t 0.85 - 1.65s ---
+      tl.to("#glow", { opacity: 0.34, duration: 0.45, ease: "sine.inOut" }, 0.85);
+      tl.to("#glow", { opacity: 0.44, duration: 0.3, ease: "sine.inOut" }, 1.35);
+      tl.to("#sheen", { xPercent: 220, skewX: -12, duration: 1.5, ease: "power1.inOut" }, 0.5);
+
+      // --- single brightening landing pulse, peaks at t=2.0 ("...teaching machines to see") ---
+      tl.to("#glow", { opacity: 0.82, scale: 1.08, duration: 0.3, ease: "power3.out" }, 1.7);
+      tl.to("#glass-wrap", { scale: 1.045, duration: 0.3, ease: "power3.out" }, 1.7);
+      tl.to("#glyph-human", { opacity: 0.55, duration: 0.3, ease: "power3.out" }, 1.7);
+      tl.to("#glyph-eye", { opacity: 0.6, duration: 0.3, ease: "power3.out" }, 1.7);
+
+      // ease back down into a calm hold
+      tl.to("#glow", { opacity: 0.46, scale: 1.0, duration: 0.6, ease: "power3.out" }, 2.05);
+      tl.to("#glass-wrap", { scale: 1.0, duration: 0.6, ease: "power3.out" }, 2.05);
+      tl.to("#glyph-human", { opacity: 0.38, duration: 0.6, ease: "power3.out" }, 2.05);
+      tl.to("#glyph-eye", { opacity: 0.4, duration: 0.6, ease: "power3.out" }, 2.05);
+
+      // --- calm hold, gentle continued breath, t 2.7 - 3.35s ---
+      tl.to("#glow", { opacity: 0.4, duration: 0.65, ease: "sine.inOut" }, 2.7);
+
+      // --- fade out, t 3.4 - 3.7s ---
+      tl.to("#payoff-container", { opacity: 0, duration: 0.3, ease: "power3.out" }, 3.4);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
