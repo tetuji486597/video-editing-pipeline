@@ -29,6 +29,11 @@ starting point on new episodes; don't re-derive them from scratch.
   above the bottom edge, clear of every graphic overlay checked so far — re-check this
   clearance any time overlays change, since overlay content is what actually varies
   per-episode, not the caption position).
+- Confirmed size: **`--caption-font-size 74`** (bumped from the old hardcoded 58 —
+  `build_master_ass`/`render.py` now take this as a real parameter/CLI flag instead of a
+  hardcoded value in the `.ass` Style line). Re-verify wrap + overlay/face clearance after
+  any further size bump — bigger text wraps more often (more chunks now need 2 lines that
+  used to fit on 1) and each wrapped line adds real height above the `MarginV` anchor.
 - **Pitfall: small `MarginV` bumps are visually imperceptible.** Nudging 60→95→130
   (each +35px on a 1920px-tall canvas) produced a pixel-diffed shift of only ~15px per
   step — invisible at normal viewing scale. When asked to move captions, jump by a real
