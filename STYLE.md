@@ -25,14 +25,24 @@ starting point on new episodes; don't re-derive them from scratch.
 - Author the `.ass` file's `PlayResX`/`PlayResY` to match the real output canvas
   (1080x1920), not libass's plain-SRT-conversion default (`PlayResY=288`). With real
   PlayRes set, `MarginV` is literal output pixels.
-- Confirmed position: **`MarginV: 280`** (well above the bottom edge, clear of every
-  graphic overlay checked so far).
+- Confirmed position: **`MarginV: 350`** (bumped from 280 across EP3/EP4/EP5/EP6, well
+  above the bottom edge, clear of every graphic overlay checked so far — re-check this
+  clearance any time overlays change, since overlay content is what actually varies
+  per-episode, not the caption position).
 - **Pitfall: small `MarginV` bumps are visually imperceptible.** Nudging 60→95→130
   (each +35px on a 1920px-tall canvas) produced a pixel-diffed shift of only ~15px per
   step — invisible at normal viewing scale. When asked to move captions, jump by a real
   fraction of the canvas height (10%+) and confirm with an actual pixel diff
   (`ffmpeg -filter_complex "blend=all_mode=difference,eq=contrast=5"` on same-timestamp
   frames from before/after), not just an eyeball check of one frame.
+- **Line wrapping already works** — `WrapStyle: 0` is set in the `.ass` header, and
+  libass auto-wraps any chunk that doesn't fit within `PlayResX` minus `MarginL`/`MarginR`
+  (960px usable width at the current margins). Chunks are capped at 4 words
+  (`max_words_per_chunk` in `build_master_ass`), so most stay on one line, but a chunk
+  containing one long/hyphenated word (e.g. "CLICK-ALL-THE-TRAFFIC-LIGHTS") can wrap to
+  3 lines — verified this renders safely (no clipping, no overlay collision) at
+  `MarginV: 350`. If a future margin bump ever gets large enough to push a 3-line wrap
+  off the top of frame, that's the case to check first.
 
 ## Music & SFX
 
@@ -72,7 +82,7 @@ across beats in one episode, no emoji icons.
 - On-screen text needs real designed treatment (accent bar, highlighted keyword chip,
   icon) — not flat text with no styling.
 - Bigger overlays make caption collisions more likely, not less — check every beat's
-  overlay against the caption band (`MarginV: 280`, roughly y=1550-1920) with an actual
+  overlay against the caption band (`MarginV: 350`, roughly y=1490-1920) with an actual
   frame extraction, not an eyeballed guess. This bit us for real once (EP6's queue beat).
 - Punch-zoom (`"zoom": {"at": <seconds>, "scale": 1.2}` in an EDL range) should zoom
   toward the presenter's actual eye level, not the frame's geometric center — measure
