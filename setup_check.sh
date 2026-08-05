@@ -63,6 +63,18 @@ else
 fi
 
 echo
+echo "== system-design-overlays skill (must be registered locally, git doesn't do this) =="
+SKILL_SRC="$REPO_ROOT/skills/system-design-overlays/SKILL.md"
+SKILL_DST="$HOME/.claude/skills/system-design-overlays/SKILL.md"
+if [ -f "$SKILL_DST" ] && diff -q "$SKILL_SRC" "$SKILL_DST" >/dev/null 2>&1; then
+  pass "system-design-overlays skill registered and matches this repo's copy"
+elif [ -f "$SKILL_DST" ]; then
+  note "system-design-overlays skill is registered but OUT OF DATE vs this repo — re-copy: mkdir -p ~/.claude/skills/system-design-overlays && cp \"$SKILL_SRC\" \"$SKILL_DST\""
+else
+  note "system-design-overlays skill not registered — Claude Code can't load it via the Skill tool until it's copied into ~/.claude/skills/: mkdir -p ~/.claude/skills/system-design-overlays && cp \"$SKILL_SRC\" \"$SKILL_DST\""
+fi
+
+echo
 echo "== Optional: media-use / HeyGen (only needed to source new stock images/music) =="
 if command -v heygen >/dev/null; then
   pass "heygen CLI found"

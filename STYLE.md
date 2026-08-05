@@ -51,17 +51,29 @@ starting point on new episodes; don't re-derive them from scratch.
 
 ## Overlays (motion graphics)
 
+**Load the `system-design-overlays` Claude Code skill before building or regenerating any
+episode's overlays** (`~/.claude/skills/system-design-overlays/SKILL.md`, also vendored at
+`skills/system-design-overlays/` in this repo) — it's the single source of truth, don't
+duplicate its numbers here since it's been revised more than once. Currently modeled on
+**EP4's overlays as the confirmed gold standard** (`edit_ep4/animations/slot_new_component/`
+and `slot_problem/` — read the source, not just the summary): full-screen atmospheric
+takeovers with realistic UI/product recreations, a two-plus-phase mini-narrative per overlay
+with a transition beat (a flash, a color shift) between phases, continuous ambient motion,
+real images embedded as UI detail. Coverage percentage is explicitly *not* the target to
+maximize — EP4's overlays run only ~45-55% of their beat's duration; density and a real
+beginning/middle/end matter more than filling time. Also still true: no template reuse
+across beats in one episode, no emoji icons.
 - No emoji icons — hand-drawn SVG icons or real sourced photos instead (via the
   `media-use` skill's HeyGen image catalog: a real prism/rainbow, a real hourglass with
   an actual rising-sand mask, a real mason jar, etc.).
-- Vary color and composition per concept — don't reuse one template/layout for every
-  beat's overlay.
-- Not everything fullscreen; size elements up generously rather than leaving them small.
 - Research a real visual metaphor per concept before building (e.g. door = WebSocket,
   mailbox = queue) and let one metaphor thread evolve across a whole episode rather than
   a disconnected icon per beat.
 - On-screen text needs real designed treatment (accent bar, highlighted keyword chip,
   icon) — not flat text with no styling.
+- Bigger overlays make caption collisions more likely, not less — check every beat's
+  overlay against the caption band (`MarginV: 280`, roughly y=1550-1920) with an actual
+  frame extraction, not an eyeballed guess. This bit us for real once (EP6's queue beat).
 - Punch-zoom (`"zoom": {"at": <seconds>, "scale": 1.2}` in an EDL range) should zoom
   toward the presenter's actual eye level, not the frame's geometric center — measure
   the real focal point from an actual frame of that footage (don't assume it transfers

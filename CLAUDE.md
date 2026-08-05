@@ -14,10 +14,18 @@ EDL + HyperFrames configs).
 2. Walk the user through fixing anything marked missing (✗) — don't just report and
    stop. Warnings (!) are only blocking if the task actually needs that piece (e.g. the
    ElevenLabs key only matters if transcribing new footage; EP1/EP4 already have
-   transcripts committed).
+   transcripts committed). This includes registering the `system-design-overlays` skill
+   into `~/.claude/skills/` if `setup_check.sh` reports it missing or out of date — git
+   does not populate that directory, so a fresh clone never has it registered until this
+   copy step runs.
 3. Read `STYLE.md` before making any editorial decision (title/caption placement,
    music/SFX choices, overlay design, zoom behavior) — it's the confirmed-good defaults
    for this series, not a starting guess.
+4. **Before building or regenerating any episode's overlays specifically**, load the
+   `system-design-overlays` skill (via the Skill tool, once registered per step 2) and
+   read `episodes/ep4-captcha/animations/slot_new_component/` and `slot_problem/` — EP4
+   is the confirmed gold-standard reference for overlay presentation and pacing, cited
+   directly in the skill. Read the source, not just the skill's summary of it.
 
 ## Daily editing
 
