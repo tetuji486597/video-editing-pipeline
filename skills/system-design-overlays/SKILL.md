@@ -95,17 +95,31 @@ it before building anything:
    same composition archetype for every beat. Vary color per beat/phase (see case study).
    No emoji icons (hand-drawn SVG, realistic UI recreations, or real sourced photos only).
 5. **Never break the caption clearance — or the presenter's face.** The caption band
-   (`MarginV: 280` on 1080x1920 canvas, roughly y=1550-1920) must stay clear of overlay
-   content with a visible gap — measure it, don't assume. On any overlay where live
-   footage remains visible (not a full-screen takeover), the same discipline applies to
-   the presenter's face: a photo card's bottom edge landing across the mouth/chin, or a
-   chart line/callout box sitting on the nose or mouth, reads as broken even though it
-   never touches a caption. Grid-measure the actual face position for that specific shot
-   (this footage typically runs the mouth ~y=980-1080, chin ~y=1080-1200 — confirm
-   per-shot, don't assume it transfers) and either extend a photo card past the chin or
-   insert a spacer so graphic elements land on the chest, not the face. Plain text with a
-   strong shadow overlapping the forehead/hair is fine (established convention) — solid
-   boxes/lines on facial features are the specific thing to avoid.
+   (`MarginV: 350`, `--caption-font-size 74`, `--caption-margin-lr 190` on a 1080x1920
+   canvas, worst-case footprint roughly y=1300-1920 for a 3-line wrap — these values climb
+   over time, always confirm the current ones in `render.py`/`STYLE.md` rather than
+   trusting this paragraph) must stay clear of overlay content with a visible gap — measure
+   it, don't assume. On any overlay where live footage remains visible (not a full-screen
+   takeover), the same discipline applies to the presenter's face: a photo card's bottom
+   edge landing across the mouth/chin, or a chart line/callout box sitting on the nose or
+   mouth, reads as broken even though it never touches a caption. Grid-measure the actual
+   face position for that specific shot (this footage typically runs the mouth
+   ~y=980-1080, chin ~y=1080-1200 — confirm per-shot, don't assume it transfers) and either
+   extend a photo card past the chin or insert a spacer so graphic elements land on the
+   chest, not the face. Plain text with a strong shadow overlapping the forehead/hair is
+   fine (established convention) — solid boxes/lines/photos on facial features are the
+   specific thing to avoid. **Fix patterns, in order of preference:** (1) if there's real
+   vertical space between the face and the caption zone, just reposition the offending
+   element(s) up; (2) if there isn't — common once a graphic needs to be bigger than
+   ~150px tall, since the gap between "below the chin" and "above the caption" is often
+   under 100px on this footage — convert the whole overlay to a full-screen opaque
+   takeover instead (dark `radial-gradient` `#bg-fill` + `#vignette`, content recentered
+   in the vertical-middle, clear of both constraints — more robust than fine-tuning a
+   transparent band); (3) if a composition connects fixed SVG coordinates to a moving
+   element (e.g. data-flow lines from a grid to an icon), moving just one endpoint breaks
+   the line's geometry — recompute every connected coordinate together (including any
+   "recede" scale/translate transform on the source content) and verify with real
+   rendered frames, not arithmetic alone.
 6. **Use real images from the web, not just custom shapes/vectors/charts** — but embed
    them as functional detail inside designed UI chrome (a thumbnail, a grid photo, an
    inset), per the EP4 case study, as at least as often as using them as a full-bleed
@@ -154,9 +168,11 @@ it before building anything:
   and grid-measure if it looks close, don't eyeball a full 1920px frame. Captions change
   word-by-word every ~0.3-0.5s and overlay animations evolve continuously, so a collision
   can exist for only part of a beat and be completely invisible in a single sample frame.
-  This exact mistake shipped five real collisions into one episode after a caption
-  size/position change — each one was only checked at one frame, and all five were only
-  colliding during a different portion of their beat's runtime.
+  This exact mistake shipped 15 real collisions across 4 episodes (EP3/4/5/6) after a
+  caption size/position/width change — every one was only checked at one frame originally,
+  and every one was only colliding during a different portion of its beat's runtime. See
+  rule 5's fix patterns for how they were resolved (reposition, full-screen-takeover
+  conversion, or SVG-coordinate recompute).
 - **Real-image audit:** count real sourced images per episode and note whether each is
   used full-bleed or embedded as UI detail (both are valid; zero across a whole episode
   fails rule 6).
