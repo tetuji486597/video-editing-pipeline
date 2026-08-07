@@ -493,6 +493,7 @@ def build_master_ass(
     out_path: Path,
     margin_v: int = 70,
     font_size: int = 58,
+    margin_lr: int = 60,
     max_words_per_chunk: int = 4,
 ) -> None:
     """Build an output-timeline ASS file with real word-by-word karaoke highlight.
@@ -518,7 +519,7 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,Helvetica,{font_size},{ASS_BASE_COLOUR},{ASS_BASE_COLOUR},&H00000000,&H00000000,1,0,0,0,100,100,1,0,1,3,0,2,60,60,{margin_v},1
+Style: Default,Helvetica,{font_size},{ASS_BASE_COLOUR},{ASS_BASE_COLOUR},&H00000000,&H00000000,1,0,0,0,100,100,1,0,1,3,0,2,{margin_lr},{margin_lr},{margin_v},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -834,6 +835,14 @@ def main() -> None:
         help="ass-karaoke only: font size in real output pixels (PlayResY = output height).",
     )
     ap.add_argument(
+        "--caption-margin-lr",
+        type=int,
+        default=60,
+        help="ass-karaoke only: left/right margin in real output pixels — raise this to "
+             "narrow the usable text width and force wrapping sooner (keeps lines shorter "
+             "and more centered instead of spanning near-full-width).",
+    )
+    ap.add_argument(
         "--no-subtitles",
         action="store_true",
         help="Skip subtitles even if the EDL references one",
@@ -874,7 +883,7 @@ def main() -> None:
         if args.build_subtitles:
             if args.caption_format == "ass-karaoke":
                 subs_path = edit_dir / "master.ass"
-                build_master_ass(edl, edit_dir, subs_path, margin_v=args.caption_margin_v, font_size=args.caption_font_size)
+                build_master_ass(edl, edit_dir, subs_path, margin_v=args.caption_margin_v, font_size=args.caption_font_size, margin_lr=args.caption_margin_lr)
             else:
                 subs_path = edit_dir / "master.srt"
                 build_master_srt(edl, edit_dir, subs_path)

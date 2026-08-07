@@ -41,13 +41,36 @@ starting point on new episodes; don't re-derive them from scratch.
   (`ffmpeg -filter_complex "blend=all_mode=difference,eq=contrast=5"` on same-timestamp
   frames from before/after), not just an eyeball check of one frame.
 - **Line wrapping already works** — `WrapStyle: 0` is set in the `.ass` header, and
-  libass auto-wraps any chunk that doesn't fit within `PlayResX` minus `MarginL`/`MarginR`
-  (960px usable width at the current margins). Chunks are capped at 4 words
-  (`max_words_per_chunk` in `build_master_ass`), so most stay on one line, but a chunk
-  containing one long/hyphenated word (e.g. "CLICK-ALL-THE-TRAFFIC-LIGHTS") can wrap to
-  3 lines — verified this renders safely (no clipping, no overlay collision) at
-  `MarginV: 350`. If a future margin bump ever gets large enough to push a 3-line wrap
-  off the top of frame, that's the case to check first.
+  libass auto-wraps any chunk that doesn't fit within `PlayResX` minus `MarginL`/`MarginR`.
+  Chunks are capped at 4 words (`max_words_per_chunk` in `build_master_ass`).
+- Confirmed horizontal width: **`--caption-margin-lr 190`** (up from the old hardcoded 60
+  — usable text width narrowed from 960px to 700px, centered, so lines wrap sooner instead
+  of spanning near-full-width). Also a real CLI flag/parameter now, not hardcoded.
+- **Pitfall (the expensive one): a caption-position or caption-size change is not "done"
+  until every overlay in every episode has been re-audited against it — across each
+  overlay's FULL on-screen duration, not one sample frame.** Bumping `MarginV`/font-size
+  broke FIVE separate overlays in EP4 alone (a stop-sign detection HUD, a stacked-text
+  hook, a fingerprint centerpiece, a CAPTCHA "detect card", a payoff glass icon) — all
+  invisible until frames were pulled at multiple timestamps spanning each beat's actual
+  runtime, because captions change every ~0.3-0.5s and overlay animations evolve, so a
+  collision can exist for only part of a beat and be invisible in a single sample. Fix
+  pattern: if there's real vertical space between the presenter's face and the caption
+  zone (worst case ~y=1300-1920), just reposition the offending element(s) up into it. If
+  there isn't — common once a graphic needs to be bigger than ~150px tall, since the gap
+  between "below the chin" and "above the caption" is often under 100px on this footage —
+  convert the whole overlay to a full-screen opaque takeover instead (add a `radial-gradient`
+  `#bg-fill` + `#vignette`, matching `slot_problem`/`slot_new_component` in
+  `episodes/ep4-captcha/animations/`, and move the content into the vertical-center, clear
+  of both constraints). If a composition connects fixed SVG coordinates to a moving element
+  (data-flow lines to an icon), moving just the destination breaks the line's geometry —
+  recompute every connected coordinate together and verify by re-rendering real frames, not
+  arithmetic alone.
+- **Pitfall: small `MarginV` bumps are visually imperceptible.** Nudging 60→95→130
+  (each +35px on a 1920px-tall canvas) produced a pixel-diffed shift of only ~15px per
+  step — invisible at normal viewing scale. When asked to move captions, jump by a real
+  fraction of the canvas height (10%+) and confirm with an actual pixel diff
+  (`ffmpeg -filter_complex "blend=all_mode=difference,eq=contrast=5"` on same-timestamp
+  frames from before/after), not just an eyeball check of one frame.
 
 ## Music & SFX
 

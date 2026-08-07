@@ -146,10 +146,17 @@ it before building anything:
   itself — judge density (above) instead. Flag it only if a beat has NO overlay at all.
 - **Size spot-check:** extract one frame per beat at its visual peak and confirm the
   primary element reads as large/dominant.
-- **Caption-clearance and face-clearance spot-check:** for every beat, extract a frame at
-  the busiest moment and confirm a visible gap to both the caption band and (if live
-  footage is visible) the presenter's face — crop tight and grid-measure if it looks close,
-  don't eyeball a full 1920px frame.
+- **Caption-clearance and face-clearance audit — check across each beat's FULL duration,
+  not one frame.** This is the check most likely to give a false pass if done lazily.
+  Extract frames at multiple timestamps spanning each overlay's entire on-screen run
+  (start, ~25%, ~50%, ~75%, near-end) and confirm a visible gap to both the caption band
+  and (if live footage is visible) the presenter's face at every one of them — crop tight
+  and grid-measure if it looks close, don't eyeball a full 1920px frame. Captions change
+  word-by-word every ~0.3-0.5s and overlay animations evolve continuously, so a collision
+  can exist for only part of a beat and be completely invisible in a single sample frame.
+  This exact mistake shipped five real collisions into one episode after a caption
+  size/position change — each one was only checked at one frame, and all five were only
+  colliding during a different portion of their beat's runtime.
 - **Real-image audit:** count real sourced images per episode and note whether each is
   used full-bleed or embedded as UI detail (both are valid; zero across a whole episode
   fails rule 6).
