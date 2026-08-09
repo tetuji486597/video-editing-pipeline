@@ -74,10 +74,11 @@ starting point on new episodes; don't re-derive them from scratch.
 
 ## Music & SFX
 
-- Background music: a ducked trap/beat-driven instrumental (rejected: lofi, generic
-  corporate stock). Volume/ducking envelope is tuned per-episode, mixed in as a
-  separate `amix` pass after `render.py`'s own output (narration + overlays + captions
-  + loudnorm) — `render.py` itself has no native music-mixing step.
+- **Background music: removed entirely (2026-08-08).** Went through lofi → rejected
+  generic corporate stock → a ducked trap/beat-driven instrumental → now removed per
+  direction. Final mixes are narration + overlays + captions + SFX only, no music layer.
+  Don't re-add a music bed to a future episode without asking first — this reverses
+  the "ducked trap instrumental" convention that held through EP1-EP6.
 - SFX stingers sourced from myinstants.com, documented per-episode in `sfx/SFX_NOTES.md`
   (which clip, where it's used, why). **The actual audio files are intentionally not
   committed to this repo** — licensing on myinstants.com content is unclear; re-download
@@ -86,6 +87,23 @@ starting point on new episodes; don't re-derive them from scratch.
   bouncy caption colors) — that rule was explicitly relaxed for SFX only, confirmed
   after flagging the copyright risk. Screen-shake / bouncy captions are still untested;
   don't assume they're wanted without asking.
+- **SFX cue timestamps go stale every time an overlay is rebuilt — derive them from the
+  overlay's own animation code, not the narration script.** SFX had originally been timed
+  against the script; several rounds of overlay rebuilds (caption fixes, format changes,
+  full-screen-takeover conversions) later, most cues no longer landed on anything. Fix:
+  for each overlay's GSAP timeline, find its one clear "landing beat" (a flash, a
+  color/state shift, a hero element popping in — usually already marked with a code
+  comment), take that LOCAL time, add the EDL's `start_in_output` for that slot — that's
+  the correct cue timestamp. Re-select the SFX file based on what the beat's CURRENT
+  content actually shows, not the original pick's assumption. Mix as `atrim` (trim long
+  clips to ~1-2.6s) → `volume=0.6` → `adelay=<ms>|<ms>` per clip → `amix=duration=longest:
+  normalize=0`, onto the narration/caption/overlay video directly (no music layer to mix
+  in anymore). **Verify every cue with a real extracted frame at its exact timestamp** —
+  don't trust the arithmetic. Typically only 1-3 of an episode's 5-7 cues turn out to be
+  badly stale (usually ones that drifted into dead air between overlays, or onto the
+  decayed tail of an animation past its actual hit); the rest are often already close or
+  exactly right, so "awkward timing" tends to be a few specific beats, not the whole
+  episode uniformly.
 
 ## Overlays (motion graphics)
 
