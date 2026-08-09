@@ -87,6 +87,36 @@ starting point on new episodes; don't re-derive them from scratch.
   bouncy caption colors) — that rule was explicitly relaxed for SFX only, confirmed
   after flagging the copyright risk. Screen-shake / bouncy captions are still untested;
   don't assume they're wanted without asking.
+
+## Narration denoise
+
+- **Confirmed: `render.py --denoise` (added 2026-08-09).** Applies RNNoise (an ML speech
+  denoiser, same class of tool as Discord/voice-chat noise suppression) plus an 80Hz
+  highpass, per-segment, before the existing 30ms fade edges. Model file is bundled at
+  `tool/models/rnnoise/bd.rnnn` — resolved automatically relative to `render.py`'s own
+  location, no separate download needed once this repo is cloned.
+- **Why RNNoise over ffmpeg's built-in `afftdn`:** measured both against real clips of
+  this footage using `astats` RMS on a genuine quiet-vs-speech A/B. `afftdn` (even at
+  various `nr`/`nf` settings) showed almost no differential — it just turned the whole
+  signal down a bit uniformly (~1-2dB gap between quiet-segment and speech-segment
+  reduction). RNNoise showed a real ~7dB gap (noise floor dropped ~26dB during silence vs.
+  ~19dB during speech) — genuine signal/noise discrimination, not just a volume cut.
+- **Confirmed setting: full-strength (`mix=1`, the default — don't pass a `mix` value
+  below 1 unless asked).** Gordon compared full-strength vs. a 70/30 blend vs. plain
+  `afftdn` on real A/B clips and picked full-strength.
+- Requires a **full fresh re-render from source** — the filter is applied during
+  per-segment extraction (before concat/grade/overlays/captions), so it cannot be
+  retrofitted onto an already-built `base_vN.mp4`. When adding this to an episode that
+  already has a final render, expect to rebuild the whole base from scratch, not just
+  patch the audio.
+- **EP1-specific fallback:** if an episode's raw source footage is missing (as EP1's is —
+  see the earlier gotcha in [[video-use-hyperframes-gotchas]]), the per-segment path isn't
+  available. Fallback: extract the narration-only audio from the existing `base_vN.mp4`,
+  run the same `highpass=f=80,arnndn=m=<model>` chain directly on that audio, and remux it
+  back onto the *same, unchanged* video (`-map 0:v -map <denoised-audio> -shortest`, since
+  `arnndn` adds a small tail latency — confirmed ~22ms on a 54s clip — that needs trimming
+  to preserve exact duration parity). This changes narration quality only; video/cut
+  timing stays bit-for-bit identical to before.
 - **SFX cue timestamps go stale every time an overlay is rebuilt — derive them from the
   overlay's own animation code, not the narration script.** SFX had originally been timed
   against the script; several rounds of overlay rebuilds (caption fixes, format changes,
