@@ -136,6 +136,55 @@ it before building anything:
    scene, (c) a transparent corner/band accent over live footage, (d) a split-screen or
    before/after comparison, (e) a data-viz/chart takeover. Format variance is scoped
    per-episode — episodes don't need to match each other's specific format mix.
+8. **Never position two visible elements independently without checking their resolved
+   pixel ranges against EACH OTHER — not just against the caption band and the face.**
+   The caption/face check (rule 5) covers collisions between an overlay and things
+   *outside* it; this rule covers collisions *within* one composition's own elements,
+   which is just as common and easy to miss. Two ways this happens, both confirmed real
+   bugs, not hypotheticals:
+   - **Different coordinate frames.** One element positioned `bottom: Npx` relative to a
+     parent container, another positioned `top: Mpx` in a totally different (often
+     outer/sibling) coordinate frame. Each number looks reasonable read in isolation, but
+     nobody resolved both to absolute canvas pixels and compared them. (EP5's `slot_problem`:
+     `#pay-btn` was `bottom: 44px` inside a `560px`-top, `460px`-tall card — resolving to
+     `y: 892-976` — while `#err-text`, a sibling of the card, was hardcoded `top: 930px` in
+     the outer frame. Nobody added it up; the button's own label text was covered by
+     "NETWORK DROPPED THE RESPONSE" for the entire beat.)
+   - **Insufficient margin between a small element and a much larger one, especially with
+     glow/text-shadow.** A `margin-top` that separates two text boxes' CSS boxes by a
+     positive number can still visually crowd/touch once font ascenders, glow blur radius,
+     and text-shadow spread are accounted for — a small gap that "should" be enough on
+     paper reads as touching on screen. (EP3's `slot_payoff`: a 34px intro line and a
+     96px emphasis line only 22px apart — visually crowded against each other badly enough
+     to misread as one merged sentence.)
+   - **Fix / prevention:** for every element in a composition, compute its resolved
+     absolute top/bottom in real canvas pixels (walk up the `position: absolute` ancestor
+     chain, don't trust a number read out of context) and check it pairwise against every
+     other simultaneously-visible element — not just the ones that look risky. When two
+     elements must sit close together (an intro line before a big emphasis line, a button
+     label near an error message), use a generously large explicit gap (40px+) rather than
+     a small margin that "adds up" correctly on paper. Verify with a real extracted frame,
+     the same as any other clearance check in this skill — computed CSS math has been wrong
+     more than once even when it looked right on paper.
+9. **A fix to an overlay's `index.html` does not exist in the shipped video until the
+   downstream base composite is rebuilt from it — matching duration is not evidence a
+   base is current.** `render.py`'s per-segment base render (`base_vN.mp4`) bakes in
+   whatever overlay `render.webm` files existed at build time. If an overlay is fixed
+   afterward (e.g. a caption-collision reposition) but a later step (an SFX remix, a
+   music-removal pass) reuses an *existing* `base_vN.mp4` by filename instead of
+   rebuilding fresh, the earlier fix silently never ships — even though the source file
+   is correct, even though the fix was already verified against a *different*, fresher
+   render at the time. This happened for real: EP6's payoff overlay was correctly
+   repositioned and verified clean, but the SFX-retiming pass later reused a `base_v9.mp4`
+   built two days *before* that fix, and the shipped video reverted to the broken
+   position with nobody noticing because duration matched. **Before reusing any
+   `base_vN.mp4` (or similar) for a downstream step, check whether ANY overlay's
+   `index.html` or `render.webm` has a newer mtime than that base file** (e.g. `find
+   animations -name "render.webm" -newer base_vN.mp4`) — if anything is newer, rebuild the
+   base fresh via `render.py --build-subtitles` (with the episode's current caption flags)
+   before doing anything downstream with it. When in doubt, just rebuild fresh — it's
+   cheap, and reusing a same-duration file that "should" be current is exactly the trap
+   that shipped this bug.
 
 ## Workflow
 
@@ -178,4 +227,14 @@ it before building anything:
   fails rule 6).
 - **Format-mix audit:** list each beat's format. Fewer than 3 distinct formats in one
   episode fails rule 7.
+- **Internal-collision audit (rule 8):** for every beat, list every visible text/graphic
+  element with its resolved absolute pixel range (not the raw CSS number — walk the
+  ancestor chain), and check each pair for overlap or a suspiciously small gap (<30px
+  between a small and a large element). Don't skip elements that "look fine" individually.
+- **Base-freshness check (rule 9):** before reusing any existing `base_vN.mp4` for a
+  downstream step (SFX remix, music pass, anything that isn't a full fresh composite),
+  run `find animations -name "render.webm" -newer <base file>` (and the same for
+  `index.html`) — if anything comes back, the base is stale; rebuild fresh via
+  `render.py --build-subtitles` before proceeding. Note this in your report either way
+  (confirmed fresh, or rebuilt because stale).
 - Report all findings before presenting the result — if something's off, fix it first.
