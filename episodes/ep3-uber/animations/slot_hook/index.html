@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>hook</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: "Helvetica Neue", -apple-system, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      /* photo-anchored: real aerial city photo fills the top ~61% of frame —
+         extended past the presenter's chin (measured: mouth ~980-1040, chin
+         ~1080-1130 in this shot) so the transition + stat numbers land on the
+         photo's dark scrim, not directly on visible face. */
+      #photo-card {
+        position: absolute; left: 0; top: 0; width: 1080px; height: 1180px;
+        overflow: hidden; opacity: 0;
+      }
+      #photo-card img {
+        position: absolute; left: 0; top: 0; width: 1080px; height: 1180px;
+        object-fit: cover; object-position: 50% 60%;
+        filter: brightness(0.62) saturate(1.15) contrast(1.05);
+      }
+      #photo-fade {
+        position: absolute; left: 0; top: 0; width: 1080px; height: 1180px;
+        background: linear-gradient(180deg, rgba(8,15,25,0.15) 0%, rgba(8,15,25,0.5) 55%, rgba(8,15,25,0.98) 85%);
+      }
+      #photo-caption {
+        position: absolute; left: 48px; top: 970px; font-size: 24px; font-weight: 700;
+        color: #67e8f9; letter-spacing: 2px; text-transform: uppercase; opacity: 0;
+        text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+      }
+
+      /* moved up from top:1220 — at the new caption settings (MarginV 350,
+         font 74px) the stat-row's bottom (~1442) collided with a 2-line
+         wrapped caption (top ~1392). Shifted so content clears even a
+         3-line worst-case caption (top ~1304) with buffer. */
+      #band { position: absolute; left: 60px; top: 1050px; width: 960px; height: 300px; overflow: visible; }
+      #accent-bar {
+        position: absolute; left: 0; top: 8px; width: 10px; height: 470px;
+        background: #22d3ee; border-radius: 5px;
+        box-shadow: 0 0 28px 5px rgba(34,211,238,0.9), 0 0 70px 12px rgba(34,211,238,0.45);
+        opacity: 0; transform-origin: top;
+      }
+      #text-block { position: absolute; left: 48px; top: 0; width: 900px; }
+      .line {
+        display: block; font-size: 42px; font-weight: 800; color: #ffffff;
+        letter-spacing: 0.5px; text-transform: uppercase; line-height: 1.2;
+        text-shadow: 0 3px 12px rgba(0,0,0,0.9), 0 1px 3px rgba(0,0,0,0.95);
+        opacity: 0; transform: translateY(30px);
+      }
+      .stat-row { display: flex; gap: 56px; margin-top: 30px; }
+      .stat { opacity: 0; }
+      .stat-num {
+        display: block; font-size: 104px; font-weight: 800; color: #22d3ee;
+        line-height: 1; letter-spacing: -1px; white-space: nowrap;
+        text-shadow: 0 0 44px rgba(34,211,238,0.9), 0 4px 14px rgba(0,0,0,0.9);
+      }
+      .stat-label {
+        display: block; margin-top: 12px; font-size: 26px; font-weight: 700;
+        color: #e2e8f0; letter-spacing: 1.5px; text-transform: uppercase;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="6.30" data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="6.30" data-track-index="1">
+        <div id="photo-card">
+          <img src="assets/city_map.jpg" alt="" />
+          <div id="photo-fade"></div>
+        </div>
+        <div id="photo-caption">A real city, from above</div>
+        <div id="band">
+          <div id="accent-bar"></div>
+          <div id="text-block">
+            <div class="line" id="l1">EVERY DRIVER IS MOVING.</div>
+            <div class="stat-row">
+              <div class="stat" id="s1">
+                <span class="stat-num">50,000</span>
+                <span class="stat-label">drivers in your city</span>
+              </div>
+              <div class="stat" id="s2">
+                <span class="stat-num">200ms</span>
+                <span class="stat-label">to find the closest one</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      tl.fromTo("#photo-card", { opacity: 0, scale: 1.08 }, { opacity: 1, scale: 1, duration: 0.6, ease: "power3.out", transformOrigin: "50% 50%" }, 0.0)
+        .to("#photo-caption", { opacity: 1, duration: 0.35 }, 0.35)
+        .to("#accent-bar", { opacity: 1, scaleY: 1, duration: 0.4, ease: "power3.out" }, 0.25)
+        .to("#l1", { opacity: 1, y: 0, duration: 0.35, ease: "power3.out" }, 0.4)
+        .fromTo("#s1", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.4, ease: "back.out(1.6)" }, 0.8)
+        .fromTo("#s2", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.4, ease: "back.out(1.6)" }, 1.0)
+        // slow continuous Ken-Burns drift on the photo across the whole hold
+        .to("#photo-card img", { scale: 1.12, duration: 5.8, ease: "none" }, 0.3)
+        .to(["#accent-bar", "#text-block", "#photo-card", "#photo-caption"], { opacity: 0, duration: 0.3, ease: "power1.in" }, 5.95);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

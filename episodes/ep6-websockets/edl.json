@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "sources": {
+    "EP6": "/Users/gordon.jin/Downloads/ep6.MP4"
+  },
+  "ranges": [
+    {
+      "source": "EP6", "start": 3.44, "end": 10.68,
+      "beat": "HOOK",
+      "quote": "You hit send and a second later it's on a phone across the planet. What's happening in that one second?",
+      "reason": "Only delivery of this line, clean single take.",
+      "zoom": {"at": 3.2, "scale": 1.2, "focal_x": 540, "focal_y": 563}
+    },
+    {
+      "source": "EP6", "start": 36.70, "end": 49.06,
+      "beat": "PROBLEM",
+      "quote": "Here's the problem. The old web way. The receiver's app keeps asking the server, \"Any new messages? Any now? Now?\" That's polling, wasteful, slow, and it drains battery.",
+      "reason": "Second delivery — first attempt (16.24-28.76) cut off mid-phrase (\"wasteful, pitiful, and it drained\").",
+      "quote_source_flub_range_for_reference": "16.24-28.76"
+    },
+    {
+      "source": "EP6", "start": 59.90, "end": 68.86,
+      "beat": "BUILD",
+      "quote": "Instead, we open a WebSocket. It's a single connection that stays open so the server can push the moment a message arrives.",
+      "reason": "Second delivery — first attempt (49.96-55.06) stopped short before \"so the server can push the moment a message arrives.\""
+    },
+    {
+      "source": "EP6", "start": 71.14, "end": 89.14,
+      "beat": "NEW_COMPONENT",
+      "quote": "But what if the receiver is offline? The message goes into a queue, holds safely, and delivers the instant they reconnect — that's your single gray tick becoming two. The open socket handles online now. The queue handles catch up later.",
+      "reason": "Single continuous take-through, matches script."
+    },
+    {
+      "source": "EP6", "start": 90.82, "end": 101.20,
+      "beat": "PAYOFF_NEXT",
+      "quote": "Don't keep asking, \"Any new messages?\" Just keep the line open. Next episode, we'll talk about how Google autocompletes your thought.",
+      "reason": "Single clean take, matches script (natural \"Just keep\" vs. scripted \"keep\" is a fine ad-lib, not a flub)."
+    }
+  ],
+  "grade": "eq=contrast=1.15:saturation=1.05,colorbalance=rs=-0.04:gs=0.02:bs=0.05:rm=0.01:gm=0.0:bm=-0.01:rh=0.06:gh=0.02:bh=-0.06,vignette=angle=0.7,unsharp=5:5:0.8:5:5:0.0,noise=alls=6:allf=t+u",
+  "overlays": [
+    {"file": "animations/slot_title/render.webm", "start_in_output": 0.0, "duration": 2.766},
+    {"file": "animations/slot_hook/render.webm", "start_in_output": 2.8, "duration": 3.400},
+    {"file": "animations/slot_problem/render.webm", "start_in_output": 8.74, "duration": 5.800},
+    {"file": "animations/slot_build/render.webm", "start_in_output": 20.00, "duration": 4.200},
+    {"file": "animations/slot_new_component/render.webm", "start_in_output": 30.06, "duration": 9.200},
+    {"file": "animations/slot_payoff/render.webm", "start_in_output": 48.30, "duration": 5.600}
+  ],
+  "subtitles": "master.ass",
+  "total_duration_s": 56.94
+}

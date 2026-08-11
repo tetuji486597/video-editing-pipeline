@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP3 Title Card</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: "Helvetica Neue", -apple-system, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      #block {
+        position: absolute;
+        left: 70px;
+        top: 190px;
+        width: 900px;
+        display: flex;
+        align-items: flex-start;
+      }
+      #accent-bar {
+        width: 6px;
+        border-radius: 3px;
+        background: #3b82f6;
+        box-shadow: 0 0 18px 2px rgba(59,130,246,0.7);
+        margin-right: 34px;
+        height: 210px;
+        flex-shrink: 0;
+      }
+      #text-stack { display: flex; flex-direction: column; }
+      #tag {
+        font-size: 22px;
+        font-weight: 600;
+        letter-spacing: 3px;
+        color: #93c5fd;
+        text-transform: uppercase;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.85);
+        margin-bottom: 20px;
+      }
+      #headline {
+        font-size: 68px;
+        font-weight: 800;
+        line-height: 1.1;
+        color: #ffffff;
+        text-shadow: 0 3px 14px rgba(0,0,0,0.9), 0 0 40px rgba(0,0,0,0.6);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="2.75"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="scene" class="clip" data-start="0" data-duration="2.75" data-track-index="1">
+        <div id="block">
+          <div id="accent-bar"></div>
+          <div id="text-stack">
+            <div id="tag">System Design &middot; 03</div>
+            <div id="headline">How Uber Finds<br />a Driver<br />in Seconds</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      gsap.set("#accent-bar", { scaleY: 0, transformOrigin: "top" });
+      gsap.set(["#tag", "#headline"], { opacity: 0, y: 26 });
+
+      tl.to("#accent-bar", { scaleY: 1, duration: 0.5, ease: "power3.out" }, 0.05)
+        .to("#tag", { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 0.15)
+        .to("#headline", { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.35)
+        .to(["#accent-bar", "#tag", "#headline"], { opacity: 0, duration: 0.25, ease: "power1.in" }, 2.45);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

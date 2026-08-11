@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>payoff</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: "Helvetica Neue", -apple-system, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      /* moved up from top:1090 — the "next episode" tease line's bottom
+         (~1460) landed on top of a 2-line caption (top ~1392); shifted so
+         it clears the 3-line worst-case caption top (~1304) with buffer.
+         Text over the face here (not a solid graphic) is acceptable per
+         convention. */
+      #band { position: absolute; left: 60px; top: 910px; width: 960px; height: 430px; overflow: hidden; }
+      #accent-bar {
+        position: absolute; left: 0; top: 8px; width: 10px; height: 400px;
+        background: #60a5fa; border-radius: 5px;
+        box-shadow: 0 0 28px 5px rgba(96,165,250,0.9), 0 0 70px 12px rgba(96,165,250,0.45);
+        opacity: 0; transform-origin: top;
+      }
+      #text-block { position: absolute; left: 56px; top: 24px; width: 880px; }
+      .line {
+        display: block; font-size: 34px; font-weight: 800; color: #ffffff;
+        letter-spacing: 0.5px; text-transform: uppercase; line-height: 1.25;
+        text-shadow: 0 3px 12px rgba(0,0,0,0.9), 0 1px 3px rgba(0,0,0,0.95);
+        opacity: 0; transform: translateY(30px);
+      }
+      .emph {
+        display: block; margin-top: 50px; font-size: 96px; font-weight: 800; color: #60a5fa;
+        letter-spacing: 0.5px; line-height: 1.05;
+        text-shadow: 0 0 40px rgba(96,165,250,0.9), 0 4px 14px rgba(0,0,0,0.9);
+        opacity: 0;
+      }
+      #next-line {
+        margin-top: 28px; font-size: 27px; font-weight: 700; color: #93c5fd;
+        letter-spacing: 1px; text-transform: uppercase; opacity: 0;
+        border-top: 2px solid rgba(147,197,253,0.3); padding-top: 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="7.30" data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="7.30" data-track-index="1">
+        <div id="band">
+          <div id="accent-bar"></div>
+          <div id="text-block">
+            <div class="line" id="l1">DON'T SEARCH THE WHOLE CITY.</div>
+            <div class="emph" id="e1">Index space,<br/>not just data.</div>
+            <div id="next-line">Next: how sites know you're not a robot</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      tl.to("#accent-bar", { opacity: 1, scaleY: 1, duration: 0.4, ease: "power3.out" }, 0.05)
+        .to("#l1", { opacity: 1, y: 0, duration: 0.35, ease: "power3.out" }, 0.15)
+        .fromTo("#e1", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.45, ease: "back.out(1.5)" }, 0.6)
+        // new content in the back half instead of a static hold
+        .fromTo("#next-line", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 4.6)
+        .to(["#accent-bar", "#text-block"], { opacity: 0, duration: 0.3, ease: "power1.in" }, 6.95);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

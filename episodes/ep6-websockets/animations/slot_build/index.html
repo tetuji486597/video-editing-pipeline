@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>build</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: "Helvetica Neue", -apple-system, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .fill { position: absolute; inset: 0; }
+
+      #bg-fill { background: radial-gradient(120% 90% at 50% 32%, #071410 0%, #040c0a 50%, #010403 100%); }
+      #glow-red { position: absolute; left: 50%; top: 34%; width: 1400px; height: 1400px; transform: translate(-50%,-50%); background: radial-gradient(circle, rgba(239,68,68,0.14) 0%, rgba(239,68,68,0) 60%); }
+      #glow-teal { position: absolute; left: 50%; top: 34%; width: 1400px; height: 1400px; transform: translate(-50%,-50%); background: radial-gradient(circle, rgba(20,184,166,0) 0%, rgba(20,184,166,0) 60%); opacity: 0; }
+      #vignette { background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 16%, rgba(0,0,0,0) 76%, rgba(0,0,0,0.6) 100%); }
+
+      #header { position: absolute; top: 300px; left: 0; width: 1080px; text-align: center; font-size: 30px; font-weight: 800; color: #fca5a5; letter-spacing: 5px; text-transform: uppercase; opacity: 0; }
+
+      #node-wrap { position: absolute; left: 50%; top: 700px; width: 760px; height: 300px; transform: translateX(-50%); }
+      .node-dot { fill: #0f172a; stroke-width: 5; }
+      .node-label { font-size: 30px; font-weight: 700; letter-spacing: 1px; }
+
+      /* phase 1: failed handshake attempts */
+      #req-line { stroke: #ef4444; stroke-width: 4; stroke-dasharray: 8 8; fill: none; opacity: 0; }
+      .req-dot { fill: #ef4444; opacity: 0; }
+      #x-mark { opacity: 0; }
+
+      /* phase 2: persistent connection */
+      #conn-line { stroke: #14b8a6; stroke-width: 7; stroke-linecap: round; filter: drop-shadow(0 0 14px rgba(20,184,166,0.9)); opacity: 0; }
+      #badge { position: absolute; left: 50%; top: 1080px; transform: translateX(-50%); background: rgba(6,26,22,0.85); border: 2px solid rgba(20,184,166,0.6); border-radius: 40px; padding: 16px 40px; opacity: 0; }
+      #badge-text { color: #5eead4; font-size: 26px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; display: flex; align-items: center; gap: 14px; }
+      #badge-dot { width: 16px; height: 16px; border-radius: 50%; background: #14b8a6; box-shadow: 0 0 12px 3px rgba(20,184,166,0.9); }
+
+      #punch-word { position: absolute; left: 50%; top: 1180px; width: 900px; transform: translateX(-50%); text-align: center; font-size: 92px; font-weight: 800; color: #ffffff; letter-spacing: 1px; text-transform: uppercase; line-height: 1.0; text-shadow: 0 0 44px rgba(20,184,166,0.8), 0 4px 14px rgba(0,0,0,0.9); opacity: 0; }
+
+      #flash { background: #ecfffb; opacity: 0; }
+      #grain { pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="4.20" data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="4.20" data-track-index="1">
+        <div class="fill" id="bg-fill"></div>
+        <div id="glow-red"></div>
+        <div id="glow-teal"></div>
+        <div class="fill" id="vignette"></div>
+
+        <div id="header">The Old Handshake</div>
+
+        <svg id="node-wrap" viewBox="0 0 760 300">
+          <line id="req-line" x1="90" y1="150" x2="670" y2="150" />
+          <circle class="req-dot" id="rd1" cx="220" cy="150" r="9" />
+          <circle class="req-dot" id="rd2" cx="380" cy="150" r="9" />
+          <circle class="req-dot" id="rd3" cx="540" cy="150" r="9" />
+          <g id="x-mark" transform="translate(380,150)">
+            <line x1="-22" y1="-22" x2="22" y2="22" stroke="#ef4444" stroke-width="7" stroke-linecap="round"/>
+            <line x1="22" y1="-22" x2="-22" y2="22" stroke="#ef4444" stroke-width="7" stroke-linecap="round"/>
+          </g>
+          <line id="conn-line" x1="90" y1="150" x2="670" y2="150" stroke-dasharray="580" stroke-dashoffset="580" />
+          <circle class="node-dot" cx="90" cy="150" r="34" stroke="#14b8a6" />
+          <circle class="node-dot" cx="670" cy="150" r="34" stroke="#14b8a6" />
+          <text class="node-label" fill="#5eead4" x="46" y="230" text-anchor="middle">YOU</text>
+          <text class="node-label" fill="#5eead4" x="670" y="230" text-anchor="middle">SERVER</text>
+        </svg>
+
+        <div id="badge"><div id="badge-text"><div id="badge-dot"></div>Connection: Open</div></div>
+        <div id="punch-word">Stays Open.</div>
+
+        <div class="fill" id="flash"></div>
+
+        <svg width="0" height="0" style="position:absolute">
+          <filter id="grain-filter-build">
+            <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+            <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.035 0" />
+          </filter>
+        </svg>
+        <div class="fill" id="grain"></div>
+      </section>
+    </div>
+
+    <script>
+      document.getElementById("grain").style.filter = "url(#grain-filter-build)";
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.06, duration: 4.2, ease: "sine.inOut" }, 0);
+
+      // ---------- PHASE 1: failed polling handshake (0 - 1.5s) ----------
+      tl.fromTo("#header", { opacity: 0, y: -16 }, { opacity: 1, y: 0, duration: 0.35, ease: "power3.out" }, 0.05)
+        .to("#req-line", { opacity: 0.7, duration: 0.2 }, 0.2)
+        .fromTo("#rd1", { opacity: 0, x: -160 }, { opacity: 1, x: 0, duration: 0.35, ease: "power1.in" }, 0.25)
+        .to("#rd1", { opacity: 0, duration: 0.15 }, 0.6)
+        .fromTo("#rd2", { opacity: 0, x: -160 }, { opacity: 1, x: 0, duration: 0.3, ease: "power1.in" }, 0.65)
+        .to("#rd2", { opacity: 0, duration: 0.12 }, 0.95)
+        .fromTo("#x-mark", { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1, duration: 0.25, ease: "back.out(2)" }, 1.0)
+        .to("#x-mark", { opacity: 0, duration: 0.2 }, 1.3);
+
+      // ---------- TRANSITION: flash + color shift (1.5 - 1.8s) ----------
+      tl.to(["#req-line", "#header"], { opacity: 0, duration: 0.2 }, 1.45)
+        .fromTo("#flash", { opacity: 0 }, { opacity: 0.85, duration: 0.06 }, 1.55)
+        .to("#flash", { opacity: 0, duration: 0.3, ease: "power3.out" }, 1.61)
+        .to("#glow-red", { opacity: 0, duration: 0.4 }, 1.5)
+        .to("#glow-teal", { opacity: 1, duration: 0.5 }, 1.6);
+
+      // ---------- PHASE 2: persistent connection established (1.8 - 4.2s) ----------
+      tl.to("#conn-line", { opacity: 1, strokeDashoffset: 0, duration: 0.6, ease: "power2.inOut" }, 1.85)
+        .fromTo("#badge", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 2.4)
+        .to("#badge-dot", { opacity: 0.3, duration: 0.6, ease: "sine.inOut", repeat: 4, yoyo: true }, 2.6)
+        .to("#conn-line", { opacity: 0.6, duration: 0.7, ease: "sine.inOut", repeat: 3, yoyo: true }, 2.6)
+        .fromTo("#punch-word", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 2.75)
+        .to(["#scene", "#glow-teal"], { opacity: 0, duration: 0.3, ease: "power3.out" }, 3.9);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

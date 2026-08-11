@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>problem</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: "Helvetica Neue", -apple-system, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .fill { position: absolute; inset: 0; }
+
+      #bg-fill { background: radial-gradient(120% 90% at 50% 30%, #0e1420 0%, #0a0d14 42%, #05060a 78%, #020304 100%); }
+      #glow-blue { position: absolute; left: 50%; top: 30%; width: 1300px; height: 1300px; transform: translate(-50%,-50%);
+        background: radial-gradient(circle, rgba(59,130,246,0.22) 0%, rgba(59,130,246,0) 60%); }
+      #glow-red { position: absolute; left: 50%; top: 30%; width: 1300px; height: 1300px; transform: translate(-50%,-50%);
+        background: radial-gradient(circle, rgba(239,68,68,0.32) 0%, rgba(239,68,68,0) 62%); opacity: 0; }
+      #vignette { background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 16%, rgba(0,0,0,0) 76%, rgba(0,0,0,0.65) 100%); }
+
+      #scene { transform-origin: 50% 42%; }
+
+      #card { position: absolute; left: 190px; top: 560px; width: 700px; height: 460px; border-radius: 26px;
+        background: linear-gradient(160deg, rgba(18,22,32,0.95), rgba(8,10,14,0.97));
+        border: 2px solid rgba(59,130,246,0.4); padding: 44px 48px; opacity: 0; }
+      #card-title { color: #f3f4f6; font-size: 40px; font-weight: 800; }
+      #card-sub { margin-top: 8px; color: #94a3b8; font-size: 22px; }
+
+      #cc-chip { position: absolute; right: 44px; top: 44px; width: 118px; height: 118px; border-radius: 14px; overflow: hidden;
+        border: 2px solid rgba(59,130,246,0.5); box-shadow: 0 10px 26px rgba(0,0,0,0.5); }
+      #cc-chip img { width: 100%; height: 100%; object-fit: cover; }
+
+      #pay-btn { position: absolute; left: 48px; bottom: 44px; width: 604px; height: 84px; border-radius: 16px;
+        background: #3b82f6; display: flex; align-items: center; justify-content: center;
+        color: #ffffff; font-size: 32px; font-weight: 800; box-shadow: 0 14px 30px rgba(59,130,246,0.4); }
+      #tap-ring { position: absolute; left: 48px; bottom: 44px; width: 604px; height: 84px; border-radius: 16px;
+        border: 3px solid rgba(255,255,255,0.85); opacity: 0; }
+
+      #glitch-bar { position: absolute; left: 190px; top: 900px; width: 700px; height: 6px; background: #ef4444;
+        opacity: 0; box-shadow: 0 0 24px 4px rgba(239,68,68,0.9); }
+      /* card bottom edge is at top(560)+height(460)=1020px; sits below the card
+         entirely so it never overlaps #pay-btn (which resolves to y:892-976px via
+         its bottom:44px offset inside #card) */
+      #err-text { position: absolute; left: 190px; top: 1050px; width: 700px; text-align: center;
+        color: #fca5a5; font-size: 24px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; opacity: 0; }
+
+      .receipt { position: absolute; left: 240px; width: 600px; height: 168px; border-radius: 18px;
+        background: rgba(10,6,8,0.94); border: 2px solid rgba(239,68,68,0.55); box-shadow: 0 18px 40px rgba(0,0,0,0.55);
+        display: flex; align-items: center; padding: 0 36px; opacity: 0; }
+      #r1 { top: 700px; }
+      #r2 { top: 880px; }
+      .r-label { color: #fca5a5; font-size: 18px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+      .r-amt { color: #ffffff; font-size: 46px; font-weight: 800; margin-top: 4px; }
+
+      #twice-tag { position: absolute; left: 190px; top: 1060px; width: 700px; text-align: center;
+        font-size: 56px; font-weight: 800; color: #ef4444; text-transform: uppercase;
+        text-shadow: 0 0 34px rgba(239,68,68,0.85), 0 4px 14px rgba(0,0,0,0.9); opacity: 0; }
+
+      #flash { background: #ffffff; opacity: 0; pointer-events: none; }
+      #dither { opacity: 1; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="6.50" data-width="1080" data-height="1920">
+      <section id="main-clip" class="clip" data-start="0" data-duration="6.50" data-track-index="1">
+        <div id="content-all" class="fill">
+          <div id="bg-fill" class="fill">
+            <div id="glow-blue"></div>
+            <div id="glow-red"></div>
+            <div id="vignette" class="fill"></div>
+          </div>
+          <div id="scene" class="fill">
+            <div id="card">
+              <div id="card-title">Pay $9.99</div>
+              <div id="card-sub">Monthly subscription</div>
+              <div id="cc-chip"><img src="assets/card.png" alt="" /></div>
+              <div id="pay-btn">Pay Now</div>
+              <div id="tap-ring"></div>
+            </div>
+            <div id="glitch-bar"></div>
+            <div id="err-text">Network dropped the response</div>
+            <div class="receipt" id="r1"><div><div class="r-label">Charged</div><div class="r-amt">$9.99</div></div></div>
+            <div class="receipt" id="r2"><div><div class="r-label">Charged again</div><div class="r-amt">$9.99</div></div></div>
+            <div id="twice-tag">Charged twice.</div>
+          </div>
+          <div id="flash" class="fill"></div>
+          <div id="dither" class="fill"></div>
+        </div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position:absolute">
+      <filter id="grain-filter">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.045 0" />
+      </filter>
+    </svg>
+
+    <script>
+      document.getElementById("dither").style.filter = "url(#grain-filter)";
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.07, duration: 6.5, ease: "sine.inOut" }, 0);
+
+      // ---------- PHASE 1: calm checkout, one tap ----------
+      tl.fromTo("#card", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.05);
+      tl.fromTo("#tap-ring", { opacity: 0, scale: 1 }, { opacity: 1, scale: 1.06, duration: 0.35, ease: "power2.out" }, 1.1)
+        .to("#tap-ring", { opacity: 0, duration: 0.2 }, 1.45);
+      // second tap — the "double-tap" beat
+      tl.fromTo("#tap-ring", { opacity: 0, scale: 1 }, { opacity: 1, scale: 1.06, duration: 0.35, ease: "power2.out" }, 1.6)
+        .to("#tap-ring", { opacity: 0, duration: 0.2 }, 1.97);
+
+      // ---------- TRANSITION: network drop / glitch ----------
+      tl.fromTo("#glitch-bar", { opacity: 0, scaleX: 0 }, { opacity: 1, scaleX: 1, duration: 0.25, ease: "power3.out" }, 2.2);
+      tl.to("#err-text", { opacity: 1, duration: 0.3, ease: "power2.out" }, 2.35);
+      tl.to("#card", { x: -6, duration: 0.05, repeat: 5, yoyo: true, ease: "none" }, 2.2);
+      tl.to("#glow-blue", { opacity: 0.3, duration: 0.4 }, 2.4);
+      tl.fromTo("#flash", { opacity: 0 }, { opacity: 0.85, duration: 0.05 }, 2.75).to("#flash", { opacity: 0, duration: 0.25 }, 2.8);
+      tl.to("#glow-red", { opacity: 1, duration: 0.5, ease: "power3.out" }, 2.8);
+
+      // ---------- PHASE 2: the double charge ----------
+      tl.to(["#card", "#glitch-bar", "#err-text"], { opacity: 0, duration: 0.35, ease: "power2.out" }, 2.9);
+      tl.fromTo("#r1", { opacity: 0, y: -16 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 3.15);
+      tl.fromTo("#r2", { opacity: 0, y: -16 }, { opacity: 1, y: 0, duration: 0.4, ease: "back.out(1.4)" }, 3.55);
+      tl.to("#r2", { boxShadow: "0 18px 50px rgba(0,0,0,0.6), 0 0 34px 6px rgba(239,68,68,0.7)", duration: 1.1, ease: "sine.inOut", yoyo: true, repeat: 3 }, 3.9);
+      tl.fromTo("#twice-tag", { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(1.6)" }, 4.3);
+      tl.to("#glow-red", { opacity: 0.55, duration: 1.2, ease: "sine.inOut", yoyo: true, repeat: 2 }, 4.8);
+
+      tl.to("#content-all", { opacity: 0, duration: 0.3, ease: "power3.out" }, 6.2);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

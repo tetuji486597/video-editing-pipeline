@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>new component</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: "Helvetica Neue", -apple-system, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      /* full-screen opaque takeover — stageA's grid-caption ("25 squares
+         checked...") bottom landed at ~y1433, directly under a 2-line
+         caption (top ~1392); no safe gap remained at the new caption
+         settings. Matches slot_problem/slot_build's dark-atmosphere recipe. */
+      #bg-fill {
+        position: absolute; inset: 0;
+        background: radial-gradient(120% 90% at 50% 30%, #14100a 0%, #0b0904 45%, #030302 80%, #010100 100%);
+      }
+      #vignette {
+        position: absolute; inset: 0;
+        background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 20%, rgba(0,0,0,0) 70%, rgba(0,0,0,0.65) 100%);
+      }
+
+      #band { position: absolute; left: 60px; top: 550px; width: 960px; height: 620px; overflow: hidden; }
+      #accent-bar {
+        position: absolute; left: 0; top: 8px; width: 10px; height: 590px;
+        background: #fbbf24; border-radius: 5px;
+        box-shadow: 0 0 28px 5px rgba(251,191,36,0.9), 0 0 70px 12px rgba(251,191,36,0.45);
+        opacity: 0; transform-origin: top;
+      }
+      #content { position: absolute; left: 56px; top: 0; width: 880px; }
+      .line {
+        display: block; font-size: 34px; font-weight: 800; color: #ffffff;
+        letter-spacing: 0.5px; text-transform: uppercase; line-height: 1.25;
+        text-shadow: 0 3px 12px rgba(0,0,0,0.9), 0 1px 3px rgba(0,0,0,0.95);
+        opacity: 0; transform: translateY(30px);
+      }
+
+      /* stage A: split-screen before/after comparison — two grids side by side */
+      #stageA { position: absolute; left: 0; top: 90px; width: 880px; opacity: 1; }
+      #split-row { display: flex; align-items: flex-start; gap: 40px; }
+      .split-panel { width: 400px; }
+      .panel-label {
+        font-size: 21px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;
+        margin-bottom: 12px; opacity: 0;
+      }
+      #panel-naive .panel-label { color: #fca5a5; }
+      #panel-indexed .panel-label { color: #fde68a; }
+      .cell { fill: rgba(255,255,255,0.04); stroke: rgba(255,255,255,0.18); stroke-width: 2.5; }
+      .cell.hood { fill: rgba(251,191,36,0.2); stroke: #fbbf24; opacity: 0; }
+      .cell.you { fill: #fbbf24; opacity: 0; }
+      .cell.naive-hit { fill: rgba(248,113,113,0.35); stroke: #f87171; opacity: 0; }
+      #vs-divider {
+        position: absolute; left: 420px; top: 210px; font-size: 32px; font-weight: 800;
+        color: #ffffff; opacity: 0; text-shadow: 0 3px 10px rgba(0,0,0,0.9);
+      }
+      #grid-caption { font-size: 24px; font-weight: 700; color: #fde68a; letter-spacing: 1px; opacity: 0; margin-top: 14px; }
+
+      /* stage B: geohash */
+      #stageB { position: absolute; left: 0; top: 90px; width: 880px; opacity: 0; }
+      #hash-label {
+        font-size: 22px; font-weight: 700; color: #fde68a; letter-spacing: 2px;
+        text-transform: uppercase; margin-bottom: 14px;
+      }
+      #hash-string {
+        font-family: "SF Mono", Menlo, monospace; font-size: 92px; font-weight: 700;
+        color: #fbbf24; letter-spacing: 6px; text-shadow: 0 0 30px rgba(251,191,36,0.75);
+      }
+      #hash-string span { opacity: 0; }
+      #compare-row { display: flex; gap: 64px; margin-top: 34px; }
+      .compare-card { opacity: 0; }
+      .compare-card .cc-hash {
+        font-family: "SF Mono", Menlo, monospace; font-size: 40px; font-weight: 700; color: #ffffff;
+        letter-spacing: 2px;
+      }
+      .compare-card .cc-hash .match { color: #fbbf24; }
+      .compare-card .cc-label { font-size: 20px; font-weight: 600; color: #cbd5e1; margin-top: 6px; }
+      .emph {
+        display: block; margin-top: 28px; font-size: 62px; font-weight: 800; color: #ffffff;
+        text-transform: uppercase; opacity: 0; text-shadow: 0 3px 12px rgba(0,0,0,0.9); line-height: 1.05;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="15.60" data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="15.60" data-track-index="1">
+        <div id="bg-fill"></div>
+        <div id="vignette"></div>
+        <div id="band">
+          <div id="accent-bar"></div>
+          <div class="line" id="l1">CHECK YOUR SQUARE. IGNORE THE REST OF THE CITY.</div>
+
+          <div id="stageA">
+            <div id="split-row">
+              <div class="split-panel" id="panel-naive">
+                <div class="panel-label">Naive: scan everything</div>
+                <svg viewBox="0 0 400 400" width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+                  <g id="grid-naive"></g>
+                </svg>
+              </div>
+              <div class="split-panel" id="panel-indexed">
+                <div class="panel-label">Indexed: your square + neighbors</div>
+                <svg viewBox="0 0 400 400" width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+                  <g id="grid"></g>
+                </svg>
+              </div>
+            </div>
+            <div id="vs-divider">VS</div>
+            <div id="grid-caption">25 squares checked &rarr; just 5. Same answer, fraction of the work.</div>
+          </div>
+
+          <div id="stageB">
+            <div id="hash-label">Geohash prefix</div>
+            <div id="hash-string">
+              <span>9</span><span>q</span><span>8</span><span>y</span><span>y</span>
+            </div>
+            <div id="compare-row">
+              <div class="compare-card" id="cardA">
+                <div class="cc-hash"><span class="match">9q8y</span>y</div>
+                <div class="cc-label">YOUR LOCATION</div>
+              </div>
+              <div class="compare-card" id="cardB">
+                <div class="cc-hash"><span class="match">9q8y</span>2</div>
+                <div class="cc-label">NEARBY DRIVER — MATCH</div>
+              </div>
+            </div>
+            <div class="emph" id="e1">SAME PREFIX = NEARBY.</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // indexed grid (5x5): mark center + 4-neighbors as "hood", center cell as "you"
+      const gridEl = document.getElementById("grid");
+      const n = 5, size = 400 / n;
+      const centerIdx = 2;
+      for (let row = 0; row < n; row++) {
+        for (let col = 0; col < n; col++) {
+          const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+          rect.setAttribute("x", col * size);
+          rect.setAttribute("y", row * size);
+          rect.setAttribute("width", size);
+          rect.setAttribute("height", size);
+          const isCenter = row === centerIdx && col === centerIdx;
+          const isNeighbor = Math.abs(row - centerIdx) + Math.abs(col - centerIdx) === 1;
+          rect.setAttribute("class", "cell" + (isCenter ? " you" : isNeighbor ? " hood" : ""));
+          if (isCenter) rect.id = "cell-you";
+          if (isNeighbor) rect.classList.add("hood-cell");
+          gridEl.appendChild(rect);
+        }
+      }
+      // naive grid (5x5): every cell gets checked
+      const gridNaiveEl = document.getElementById("grid-naive");
+      for (let row = 0; row < n; row++) {
+        for (let col = 0; col < n; col++) {
+          const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+          rect.setAttribute("x", col * size);
+          rect.setAttribute("y", row * size);
+          rect.setAttribute("width", size);
+          rect.setAttribute("height", size);
+          rect.setAttribute("class", "cell naive-hit");
+          gridNaiveEl.appendChild(rect);
+        }
+      }
+
+      tl.to("#accent-bar", { opacity: 1, scaleY: 1, duration: 0.4, ease: "power3.out" }, 0.05)
+        .to("#l1", { opacity: 1, y: 0, duration: 0.35, ease: "power3.out" }, 0.15)
+        // --- stage A: split-screen before/after (0.6s - 7.0s) ---
+        .to("#panel-naive .panel-label, #panel-indexed .panel-label", { opacity: 1, duration: 0.3 }, 0.55)
+        .to("#vs-divider", { opacity: 1, duration: 0.3 }, 0.7)
+        .to(".naive-hit", { opacity: 1, duration: 0.06, stagger: 0.025 }, 0.9)
+        .to("#cell-you", { opacity: 1, duration: 0.3 }, 1.9)
+        .to(".hood-cell", { opacity: 1, duration: 0.3, stagger: 0.08 }, 2.2)
+        .to("#grid-caption", { opacity: 1, duration: 0.4 }, 2.9)
+        // hold stage A, then swap to stage B
+        .to("#stageA", { opacity: 0, duration: 0.5, ease: "power1.in" }, 7.0)
+        .to("#stageB", { opacity: 1, duration: 0.5, ease: "power1.out" }, 7.3)
+        // --- stage B: geohash (7.3s - 15.2s) ---
+        .to("#hash-string span", { opacity: 1, duration: 0.15, stagger: 0.12 }, 7.6)
+        .fromTo("#cardA", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }, 9.2)
+        .fromTo("#cardB", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }, 9.6)
+        .fromTo("#e1", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, 10.3)
+        .to(["#accent-bar", "#l1", "#stageB"], { opacity: 0, duration: 0.3, ease: "power1.in" }, 15.25);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

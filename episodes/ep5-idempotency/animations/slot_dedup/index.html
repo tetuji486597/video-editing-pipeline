@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>dedup</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: "Helvetica Neue", -apple-system, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      /* raised band, kept clear of the caption zone (captions sit ~y1560+) */
+      #stage {
+        position: absolute;
+        left: 60px;
+        top: 1030px;
+        width: 960px;
+        height: 350px;
+        overflow: hidden;
+      }
+
+      .ticket {
+        position: absolute;
+        top: 0;
+        width: 208px;
+        height: 220px;
+      }
+      .ticket img { width: 100%; height: 100%; object-fit: contain; }
+      #ticketA { left: 130px; opacity: 0; }
+      #ticketB { left: 630px; opacity: 0; }
+
+      #tagA, #tagB {
+        position: absolute;
+        top: 226px;
+        width: 208px;
+        text-align: center;
+        font-family: "SF Mono", "Menlo", monospace;
+        font-size: 19px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        opacity: 0;
+      }
+      #tagA { left: 130px; color: #6ee7b7; }
+      #tagB { left: 630px; color: #94a3b8; }
+
+      #resultA, #resultB {
+        position: absolute;
+        top: 260px;
+        width: 208px;
+        text-align: center;
+        font-size: 24px;
+        font-weight: 800;
+        opacity: 0;
+      }
+      #resultA { left: 130px; color: #34d399; }
+      #resultB { left: 630px; color: #f8fafc; }
+
+      #arrow {
+        position: absolute;
+        left: 385px;
+        top: 85px;
+        width: 200px;
+        height: 40px;
+        opacity: 0;
+      }
+
+      #headline {
+        position: absolute;
+        left: 0;
+        top: 300px;
+        width: 960px;
+        text-align: center;
+        font-size: 34px;
+        font-weight: 800;
+        color: #ffffff;
+        line-height: 1.2;
+        text-shadow: 0 3px 14px rgba(0,0,0,0.9), 0 0 40px rgba(0,0,0,0.6);
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="4.30" data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="4.30" data-track-index="1">
+        <div id="stage">
+          <div class="ticket" id="ticketA"><img src="assets/ticket.png" alt="" /></div>
+          <div class="ticket" id="ticketB" style="filter: grayscale(1) brightness(0.7);"><img src="assets/ticket.png" alt="" /></div>
+          <div id="tagA">idk_7f2a9c3d</div>
+          <div id="tagB">idk_7f2a9c3d</div>
+          <svg id="arrow" viewBox="0 0 200 40" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 20 L170 20" stroke="#94a3b8" stroke-width="3" fill="none" stroke-dasharray="6 5" />
+            <path d="M158 8 L176 20 L158 32" stroke="#94a3b8" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <div id="resultA">CHARGED</div>
+          <div id="resultB">SAME RESULT</div>
+          <div id="headline">Same key twice. Charged once.</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      gsap.set(["#ticketA", "#ticketB"], { y: 20 });
+
+      tl.to("#ticketA", { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 0.05)
+        .to("#tagA", { opacity: 1, duration: 0.3, ease: "power2.out" }, 0.35)
+        .to("#resultA", { opacity: 1, duration: 0.3, ease: "power2.out" }, 0.55)
+        .to("#ticketB", { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 0.85)
+        .to("#tagB", { opacity: 1, duration: 0.3, ease: "power2.out" }, 1.15)
+        .to("#arrow", { opacity: 1, duration: 0.3, ease: "power2.out" }, 1.3)
+        .to("#resultB", { opacity: 1, duration: 0.3, ease: "power2.out" }, 1.45)
+        .to("#headline", { opacity: 1, duration: 0.4, ease: "power2.out" }, 1.8)
+        .to(["#ticketA", "#ticketB", "#tagA", "#tagB", "#resultA", "#resultB", "#arrow", "#headline"],
+            { opacity: 0, duration: 0.3, ease: "power1.in" }, 3.95);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

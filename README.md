@@ -21,10 +21,19 @@ video out.
 - **`episodes/`** — per-episode source configs: the EDL (`edl.json`), the
   [HyperFrames](https://github.com/heygen-com/hyperframes) motion-graphic overlay
   compositions (`animations/<slot>/index.html`), word-level transcripts, SFX sourcing
-  notes, and session notes (`project.md`). Raw footage and rendered video/audio output
-  are intentionally excluded (regenerate via `tool/helpers/render.py`).
+  notes, and session notes (`project.md`). Rendered video/audio output is intentionally
+  excluded — regenerate it via `tool/helpers/render.py` given the raw footage. **Raw
+  footage itself is NOT in this repo and is not regenerable** — it only exists as the
+  original teleprompter recordings on whichever machine captured them (currently
+  `~/Downloads/Teleprompter-*.mp4` etc. on Gordon's machine, uncommitted, unbacked-up
+  elsewhere). If that copy is lost, the episode can't be rebuilt from scratch — only from
+  whatever already-rendered MP4 happens to exist somewhere (e.g. already posted to
+  TikTok). EP1's raw source is already missing as of 2026-08-09.
   - `ep1-password/` — "Where Your Password Actually Goes" (hashing/salting/bcrypt)
+  - `ep3-uber/` — Uber driver matching (quadtree spatial indexing)
   - `ep4-captcha/` — "How Sites Know You're Not a Robot" (CAPTCHA/bot-detection)
+  - `ep5-idempotency/` — idempotency keys ("why you never get charged twice")
+  - `ep6-websockets/` — "How WhatsApp Delivers in 1 Second" (polling vs. WebSockets vs. offline queues)
 
 ## First time on a new machine
 

@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "sources": {
+    "EP5": "/Users/gordon.jin/Downloads/ep5.mp4"
+  },
+  "ranges": [
+    {
+      "source": "EP5", "start": 14.23, "end": 19.56,
+      "beat": "HOOK",
+      "quote": "You've definitely double-tapped a pay button, so why weren't you charged twice?",
+      "reason": "Single clean take, matches script verbatim.",
+      "zoom": {"at": 4.89, "scale": 1.2, "focal_x": 520, "focal_y": 615}
+    },
+    {
+      "source": "EP5", "start": 76.49, "end": 88.82,
+      "beat": "PROBLEM",
+      "quote": "Here's the problem: networks are unreliable. Your phone sends \"charge me\" and the network drops the response, your app retries, and a naive server happily charges you a second time.",
+      "reason": "Last and fullest continuous take of this line; earlier attempts (29.64, 46.60, 61.16-70.92) all cut off or flub 'naive'."
+    },
+    {
+      "source": "EP5", "start": 89.93, "end": 99.16,
+      "beat": "BUILD",
+      "quote": "The fix is an idempotency key, a unique ID your app generates for that one payment and attaches to every retry.",
+      "reason": "Single clean take, matches script verbatim."
+    },
+    {
+      "source": "EP5", "start": 100.32, "end": 110.06,
+      "beat": "NEW_COMPONENT",
+      "quote": "The server records that key the first time it processes the charge. If it sees the same key again, it returns the original result instead of charging again.",
+      "reason": "Clean opening of this beat before the flub on the closing line."
+    },
+    {
+      "source": "EP5", "start": 121.35, "end": 126.44,
+      "beat": "NEW_COMPONENT",
+      "quote": "The same request sent any number of times has the effect exactly once.",
+      "reason": "Retake of the closing line (first attempt at 110.78-114.68 flubbed 'has exactly...' and stopped short)."
+    },
+    {
+      "source": "EP5", "start": 143.93, "end": 152.58,
+      "beat": "PAYOFF_NEXT",
+      "quote": "Press it twice, pay once. That's idempotency. Next episode, we'll talk about how WhatsApp delivers a message in one second.",
+      "reason": "Second, more settled full take-through of this closing line (first full take at 127.98-136.80 also clean but this is the final/kept delivery)."
+    }
+  ],
+  "grade": "eq=contrast=1.15:saturation=1.05,colorbalance=rs=-0.04:gs=0.02:bs=0.05:rm=0.01:gm=0.0:bm=-0.01:rh=0.06:gh=0.02:bh=-0.06,vignette=angle=0.7,unsharp=5:5:0.5:5:5:0.0,noise=alls=7:allf=t+u",
+  "overlays": [
+    {"file": "animations/slot_title/render.webm", "start_in_output": 0.0, "duration": 2.766},
+    {"file": "animations/slot_hook/render.webm", "start_in_output": 2.8, "duration": 3.300},
+    {"file": "animations/slot_problem/render.webm", "start_in_output": 6.2, "duration": 6.500},
+    {"file": "animations/slot_build/render.webm", "start_in_output": 18.96, "duration": 4.200},
+    {"file": "animations/slot_ledger/render.webm", "start_in_output": 28.0, "duration": 6.200},
+    {"file": "animations/slot_payoff/render.webm", "start_in_output": 41.92, "duration": 3.600}
+  ],
+  "subtitles": "master.ass",
+  "total_duration_s": 50.37
+}

@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>ledger + dedup</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: "Helvetica Neue", -apple-system, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .fill { position: absolute; inset: 0; }
+
+      #bg-fill { background: radial-gradient(120% 90% at 50% 32%, #0a1a16 0%, #08110e 45%, #04070a 78%, #020304 100%); }
+      #glow-green { position: absolute; left: 50%; top: 32%; width: 1300px; height: 1300px; transform: translate(-50%,-50%);
+        background: radial-gradient(circle, rgba(52,211,153,0.22) 0%, rgba(52,211,153,0) 60%); }
+      #glow-amber { position: absolute; left: 50%; top: 66%; width: 1300px; height: 1300px; transform: translate(-50%,-50%);
+        background: radial-gradient(circle, rgba(245,158,11,0.18) 0%, rgba(245,158,11,0) 60%); opacity: 0; }
+      #vignette { background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 16%, rgba(0,0,0,0) 76%, rgba(0,0,0,0.65) 100%); }
+
+      #scene { transform-origin: 50% 42%; }
+
+      /* ---------- Phase 1: ledger records the key ---------- */
+      #p1-header { position: absolute; left: 0; top: 300px; width: 1080px; text-align: center;
+        color: #6ee7b7; font-size: 30px; font-weight: 800; letter-spacing: 4px; text-transform: uppercase; opacity: 0; }
+      #ledgerWrap { position: absolute; left: 50%; top: 480px; width: 380px; height: 320px; transform: translateX(-50%);
+        opacity: 0; filter: drop-shadow(0 20px 40px rgba(0,0,0,0.7)); }
+      #ledgerWrap img { width: 100%; height: 100%; object-fit: contain; }
+      #key-tag { position: absolute; left: 50%; top: 840px; width: 460px; transform: translateX(-50%); text-align: center;
+        font-family: "SF Mono", "Menlo", monospace; color: #6ee7b7; font-size: 30px; font-weight: 700;
+        background: rgba(6,20,14,0.85); border: 1px solid rgba(110,231,183,0.5); border-radius: 10px; padding: 12px 0; opacity: 0; }
+      #stamp { position: absolute; left: 50%; top: 560px; width: 150px; height: 150px; transform: translateX(-50%); opacity: 0; }
+      #stamp svg { width: 100%; height: 100%; }
+      #p1-sub { position: absolute; left: 0; top: 940px; width: 1080px; text-align: center;
+        color: #d1fae5; font-size: 24px; font-weight: 600; opacity: 0; }
+
+      /* ---------- Phase 2: same key arrives again ---------- */
+      .ticket { position: absolute; top: 480px; width: 260px; height: 275px; opacity: 0; }
+      .ticket img { width: 100%; height: 100%; object-fit: contain; }
+      #ticketA { left: 210px; }
+      #ticketB { left: 610px; filter: grayscale(1) brightness(0.75); }
+      .tag { position: absolute; top: 770px; width: 260px; text-align: center; font-family: "SF Mono", "Menlo", monospace;
+        font-size: 24px; font-weight: 700; opacity: 0; }
+      #tagA { left: 210px; color: #6ee7b7; }
+      #tagB { left: 610px; color: #94a3b8; }
+      #arrow { position: absolute; left: 470px; top: 570px; width: 140px; height: 40px; opacity: 0; }
+      .result { position: absolute; top: 815px; width: 260px; text-align: center; font-size: 30px; font-weight: 800; opacity: 0; }
+      #resultA { left: 210px; color: #34d399; }
+      #resultB { left: 610px; color: #f8fafc; }
+      #p2-headline { position: absolute; left: 0; top: 930px; width: 1080px; text-align: center; font-size: 44px; font-weight: 800;
+        color: #fbbf24; text-transform: uppercase; text-shadow: 0 0 30px rgba(245,158,11,0.7), 0 4px 14px rgba(0,0,0,0.9); opacity: 0; }
+
+      #flash { background: #ffffff; opacity: 0; pointer-events: none; }
+      #dither { opacity: 1; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="6.20" data-width="1080" data-height="1920">
+      <section id="main-clip" class="clip" data-start="0" data-duration="6.20" data-track-index="1">
+        <div id="content-all" class="fill">
+          <div id="bg-fill" class="fill">
+            <div id="glow-green"></div>
+            <div id="glow-amber"></div>
+            <div id="vignette" class="fill"></div>
+          </div>
+          <div id="scene" class="fill">
+            <!-- PHASE 1 -->
+            <div id="p1-header">First time seen</div>
+            <div id="ledgerWrap"><img src="assets/ledger.png" alt="" /></div>
+            <div id="stamp">
+              <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" fill="none" stroke="#34d399" stroke-width="6"/>
+                <path d="M30 52 L44 66 L72 34" fill="none" stroke="#34d399" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div id="key-tag">idk_7f2a9c3d</div>
+            <div id="p1-sub">Server records the key.</div>
+
+            <!-- PHASE 2 -->
+            <div class="ticket" id="ticketA"><img src="assets/ticket.png" alt="" /></div>
+            <div class="ticket" id="ticketB"><img src="assets/ticket.png" alt="" /></div>
+            <div class="tag" id="tagA">idk_7f2a9c3d</div>
+            <div class="tag" id="tagB">idk_7f2a9c3d</div>
+            <svg id="arrow" viewBox="0 0 140 40"><path d="M4 20 L118 20" stroke="#94a3b8" stroke-width="3" fill="none" stroke-dasharray="6 5"/>
+              <path d="M106 8 L124 20 L106 32" stroke="#94a3b8" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <div class="result" id="resultA">CHARGED</div>
+            <div class="result" id="resultB">SAME RESULT</div>
+            <div id="p2-headline">Not charged again.</div>
+          </div>
+          <div id="flash" class="fill"></div>
+          <div id="dither" class="fill"></div>
+        </div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position:absolute">
+      <filter id="grain-filter">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.045 0" />
+      </filter>
+    </svg>
+
+    <script>
+      document.getElementById("dither").style.filter = "url(#grain-filter)";
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.08, duration: 6.2, ease: "sine.inOut" }, 0);
+
+      // ---------- PHASE 1: ledger records the key ----------
+      tl.fromTo("#p1-header", { opacity: 0, y: -16 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 0.05);
+      tl.fromTo("#ledgerWrap", { opacity: 0, scale: 0.85, rotation: -6 }, { opacity: 1, scale: 1, rotation: -3, duration: 0.55, ease: "power3.out" }, 0.25);
+      tl.fromTo("#key-tag", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, 0.7);
+      tl.fromTo("#stamp", { opacity: 0, scale: 0.6, rotation: -14 }, { opacity: 1, scale: 1, rotation: 0, duration: 0.4, ease: "back.out(2.2)" }, 1.0);
+      tl.to("#p1-sub", { opacity: 1, duration: 0.35, ease: "power2.out" }, 1.25);
+      tl.to("#stamp", { rotation: 6, duration: 0.8, ease: "sine.inOut", yoyo: true, repeat: 2 }, 1.5);
+
+      // ---------- TRANSITION: same key arrives again ----------
+      tl.to(["#p1-header", "#ledgerWrap", "#key-tag", "#stamp", "#p1-sub"], { opacity: 0, scale: 0.92, duration: 0.35, ease: "power2.out" }, 2.55);
+      tl.fromTo("#flash", { opacity: 0 }, { opacity: 0.8, duration: 0.05 }, 2.85).to("#flash", { opacity: 0, duration: 0.25 }, 2.9);
+      tl.to("#glow-amber", { opacity: 1, duration: 0.5, ease: "power3.out" }, 2.9);
+
+      // ---------- PHASE 2: duplicate detected, same result returned ----------
+      gsap.set(["#ticketA", "#ticketB"], { y: 16 });
+      tl.to("#ticketA", { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 3.1)
+        .to("#tagA", { opacity: 1, duration: 0.3, ease: "power2.out" }, 3.35)
+        .to("#resultA", { opacity: 1, duration: 0.3, ease: "power2.out" }, 3.55)
+        .to("#ticketB", { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 3.85)
+        .to("#tagB", { opacity: 1, duration: 0.3, ease: "power2.out" }, 4.1)
+        .to("#arrow", { opacity: 1, duration: 0.3, ease: "power2.out" }, 4.25)
+        .to("#resultB", { opacity: 1, duration: 0.3, ease: "power2.out" }, 4.4)
+        .fromTo("#p2-headline", { opacity: 0, scale: 0.88 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(1.6)" }, 4.75);
+      tl.to("#glow-amber", { opacity: 0.5, duration: 1.1, ease: "sine.inOut", yoyo: true, repeat: 1 }, 5.2);
+
+      tl.to("#content-all", { opacity: 0, duration: 0.3, ease: "power3.out" }, 5.9);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

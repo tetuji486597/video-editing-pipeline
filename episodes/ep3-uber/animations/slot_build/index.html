@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>build</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: "Helvetica Neue", -apple-system, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      /* full-screen opaque takeover — the quadtree grid (380px tall) has no
+         safe vertical space left between the chin (~y1200) and the caption
+         zone (~y1300 worst-case) at the new caption settings; a 2-line
+         caption ("MAP INTO FOUR / SQUARES,") directly overlapped the grid's
+         bottom edge. Matches slot_problem's dark-atmosphere recipe. */
+      #bg-fill {
+        position: absolute; inset: 0;
+        background: radial-gradient(120% 90% at 50% 30%, #0a1410 0%, #06100b 45%, #030a06 80%, #010402 100%);
+      }
+      #vignette {
+        position: absolute; inset: 0;
+        background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 20%, rgba(0,0,0,0) 70%, rgba(0,0,0,0.65) 100%);
+      }
+
+      #band { position: absolute; left: 60px; top: 550px; width: 960px; height: 580px; overflow: hidden; }
+      #accent-bar {
+        position: absolute; left: 0; top: 8px; width: 10px; height: 550px;
+        background: #34d399; border-radius: 5px;
+        box-shadow: 0 0 28px 5px rgba(52,211,153,0.9), 0 0 70px 12px rgba(52,211,153,0.45);
+        opacity: 0; transform-origin: top;
+      }
+      #content { position: absolute; left: 56px; top: 0; width: 880px; }
+      .line {
+        display: block; font-size: 36px; font-weight: 800; color: #ffffff;
+        letter-spacing: 0.5px; text-transform: uppercase; line-height: 1.25;
+        text-shadow: 0 3px 12px rgba(0,0,0,0.9), 0 1px 3px rgba(0,0,0,0.95);
+        opacity: 0; transform: translateY(30px); margin-bottom: 24px;
+      }
+      #row { display: flex; align-items: center; gap: 60px; }
+      #quadtree-wrap { width: 380px; height: 380px; flex-shrink: 0; position: relative; }
+      #outer-box {
+        position: absolute; left: 4px; top: 4px; width: 372px; height: 372px;
+        border: 5px solid #34d399; border-radius: 8px; opacity: 0.9;
+      }
+      .split-line { position: absolute; background: #34d399; }
+      .split-v { width: 3.5px; transform: scaleY(0); }
+      .split-h { height: 3.5px; transform: scaleX(0); }
+      .split-line.lvl3 { background: #6ee7b7; }
+      #deepest {
+        position: absolute; left: 283px; top: 4px; width: 93px; height: 93px;
+        background: rgba(110,231,183,0); border-radius: 2px;
+      }
+      .drv-dot { position: absolute; width: 14px; height: 14px; border-radius: 50%; background: #a7f3d0; opacity: 0; }
+      .drv-dot.small { width: 10px; height: 10px; background: #d1fae5; }
+      #text-block { flex: 1; }
+      .step-label {
+        font-size: 22px; font-weight: 700; color: #6ee7b7; letter-spacing: 2px;
+        text-transform: uppercase; margin-bottom: 14px; opacity: 0; min-height: 28px;
+      }
+      .emph {
+        display: block; font-size: 60px; font-weight: 800; color: #34d399;
+        letter-spacing: 0.5px; text-transform: uppercase; line-height: 1.05;
+        text-shadow: 0 0 34px rgba(52,211,153,0.9), 0 4px 14px rgba(0,0,0,0.9);
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="7.90" data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="7.90" data-track-index="1">
+        <div id="bg-fill"></div>
+        <div id="vignette"></div>
+        <div id="band">
+          <div id="accent-bar"></div>
+          <div id="content">
+            <div class="line" id="l1">SPLIT THE MAP INTO FOUR. SPLIT THE BUSY ONES AGAIN.</div>
+            <div id="row">
+              <div id="quadtree-wrap">
+                <div id="outer-box"></div>
+                <div id="deepest"></div>
+                <!-- level 1: full-square cross -->
+                <div class="split-line split-v" id="split1v" style="left:189px; top:4px; height:372px;"></div>
+                <div class="split-line split-h" id="split1h" style="left:4px; top:189px; width:372px;"></div>
+                <!-- level 2: inside top-right quadrant (190,4)-(376,190) -->
+                <div class="split-line split-v" id="split2v" style="left:282px; top:4px; height:186px;"></div>
+                <div class="split-line split-h" id="split2h" style="left:190px; top:96px; width:186px;"></div>
+                <!-- level 3: inside top-right-top-right (283,4)-(376,97) -->
+                <div class="split-line lvl3 split-v" id="split3v" style="left:328px; top:4px; height:93px;"></div>
+                <div class="split-line lvl3 split-h" id="split3h" style="left:283px; top:49px; width:93px;"></div>
+                <div class="drv-dot" id="dot1" style="left:88px; top:278px;"></div>
+                <div class="drv-dot" id="dot2" style="left:253px; top:303px;"></div>
+                <div class="drv-dot" id="dot3" style="left:293px; top:33px;"></div>
+                <div class="drv-dot" id="dot4" style="left:338px; top:123px;"></div>
+                <div class="drv-dot small" id="dot5" style="left:343px; top:18px;"></div>
+                <div class="drv-dot small" id="dot6" style="left:353px; top:63px;"></div>
+              </div>
+              <div id="text-block">
+                <div class="step-label" id="step">SPLITTING...</div>
+                <div class="emph" id="e1">RECURSIVELY.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      const stepEl = document.getElementById("step");
+
+      tl.to("#accent-bar", { opacity: 1, scaleY: 1, duration: 0.4, ease: "power3.out" }, 0.05)
+        .to("#l1", { opacity: 1, y: 0, duration: 0.35, ease: "power3.out" }, 0.15)
+        .to("#step", { opacity: 1, duration: 0.3 }, 0.5)
+        .fromTo("#dot1, #dot2, #dot3, #dot4", { opacity: 0 }, { opacity: 1, duration: 0.2 }, 0.6)
+        // level 1 split — scale a full-length line in from 0, not attribute-tween a line endpoint
+        .to("#split1v", { scaleY: 1, duration: 0.55, ease: "power2.inOut" }, 1.0)
+        .to("#split1h", { scaleX: 1, duration: 0.55, ease: "power2.inOut" }, 1.0)
+        // level 2 split (top-right quadrant)
+        .call(() => { stepEl.textContent = "BUSY QUADRANT SPLITS AGAIN..."; }, null, 2.2)
+        .to("#split2v", { scaleY: 1, duration: 0.5, ease: "power2.inOut" }, 2.3)
+        .to("#split2h", { scaleX: 1, duration: 0.5, ease: "power2.inOut" }, 2.3)
+        .fromTo("#dot5, #dot6", { opacity: 0 }, { opacity: 1, duration: 0.2 }, 2.9)
+        // level 3 split (recurse again into the busiest corner)
+        .call(() => { stepEl.textContent = "AND AGAIN, IF STILL BUSY."; }, null, 4.0)
+        .to("#split3v", { scaleY: 1, duration: 0.45, ease: "power2.inOut" }, 4.1)
+        .to("#split3h", { scaleX: 1, duration: 0.45, ease: "power2.inOut" }, 4.1)
+        .fromTo("#e1", { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(1.6)" }, 4.7)
+        // gentle pulse on the deepest quadrant to keep the frame alive during the hold
+        .to("#deepest", { backgroundColor: "rgba(110,231,183,0.22)", duration: 0.9, ease: "sine.inOut", repeat: 3, yoyo: true }, 5.2)
+        .to(["#accent-bar", "#text-block", "#quadtree-wrap"], { opacity: 0, duration: 0.3, ease: "power1.in" }, 7.55);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

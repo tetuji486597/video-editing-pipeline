@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "sources": {
+    "ep3": "/Users/gordon.jin/Downloads/ep3.mp4"
+  },
+  "ranges": [
+    {
+      "source": "ep3", "start": 37.01, "end": 46.34,
+      "beat": "HOOK",
+      "quote": "There are tens of thousands of drivers moving around your city. Uber finds the closest one in about two hundred milliseconds. How?",
+      "reason": "Clean continuous take-through of all three hook sentences, confirmed via waveform (natural pauses between phrases, no retake gap).",
+      "zoom": {"at": 8.85, "scale": 1.2, "focal_x": 545, "focal_y": 725}
+    },
+    {
+      "source": "ep3", "start": 53.59, "end": 65.36,
+      "beat": "PROBLEM",
+      "quote": "Here's the naive way. We calculate the distance from you to every single driver and sort. That's fine for fifty drivers, but it's a disaster for fifty thousand updating every second.",
+      "reason": "Single clean take, matches script."
+    },
+    {
+      "source": "ep3", "start": 66.11, "end": 74.54,
+      "beat": "BUILD",
+      "quote": "Instead, we index space itself. A quadtree splits the map into four squares, then splits the busy squares again, recursively.",
+      "reason": "Single clean take, matches script verbatim."
+    },
+    {
+      "source": "ep3", "start": 76.05, "end": 92.14,
+      "beat": "NEW_COMPONENT",
+      "quote": "To find nearby drivers, we just walk down to your square and check its neighbors, ignoring the entire rest of the city. Geohashing does the same trick by turning coordinates into a short string, so nearby becomes a simple prefix match.",
+      "reason": "Two contiguous clean phrases, combined into one range."
+    },
+    {
+      "source": "ep3", "start": 106.67, "end": 116.84,
+      "beat": "AI_ANGLE",
+      "quote": "Surge pricing and ETA come from ML models predicting demand on top of this geoindex. The index makes the lookup fast enough to feed the model in real time.",
+      "reason": "Second delivery of the first sentence (first attempt at 94.08-100.46 was an aborted take, long pause after); this take flows directly into the closing line with only a breath between, confirmed via waveform."
+    },
+    {
+      "source": "ep3", "start": 142.67, "end": 150.44,
+      "beat": "PAYOFF_NEXT",
+      "quote": "Don't search the whole city. Search the right square. Next episode, we'll learn how sites know that you're not a robot.",
+      "reason": "Final full clean take-through, confirmed via waveform as one continuous burst; earlier attempts (118.56, 130-138) were rougher partials."
+    }
+  ],
+  "grade": "eq=contrast=1.15:saturation=1.05,colorbalance=rs=-0.04:gs=0.02:bs=0.05:rm=0.01:gm=0.0:bm=-0.01:rh=0.06:gh=0.02:bh=-0.06,vignette=angle=0.7,unsharp=5:5:0.5:5:5:0.0,noise=alls=7:allf=t+u",
+  "overlays": [
+    {"file": "animations/slot_title/render.webm", "start_in_output": 0.0, "duration": 2.766},
+    {"file": "animations/slot_hook/render.webm", "start_in_output": 2.85, "duration": 6.300},
+    {"file": "animations/slot_problem/render.webm", "start_in_output": 9.45, "duration": 11.350},
+    {"file": "animations/slot_build/render.webm", "start_in_output": 21.20, "duration": 7.900},
+    {"file": "animations/slot_newcomponent/render.webm", "start_in_output": 29.60, "duration": 15.600},
+    {"file": "animations/slot_aiangle/render.webm", "start_in_output": 45.70, "duration": 9.700},
+    {"file": "animations/slot_payoff/render.webm", "start_in_output": 55.90, "duration": 7.300}
+  ],
+  "subtitles": "master.ass",
+  "total_duration_s": 63.56
+}

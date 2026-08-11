@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>ai angle</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: "Helvetica Neue", -apple-system, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      /* photo-anchored, now extended to a full-screen takeover — the chart +
+         emph text (299.6px combined) no longer fit in the gap between the
+         face-clear spacer and the caption zone at the new caption settings.
+         Photo/fade extended to the full 1920 canvas (darkening much earlier)
+         so content can sit anywhere without a face constraint. */
+      #photo-card { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: hidden; opacity: 0; }
+      #photo-card img {
+        position: absolute; left: 50%; top: 50%; width: 1200px; height: auto;
+        transform: translate(-50%, -50%) scale(1.0);
+        filter: brightness(0.7) saturate(1.1) contrast(1.05);
+      }
+      #photo-fade {
+        position: absolute; inset: 0; width: 1080px; height: 1920px;
+        background: linear-gradient(180deg, rgba(10,8,20,0.25) 0%, rgba(10,8,20,0.55) 25%, rgba(10,8,20,0.92) 45%, rgba(10,8,20,0.98) 60%, rgba(10,8,20,0.98) 100%);
+      }
+      #photo-caption {
+        position: absolute; left: 48px; top: 690px; font-size: 22px; font-weight: 700;
+        color: #c4b5fd; letter-spacing: 2px; text-transform: uppercase; opacity: 0;
+        text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+      }
+
+      #band { position: absolute; left: 60px; top: 790px; width: 960px; height: 720px; overflow: visible; }
+      #accent-bar {
+        position: absolute; left: 0; top: 8px; width: 10px; height: 460px;
+        background: #a78bfa; border-radius: 5px;
+        box-shadow: 0 0 28px 5px rgba(167,139,250,0.9), 0 0 70px 12px rgba(167,139,250,0.45);
+        opacity: 0; transform-origin: top;
+      }
+      #content { position: absolute; left: 48px; top: 0; width: 900px; }
+      .line {
+        display: block; font-size: 38px; font-weight: 800; color: #ffffff;
+        letter-spacing: 0.5px; text-transform: uppercase; line-height: 1.25;
+        text-shadow: 0 3px 12px rgba(0,0,0,0.9), 0 1px 3px rgba(0,0,0,0.95);
+        opacity: 0; transform: translateY(30px); margin-bottom: 26px;
+      }
+      /* small breathing-room gap only — no longer needs to clear the face,
+         since the photo/fade now covers the full frame (full-screen takeover) */
+      #face-clear-spacer { height: 20px; }
+      #chart-wrap { width: 900px; height: 210px; position: relative; }
+      .callout {
+        position: absolute; background: rgba(15,23,42,0.88); border: 1px solid rgba(167,139,250,0.6);
+        border-radius: 14px; padding: 14px 22px; opacity: 0;
+      }
+      .callout .cnum { font-size: 40px; font-weight: 800; color: #c4b5fd; line-height: 1; }
+      .callout .clabel { font-size: 18px; font-weight: 700; color: #cbd5e1; letter-spacing: 1px; margin-top: 5px; }
+      #callout1 { left: 340px; top: 6px; }
+      #callout2 { left: 630px; top: 96px; }
+      .emph {
+        display: block; margin-top: 14px; font-size: 72px; font-weight: 800; color: #a78bfa;
+        letter-spacing: 0.5px; text-transform: uppercase; line-height: 1.05;
+        text-shadow: 0 0 36px rgba(167,139,250,0.9), 0 4px 14px rgba(0,0,0,0.9);
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="9.70" data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="9.70" data-track-index="1">
+        <div id="photo-card">
+          <img src="assets/datacenter.jpg" alt="" />
+          <div id="photo-fade"></div>
+        </div>
+        <div id="photo-caption">Real data-center racks &middot; where the model runs</div>
+        <div id="band">
+          <div id="accent-bar"></div>
+          <div id="content">
+            <div class="line" id="l1">DEMAND PREDICTION RIDES ON TOP OF THE GEO-INDEX.</div>
+            <div id="face-clear-spacer"></div>
+            <div id="chart-wrap">
+              <svg viewBox="0 0 900 210" width="900" height="210" xmlns="http://www.w3.org/2000/svg">
+                <line x1="10" y1="10" x2="10" y2="185" stroke="rgba(255,255,255,0.25)" stroke-width="2"/>
+                <line x1="10" y1="185" x2="880" y2="185" stroke="rgba(255,255,255,0.25)" stroke-width="2"/>
+                <path id="trend" d="M10,160 L165,142 L320,116 L470,70 L625,34 L870,12"
+                      fill="none" stroke="#a78bfa" stroke-width="7" stroke-linecap="round"
+                      stroke-dasharray="1150" stroke-dashoffset="1150"/>
+                <circle id="dot-mid" cx="470" cy="70" r="9" fill="#c4b5fd" opacity="0"/>
+                <circle id="dot-end" cx="870" cy="12" r="9" fill="#a78bfa" opacity="0" style="transform-origin: 870px 12px;"/>
+              </svg>
+              <div class="callout" id="callout1"><div class="cnum">2.3×</div><div class="clabel">SURGE MULTIPLIER</div></div>
+              <div class="callout" id="callout2"><div class="cnum">-40%</div><div class="clabel">ETA ERROR</div></div>
+            </div>
+            <div class="emph" id="e1">SURGE + ETA.</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      tl.fromTo("#photo-card", { opacity: 0, scale: 1.06 }, { opacity: 1, scale: 1, duration: 0.6, ease: "power3.out", transformOrigin: "50% 50%" }, 0.0)
+        .to("#photo-caption", { opacity: 1, duration: 0.35 }, 0.35)
+        .to("#photo-card img", { scale: 1.1, duration: 9.4, ease: "none" }, 0.2)
+        .to("#accent-bar", { opacity: 1, scaleY: 1, duration: 0.4, ease: "power3.out" }, 0.5)
+        .to("#l1", { opacity: 1, y: 0, duration: 0.35, ease: "power3.out" }, 0.65)
+        .to("#trend", { strokeDashoffset: 0, duration: 3.4, ease: "power2.inOut" }, 1.1)
+        .to("#dot-mid", { opacity: 1, duration: 0.25 }, 3.1)
+        .fromTo("#callout1", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, 3.3)
+        .to("#dot-end", { opacity: 1, duration: 0.25 }, 4.5)
+        .fromTo("#callout2", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, 4.8)
+        .fromTo("#e1", { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(1.6)" }, 5.4)
+        .fromTo("#dot-end", { scale: 1 }, { scale: 1.35, duration: 0.8, ease: "sine.inOut", repeat: 4, yoyo: true }, 6.0)
+        .to(["#accent-bar", "#content", "#photo-card", "#photo-caption"], { opacity: 0, duration: 0.3, ease: "power1.in" }, 9.35);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

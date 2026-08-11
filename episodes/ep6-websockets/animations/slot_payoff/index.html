@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>payoff</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: "Helvetica Neue", -apple-system, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      /* moved up from top:1210 — at the new caption settings (MarginV 350,
+         font 74px) the cluster's lower elements (node-wrap/divider/next-line)
+         collided with the caption. Shifted so they clear it with buffer;
+         punch-word text now sits higher (may cross the forehead/upper-face —
+         acceptable per convention, plain text with shadow, not a solid box). */
+      #band {
+        position: absolute;
+        left: 60px;
+        top: 921px;
+        width: 960px;
+        height: 480px;
+      }
+
+      #accent-bar {
+        position: absolute;
+        left: 0;
+        top: 8px;
+        width: 8px;
+        height: 250px;
+        background: #14b8a6;
+        border-radius: 4px;
+        box-shadow: 0 0 24px 4px rgba(20, 184, 166, 0.85), 0 0 60px 10px rgba(20, 184, 166, 0.4);
+        opacity: 0;
+        transform-origin: top;
+      }
+
+      #punch-word {
+        position: absolute;
+        left: 48px;
+        top: 20px;
+        width: 880px;
+        font-size: 66px;
+        font-weight: 800;
+        color: #ffffff;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        line-height: 1.05;
+        text-shadow: 0 0 40px rgba(20, 184, 166, 0.7), 0 4px 14px rgba(0, 0, 0, 0.9);
+        opacity: 0;
+        transform: translateY(30px);
+      }
+
+      /* the same two-node open line from BUILD, smaller, reprised as a closing motif */
+      #node-wrap {
+        position: absolute;
+        left: 48px;
+        top: 170px;
+        width: 460px;
+        height: 64px;
+        opacity: 0;
+      }
+      .node-dot { fill: #0f172a; stroke: #14b8a6; stroke-width: 4; }
+      #node-line {
+        stroke: #14b8a6;
+        stroke-width: 5;
+        stroke-linecap: round;
+        filter: drop-shadow(0 0 8px rgba(20, 184, 166, 0.9));
+      }
+
+      #divider { position: absolute; left: 48px; top: 254px; width: 640px; height: 2px; background: linear-gradient(90deg, rgba(20,184,166,0.7), rgba(20,184,166,0)); opacity: 0; }
+      #next-tag { position: absolute; left: 48px; top: 278px; font-size: 20px; font-weight: 700; color: #5eead4; letter-spacing: 3px; text-transform: uppercase; opacity: 0; }
+      #next-line { position: absolute; left: 48px; top: 310px; width: 860px; font-size: 30px; font-weight: 700; color: #e2e8f0; line-height: 1.15; text-shadow: 0 3px 10px rgba(0,0,0,0.85); opacity: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="5.60" data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="5.60" data-track-index="1">
+        <div id="band">
+          <div id="accent-bar"></div>
+          <div id="punch-word">KEEP THE<br />LINE OPEN.</div>
+
+          <svg id="node-wrap" viewBox="0 0 500 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <line id="node-line" x1="30" y1="50" x2="470" y2="50" stroke-dasharray="440" stroke-dashoffset="0" />
+            <circle class="node-dot" cx="30" cy="50" r="20" />
+            <circle class="node-dot" cx="470" cy="50" r="20" />
+          </svg>
+
+          <div id="divider"></div>
+          <div id="next-tag">Next Episode</div>
+          <div id="next-line">How Google autocompletes your thought.</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // phase 1: the tagline pays off the beat
+      tl.to("#accent-bar", { opacity: 1, duration: 0.3, ease: "power3.out" }, 0.05)
+        .to("#punch-word", { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 0.12)
+        .to("#node-wrap", { opacity: 1, duration: 0.35, ease: "power3.out" }, 0.4)
+        .to("#node-line", { opacity: 0.55, duration: 0.9, ease: "sine.inOut", repeat: 3, yoyo: true }, 0.75)
+
+        // transition: divider draws in
+        .fromTo("#divider", { opacity: 0, scaleX: 0 }, { opacity: 1, scaleX: 1, duration: 0.4, ease: "power2.out" }, 2.5)
+
+        // phase 2: next-episode tease
+        .fromTo("#next-tag", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.35, ease: "power3.out" }, 2.85)
+        .fromTo("#next-line", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 3.0)
+
+        .to(
+          ["#accent-bar", "#punch-word", "#node-wrap", "#divider", "#next-tag", "#next-line"],
+          { opacity: 0, duration: 0.3, ease: "power3.out" },
+          5.25
+        );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
