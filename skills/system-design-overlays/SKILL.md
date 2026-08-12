@@ -194,7 +194,14 @@ it before building anything:
    base fresh via `render.py --build-subtitles` (with the episode's current caption flags)
    before doing anything downstream with it. When in doubt, just rebuild fresh — it's
    cheap, and reusing a same-duration file that "should" be current is exactly the trap
-   that shipped this bug.
+   that shipped this bug. **This also applies mid-build, not just to later sessions**: if
+   you (or sub-agents you spawned) are still building/fixing overlays when you run the
+   first full composite, one of them can still be mid-write — confirmed real case on EP10,
+   where a `slot_new_component` sub-agent's fix-up render landed ~30s *after* the first
+   `final.mp4` finished, silently shipping a pre-fix version. Re-run the `find ... -newer`
+   freshness check immediately before the FINAL render you intend to ship (not just once
+   at the start of the session) — if anything comes back, rebuild fresh again before
+   moving on to SFX/final delivery.
 10. **Format choice affects sequencing, not just visuals.** An opaque full-screen
     takeover placed *after* another overlay specifically to avoid hiding it (e.g. after
     a title card) delays its own content until that other overlay clears — there's no
