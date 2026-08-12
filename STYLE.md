@@ -93,15 +93,24 @@ starting point on new episodes; don't re-derive them from scratch.
   `grep -o 'media/sounds/[^"]*\.mp3'` to find the direct media path, then `curl` that
   (same UA) to `sfx/<name>.mp3`. `WebSearch` is fine for finding the right page URL in
   the first place, just not for fetching myinstants.com itself.
-- **The final SFX+narration remix needs a limiter, or it can clip.** A plain
+- **The final SFX+narration remix needs true-peak-aware limiting, or it can clip —
+  `alimiter` alone is not reliably enough.** A plain
   `amix=inputs=2:duration=first:normalize=0` between the narration track (already
   loudnorm'd to -14 LUFS on its own) and a fresh `sfx_track.wav` is NOT re-normalized
   after mixing — if enough cues stack near a loud narration moment, the combined peak
-  can exceed 0dB. Confirmed real case: EP7's first mix peaked at +1.5dB (audibly-clipping
-  territory). Fix: append `,alimiter=limit=0.95:attack=5:release=50` to the filter chain
-  after the `amix` — brought EP7's peak to a clean -0.13dB with no other change needed.
-  Always check `ffmpeg -i <final>.mp4 -af astats -f null - 2>&1 | grep "Peak level dB"`
-  after any SFX remix; a positive number means it clipped.
+  can exceed 0dB. Confirmed real case: EP7's first mix peaked at +1.5dB. First fix tried —
+  `,alimiter=limit=0.95:attack=5:release=50` — worked for EP7/EP10, but on EP13 it still
+  left the AAC-encoded output peaking *positive* (+0.05 to +0.08dB) even down at
+  `limit=0.7:attack=1`: the narration track alone already peaked at -0.91dB, and AAC
+  encoding adds its own small overshoot on top of whatever sample-peak limiting ran before
+  encoding — a sample-peak limiter has no way to account for that. **Use
+  `loudnorm=I=-14:TP=-2:LRA=11` in place of `alimiter` on the final mix instead** — the same
+  tool already used for the narration-only loudness pass elsewhere in this pipeline, and its
+  `TP` target is specifically designed to survive lossy encoding. Confirmed: dropped EP13's
+  peak to a clean -1.71dB. Single-pass `loudnorm` (not the 2-pass measure-then-normalize used
+  for the narration-only pass) is fine at this final-mix stage. Always check
+  `ffmpeg -i <final>.mp4 -af astats -f null - 2>&1 | grep "Peak level dB"` after any SFX
+  remix; a positive number means it clipped.
 - **When inserting a genuine on-camera mistake/blooper for comedic effect, it must
   precede the clean explanation of the thing being fumbled, not follow it.** Confirmed
   correction on EP7: a mispronunciation blooper ("Enter the trie, or trie, or trie, or
