@@ -136,6 +136,16 @@ it before building anything:
    scene, (c) a transparent corner/band accent over live footage, (d) a split-screen or
    before/after comparison, (e) a data-viz/chart takeover. Format variance is scoped
    per-episode — episodes don't need to match each other's specific format mix.
+   **Confirmed real failure: EP7 shipped its first cut with all 7 overlays as
+   full-screen CSS/SVG takeovers — zero transparent formats, zero real images —
+   despite this rule already existing in the skill at the time.** The rule existing
+   isn't the same as it being checked; nobody ran the format-mix self-check until the
+   user asked for variety directly, by which point 3 slots needed rebuilding from
+   scratch. **Assign each beat's format (and whether it needs a real image, rule 6)
+   during the planning pass (workflow step 2), before building anything** — write the
+   whole episode's format-per-beat list up front and confirm it already spans ≥3
+   formats, rather than defaulting every beat to the safest option (full-screen
+   takeover) and hoping to catch the mix at the end.
 8. **Never position two visible elements independently without checking their resolved
    pixel ranges against EACH OTHER — not just against the caption band and the face.**
    The caption/face check (rule 5) covers collisions between an overlay and things
@@ -185,15 +195,49 @@ it before building anything:
    before doing anything downstream with it. When in doubt, just rebuild fresh — it's
    cheap, and reusing a same-duration file that "should" be current is exactly the trap
    that shipped this bug.
+10. **Format choice affects sequencing, not just visuals.** An opaque full-screen
+    takeover placed *after* another overlay specifically to avoid hiding it (e.g. after
+    a title card) delays its own content until that other overlay clears — there's no
+    way to start it earlier without either hiding the thing underneath or accepting the
+    wait. If a beat's content needs to appear as early as possible, consider whether it
+    actually needs to be opaque at all — a transparent floating card or corner accent can
+    run *simultaneously* with a preceding overlay (nothing to hide), landing its content
+    much earlier. **Confirmed real case: EP7's hook held a real video demo that needed to
+    appear right at the top of its beat.** As a full-screen opaque takeover it had to wait
+    for the title card (2.766s) to clear first — the video didn't visibly start until
+    ~2.85s in, which read as "too late." Converting it to a transparent card floating over
+    live footage (no opaque bg-fill) let it start at output 0.0, simultaneous with the
+    title, landing the video almost immediately — verified with an isolated title+hook-only
+    test render to confirm no collision (title occupies the upper third of the frame; the
+    card was sized/positioned to start below it).
+11. **The "plain text over forehead/hair is fine, solid boxes/photos are not" allowance
+    (rule 5) extends to simple graphic linework too, not just text.** A lightened
+    outline/glow shape — transparent-ish fill (~30% opacity or less), border + glow only,
+    no solid backing — reads the same as text on this kind of footage and can sit over the
+    hair, not just in whatever sliver of pure clear background sits above the hairline.
+    **Confirmed real case: EP7's build-beat node-chip banner** was originally confined to
+    the ~200px of genuinely clear ceiling measured on a real frame (grid-measured: hair
+    tips start around y=200-220 on this footage) and read as "way too high"/cramped on
+    review even though it had zero technical collision. Lightening the chip fill from
+    solid dark (`rgba(10,14,22,0.88)`) to translucent (`rgba(6,10,18,0.32)`) let the whole
+    band move ~150-350px lower, landing naturally over the hair instead of pinned to the
+    very top edge — a *design* fix (rebalancing solidity vs. position), not a repositioning
+    fix alone. If a graphic reads as awkwardly placed but isn't actually colliding with
+    anything, consider whether it's fighting for space it doesn't need to fight for because
+    it's more visually "solid" than it needs to be.
 
 ## Workflow
 
 1. Read the EDL. Compute each beat's output-timeline start/end from the cumulative sum of
    range durations. This tells you how much room exists, not how much you must fill.
-2. For each beat, sketch: the composition archetype (rule 7), what real image (if any)
-   anchors it (rule 6), and — most importantly — the **two-plus-phase story** it tells and
-   what the transition beat between phases looks like (rule 3). If you can't articulate a
-   phase 2, the concept probably needs more thought before building.
+2. For each beat, sketch: the composition archetype/**format** (rule 7), what real image
+   (if any) anchors it (rule 6), and — most importantly — the **two-plus-phase story** it
+   tells and what the transition beat between phases looks like (rule 3). If you can't
+   articulate a phase 2, the concept probably needs more thought before building. **Write
+   down the whole episode's format-per-beat list right here and confirm it already spans
+   ≥3 formats before building anything** — don't default every beat to full-screen
+   takeover and hope to catch the mix later (rule 7's confirmed EP7 failure was caught
+   only after 3 slots needed rebuilding).
 3. Build, lint (`npm run check`), render each slot.
 4. Update the EDL's `overlays` array so each overlay's `start_in_output`/`duration` places
    it sensibly within its beat (starts shortly after the beat begins; doesn't need to run
@@ -226,7 +270,14 @@ it before building anything:
   used full-bleed or embedded as UI detail (both are valid; zero across a whole episode
   fails rule 6).
 - **Format-mix audit:** list each beat's format. Fewer than 3 distinct formats in one
-  episode fails rule 7.
+  episode fails rule 7. Run this at the *planning* stage (workflow step 2), not only at
+  the end — checking it after every slot is already built means failing it costs a
+  rebuild, not a plan change (rule 7's confirmed EP7 case).
+- **Placement-feel audit, separate from the collision check above (rule 11):** even a
+  graphic with zero technical collision can still read as awkwardly placed — extract a
+  frame and actually look at it, don't just confirm the pixel math cleared. If something
+  looks cramped or pinned to an edge, check whether it's more visually "solid" than it
+  needs to be before concluding it just needs to move (rule 11).
 - **Internal-collision audit (rule 8):** for every beat, list every visible text/graphic
   element with its resolved absolute pixel range (not the raw CSS number — walk the
   ancestor chain), and check each pair for overlap or a suspiciously small gap (<30px

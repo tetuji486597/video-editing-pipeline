@@ -87,4 +87,26 @@ starting point on new episodes; don't re-derive them from scratch.
   bouncy caption colors) — that rule was explicitly relaxed for SFX only, confirmed
   after flagging the copyright risk. Screen-shake / bouncy captions are still untested;
   don't assume they're wanted without asking.
+- **`WebFetch` returns a 403 on myinstants.com; plain `curl` with a browser
+  `User-Agent` header does not.** Use `curl -A "Mozilla/5.0 (Macintosh; Intel Mac OS X
+  10_15_7) AppleWebKit/537.36" <page-url>` to grab the page HTML, then
+  `grep -o 'media/sounds/[^"]*\.mp3'` to find the direct media path, then `curl` that
+  (same UA) to `sfx/<name>.mp3`. `WebSearch` is fine for finding the right page URL in
+  the first place, just not for fetching myinstants.com itself.
+- **The final SFX+narration remix needs a limiter, or it can clip.** A plain
+  `amix=inputs=2:duration=first:normalize=0` between the narration track (already
+  loudnorm'd to -14 LUFS on its own) and a fresh `sfx_track.wav` is NOT re-normalized
+  after mixing — if enough cues stack near a loud narration moment, the combined peak
+  can exceed 0dB. Confirmed real case: EP7's first mix peaked at +1.5dB (audibly-clipping
+  territory). Fix: append `,alimiter=limit=0.95:attack=5:release=50` to the filter chain
+  after the `amix` — brought EP7's peak to a clean -0.13dB with no other change needed.
+  Always check `ffmpeg -i <final>.mp4 -af astats -f null - 2>&1 | grep "Peak level dB"`
+  after any SFX remix; a positive number means it clipped.
+- **When inserting a genuine on-camera mistake/blooper for comedic effect, it must
+  precede the clean explanation of the thing being fumbled, not follow it.** Confirmed
+  correction on EP7: a mispronunciation blooper ("Enter the trie, or trie, or trie, or
+  whatever.") was first placed *after* the clean "Enter the tree, a tree where each node
+  is a letter..." line, which read as a redundant aside once the concept was already
+  explained. Moved to open the beat instead — the struggle has to come first, then the
+  clean recovery, for the "cold open blooper → composed explanation" structure to land.
 
