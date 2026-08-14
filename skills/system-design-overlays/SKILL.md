@@ -253,6 +253,30 @@ it before building anything:
     `start_in_output` — zero gap, verified via `next_start - this_start` arithmetic, not
     eyeballed. Re-render and re-verify by compositing the actual rebuilt overlay onto a real
     base-footage frame at the transition point, not just by reading the timeline numbers.
+    **Confirmed real follow-on failure, from actually shipping this fix on EP11: fading out
+    "finishes shortly before the composition's own native duration" is itself the bug if
+    you leave any buffer at all.** The first fix left a 70-360ms gap between when each
+    fade-out finished (fully transparent) and the overlay's extended duration/EDL end —
+    reasoning it was "safe padding before the hard cutoff." It is not safe: with nothing
+    else compositing during that window, it *is* the live-footage flash, just relocated
+    to a few hundred ms earlier. **The fade must finish at *exactly* the overlay's true
+    end, zero buffer** — shift the fade's start time later (same duration, same speed) so
+    it lands precisely on the boundary, don't just cap it "shortly before." **This was
+    caught late because it was checked by sampling frames every 50-100ms and eyeballing —
+    a 3-6 frame gap (125-250ms at 24fps) is invisible at that sampling density.** Verify
+    any transition-gap fix by exporting *every frame* across the transition window
+    (`ffmpeg ... -vf fps=<source fps>`) and confirming none of them is a bare/empty
+    composite — not a handful of spot samples. **A second, related bug found during that
+    same frame-by-frame re-check: even at zero gap, 1-2 frames read as near-total black**
+    at every transition — not a missing-composite gap, but the *incoming* overlay's own
+    entrance: a full-screen takeover's `#bg-fill` (a static, very dark gradient) is opaque
+    from local frame 0, while its actual content (header/card/glow) doesn't start fading
+    in until 0.05-0.15s later, so there's a brief window showing only a plain near-black
+    background right as the viewer's eye was adjusted to a bright lit face. Fix: start
+    each overlay's primary entrance element at local time 0 (not 0.05-0.15s), and never
+    give a background-fill element its own slow fade-in (if `#bg-fill` fades in at all,
+    keep it under ~0.05-0.08s — a background should be there instantly, only foreground
+    content needs a graceful reveal).
 13. **Never animate SVG `rotation` (or any transform-origin-dependent property) on an
     element whose own geometry has a degenerate bounding box** — most commonly a `<line>`
     where `x1 === x2` (zero width) or `y1 === y2` (zero height), like a clock/gauge hand.
@@ -348,10 +372,15 @@ it before building anything:
 - **Transition-gap audit (rule 12):** list every beat's overlay `start_in_output+duration`
   next to the following beat's `start_in_output` — any positive gap is a bare-live-footage
   flash waiting to happen. For each overlay, also confirm it has an actual fade-out tween
-  ending before its own native duration (don't just check the EDL numbers; open the file
-  and find the tween). Fix both the missing fade and the gap together, then verify by
-  compositing the real rebuilt overlay onto a real base-footage frame at the transition
-  point — not by re-reading the timeline arithmetic.
+  ending at *exactly* its own native duration, zero buffer (a fade that finishes early
+  just relocates the flash, it doesn't remove it — confirmed real regression on EP11).
+  Also confirm the *incoming* overlay's primary content starts at local time 0, not
+  0.05-0.15s in, and that any background-fill fade-in is near-instant (<0.08s) — a slow
+  background reveal reads as a near-black flash of its own. Fix all of it together, then
+  **verify by exporting every single frame across each transition window at native frame
+  rate** (`ffmpeg ... -vf fps=<source fps>`, not spot samples every 50-100ms — a 3-6 frame
+  gap is invisible at that sampling density, which is exactly how EP11's first "fix"
+  shipped still broken) and confirm none of them is bare-live-footage or near-total-black.
 - **Rotating-element audit (rule 13):** for any hand/needle/pointer/gauge animated via
   GSAP `rotation`, check whether the rotated element's own geometry is degenerate (a
   `<line>` with `x1===x2` or `y1===y2`, or similar zero-width/height shape). If so, don't
