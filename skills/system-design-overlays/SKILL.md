@@ -232,6 +232,56 @@ it before building anything:
     fix alone. If a graphic reads as awkwardly placed but isn't actually colliding with
     anything, consider whether it's fighting for space it doesn't need to fight for because
     it's more visually "solid" than it needs to be.
+12. **Every overlay must fade out before its own declared duration ends, AND consecutive
+    overlays' enable-windows must be contiguous (zero gap) — a beat should never expose a
+    frame of bare live footage between two overlays.** Two distinct failure modes, both
+    confirmed real, usually occurring together: (a) an overlay's content stays fully opaque
+    right up to its own `data-duration` cutoff with no fade tween at all, so it hard-cuts
+    straight from opaque content to whatever's behind it; (b) the EDL's `overlays` array
+    leaves a small gap (tens to a few hundred ms) between one overlay's
+    `start_in_output+duration` and the next one's `start_in_output`, during which nothing is
+    composited at all. Individually each is minor; together they read as "flashes for a
+    second, then cuts to me, then cuts to something else" — exactly as jarring as it sounds,
+    and worse when it lands on a climactic line. **Confirmed real case: EP11's PROBLEM beat
+    ended on a fully-opaque "BOTTLENECK" stamp with zero fade-out, followed by a 170ms EDL
+    gap before BUILD started** — a live-face flash landing right on the episode's punchline.
+    Auditing the rest of that episode found the same missing-fade-out bug in 3 of its other
+    5 content overlays. **Fix, applied to every overlay in the episode, not just the one
+    reported:** add a tail fade (`#content-all` opacity → 0) finishing shortly before the
+    composition's own native duration, then extend that overlay's `data-duration` (both the
+    HTML file and the EDL) so its enable-window end lands exactly on the next overlay's
+    `start_in_output` — zero gap, verified via `next_start - this_start` arithmetic, not
+    eyeballed. Re-render and re-verify by compositing the actual rebuilt overlay onto a real
+    base-footage frame at the transition point, not just by reading the timeline numbers.
+13. **Never animate SVG `rotation` (or any transform-origin-dependent property) on an
+    element whose own geometry has a degenerate bounding box** — most commonly a `<line>`
+    where `x1 === x2` (zero width) or `y1 === y2` (zero height), like a clock/gauge hand.
+    **Confirmed real case: EP11's expiry-clock hand**, an SVG `<line>` rotated via GSAP
+    `rotation`, warped into a hooked/curled shape and nearly vanished at several points in
+    its sweep — confirmed via raw PNG snapshot (not a video-compression artifact). The
+    standard fix (passing `transformOrigin` explicitly on the tween, in case GSAP's
+    auto-detected pivot was degenerating to the shape's bbox center instead of the intended
+    CSS-declared point) did **not** resolve it, meaning the cause runs deeper than origin
+    auto-detection into this renderer's SVG-transform handling generally — don't assume
+    that fix will work here even though it's the textbook answer. **Robust fix: don't
+    rotate the element at all.** Tween a plain numeric angle on a JS object and set the
+    line's endpoint attributes (`x2`/`y2`, or equivalent) directly every frame via
+    `Math.sin`/`Math.cos` in an `onUpdate` callback — this only ever writes plain SVG
+    coordinates and can never be affected by transform-origin ambiguity of any kind. This
+    is deterministic (pure trig, no `Math.random()`/`Date.now()`) so it's safe for
+    HyperFrames' rendering model. Prefer this pattern from the start for any rotating
+    hand/needle/pointer element, rather than reaching for GSAP `rotation` and finding out
+    at review time.
+14. **A "genuinely clear" position check applies to the frame edges themselves, not just
+    to the face/caption zones** — this recurs even on full-screen opaque takeovers with no
+    live footage to avoid. **Confirmed real case: EP11's AI_ANGLE split comparison** had its
+    top title pinned at `top: 40px` (2% down a 1920px frame) — nothing to collide with
+    (opaque background, no face), yet it still read as "way too high, gets cut off,"
+    because real playback contexts (platform UI chrome, safe-area conventions) expect
+    meaningfully more top breathing room than "technically not clipped by our own canvas."
+    Treat ~150-200px as the practical minimum top margin for hero text even in a fully
+    opaque composition, and check it by eye against a real rendered frame — "nothing else
+    is there" is not the same as "it looks right."
 
 ## Workflow
 
@@ -295,4 +345,18 @@ it before building anything:
   `index.html`) — if anything comes back, the base is stale; rebuild fresh via
   `render.py --build-subtitles` before proceeding. Note this in your report either way
   (confirmed fresh, or rebuilt because stale).
+- **Transition-gap audit (rule 12):** list every beat's overlay `start_in_output+duration`
+  next to the following beat's `start_in_output` — any positive gap is a bare-live-footage
+  flash waiting to happen. For each overlay, also confirm it has an actual fade-out tween
+  ending before its own native duration (don't just check the EDL numbers; open the file
+  and find the tween). Fix both the missing fade and the gap together, then verify by
+  compositing the real rebuilt overlay onto a real base-footage frame at the transition
+  point — not by re-reading the timeline arithmetic.
+- **Rotating-element audit (rule 13):** for any hand/needle/pointer/gauge animated via
+  GSAP `rotation`, check whether the rotated element's own geometry is degenerate (a
+  `<line>` with `x1===x2` or `y1===y2`, or similar zero-width/height shape). If so, don't
+  trust it just because `npm run check`'s motion linter passed — render a few frames
+  mid-sweep (a `hyperframes snapshot` at 3-4 timestamps across the rotation's active
+  window) and look at them directly. If it warps or vanishes, switch to the trig/onUpdate
+  pattern in rule 13 rather than tweaking transformOrigin values and hoping.
 - Report all findings before presenting the result — if something's off, fix it first.
