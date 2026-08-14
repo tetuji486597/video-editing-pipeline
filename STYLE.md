@@ -111,6 +111,15 @@ starting point on new episodes; don't re-derive them from scratch.
   for the narration-only pass) is fine at this final-mix stage. Always check
   `ffmpeg -i <final>.mp4 -af astats -f null - 2>&1 | grep "Peak level dB"` after any SFX
   remix; a positive number means it clipped.
+- **When rebuilding a composite where only overlay visuals/timing changed (not audio),
+  reuse the existing shipped file's audio track — but with `-c:a copy`, not a fresh AAC
+  re-encode.** Confirmed real case: EP13's rework re-muxed the old `final.mp4`'s audio
+  into the new composite via `-c:a aac -b:a 192k`, which re-encodes already-lossy AAC
+  through a second lossy pass — the extra encoder overshoot regressed the peak from a
+  clean -1.71dB back up to 0.0dB even though the audio *content* was byte-for-byte
+  unchanged. Fixed by switching that mux step to `-c:a copy` (bitstream copy, no
+  re-encode) — restored the original -1.71dB peak exactly. Always prefer `-c:a copy`
+  when the audio itself isn't changing, and re-verify the peak afterward regardless.
 - **When inserting a genuine on-camera mistake/blooper for comedic effect, it must
   precede the clean explanation of the thing being fumbled, not follow it.** Confirmed
   correction on EP7: a mispronunciation blooper ("Enter the trie, or trie, or trie, or
