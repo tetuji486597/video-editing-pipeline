@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP18 Payoff — A Relay Race You Never See</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+
+      /* =================================================================
+         FULL-BLEED PHOTO SCENE.
+         Layer order (all direct children of #scene, so exactly ONE fading
+         ancestor per visible leaf -- nested fades multiply and die early):
+           #bg-fill    dark base, full frame, present instantly from CSS
+           #photo-wrap real photograph + grade + grain, masked off by y=1220
+           #scrim      legibility gradient, y=240..1040
+           #headline   the one headline, y=376..640
+           #track      the five-node relay callback, drawn y=906..974
+         ================================================================= */
+
+      /* opaque dark base -- full-frame layer, exempt from the y=180..1280
+         band. It is what the caption band (y=1306..1570) sits on, and it is
+         near-black by design so the amber caption word keeps its contrast. */
+      #bg-fill {
+        position: absolute; inset: 0; opacity: 1;
+        background: radial-gradient(ellipse 940px 1150px at 50% 42%,
+                    #0a1420 0%, #060d15 56%, #02060a 100%);
+      }
+
+      /* ---- the photograph ------------------------------------------------
+         The MASK lives on this wrapper, which NEVER transforms, so its stops
+         stay at absolute canvas pixels no matter what the push-in does.
+         Opaque to y=1100, fully transparent from y=1220 -> 86px of clear air
+         above the caption band top at y=1306.                              */
+      #photo-wrap {
+        position: absolute; left: 0; top: 0; width: 1080px; height: 1920px;
+        overflow: hidden; opacity: 1;
+        -webkit-mask-image: linear-gradient(to bottom,
+          #000 0px, #000 1100px, rgba(0,0,0,0.34) 1180px, rgba(0,0,0,0) 1220px);
+        mask-image: linear-gradient(to bottom,
+          #000 0px, #000 1100px, rgba(0,0,0,0.34) 1180px, rgba(0,0,0,0) 1220px);
+        -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+        -webkit-mask-size: 100% 100%; mask-size: 100% 100%;
+      }
+      /* Only THIS element scales. No type is inside it, so the composed
+         worst-case scale on every text/graphic element is exactly 1.000.
+         The filter is an EXPLICIT identity-safe value declared in CSS and is
+         never tweened -- tweening filter from a computed `none` renders the
+         element solid black. */
+      #photo {
+        position: absolute; left: 0; top: 0; width: 1080px; height: 1920px;
+        object-fit: cover; object-position: 50% 50%;
+        transform: scale(1); transform-origin: 50% 50%;
+        filter: brightness(0.68) saturate(0.85) contrast(1.05);
+      }
+      /* intentional grading, masked identically because it is inside the wrap */
+      #grade {
+        position: absolute; inset: 0;
+        background: linear-gradient(to bottom,
+          rgba(2,6,12,0.62) 0%, rgba(2,6,12,0.12) 24%,
+          rgba(2,6,12,0.14) 60%, rgba(2,6,12,0.78) 100%);
+      }
+      #grain { position: absolute; inset: 0; opacity: 0.042; }
+
+      /* ---- legibility scrim, band-confined: y = 240 .. 1040 -------------- */
+      #scrim {
+        position: absolute; left: 0; top: 240px; width: 1080px; height: 800px;
+        opacity: 1;
+        background: linear-gradient(to bottom,
+          rgba(2,8,18,0) 0%, rgba(2,8,18,0.58) 18%, rgba(2,8,18,0.70) 50%,
+          rgba(2,8,18,0.54) 82%, rgba(2,8,18,0) 100%);
+      }
+
+      /* ================= THE HEADLINE : y = 376 .. 640 ===================
+         ONE headline, exactly 6 words. No kicker, no label, no numbers, no
+         node names on the track, and NO next-episode tease chip -- the
+         narration carries that verbally and a pill here is pure duplication.
+         Type system deliberately identical to slot_hook so this reads as the
+         same object returning: 110px / 800 / -1px, .lit = #7dd3fc on the same
+         two words ("RELAY RACE"), same four-layer shadow stack.            */
+      #headline {
+        position: absolute; left: 0; top: 376px; width: 1080px; height: 264px;
+        text-align: center; transform-origin: 50% 50%;
+        opacity: 0.5; transform: translateY(24px) scale(1.04);
+        text-shadow:
+          0 3px 12px rgba(0,0,0,0.98),
+          0 10px 40px rgba(0,0,0,0.95),
+          0 0 26px rgba(0,0,0,0.94),
+          0 0 88px rgba(0,0,0,0.86);
+      }
+      #headline div {
+        height: 132px; line-height: 132px; font-size: 110px; font-weight: 800;
+        letter-spacing: -1px; color: #ffffff; white-space: nowrap;
+      }
+      #headline .lit { color: #7dd3fc; }
+
+      /* ================= THE RELAY TRACK CALLBACK ========================
+         Container box y = 840..1040; DRAWN extent is the node glow discs
+         only: cy = 940, r = 34  ->  y = 906..974,  x = 106..974.
+         Silhouette only: no labels, no node names, no numbers.            */
+      #track { position: absolute; left: 0; top: 840px; opacity: 0; }
+      #rail { stroke-dasharray: 800; stroke-dashoffset: 800; }
+      .node { opacity: 0.16; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="4.9"
+         data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="4.9" data-track-index="1">
+
+        <div id="bg-fill"></div>
+
+        <div id="photo-wrap">
+          <!-- the push-in deliberately overscans the wrapper (that is what
+               keeps the frame filled at scale 1.055); the wrapper clips it. -->
+          <img id="photo" src="assets/server_rack.jpg" alt=""
+               data-layout-allow-overflow />
+          <div id="grade"></div>
+          <svg id="grain" width="1080" height="1920" viewBox="0 0 1080 1920">
+            <filter id="grainf" x="0" y="0" width="100%" height="100%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.85"
+                            numOctaves="2" seed="17" stitchTiles="stitch" />
+              <feColorMatrix type="saturate" values="0" />
+            </filter>
+            <rect width="1080" height="1920" filter="url(#grainf)" />
+          </svg>
+        </div>
+
+        <div id="scrim"></div>
+
+        <div id="headline">
+          <div>A <span class="lit">RELAY RACE</span></div>
+          <div>YOU NEVER SEE</div>
+        </div>
+
+        <svg id="track" width="1080" height="200" viewBox="0 0 1080 200" fill="none">
+          <line x1="140" y1="100" x2="940" y2="100"
+                stroke="rgba(125,211,252,0.14)" stroke-width="5" stroke-linecap="round" />
+          <line id="rail" x1="140" y1="100" x2="940" y2="100"
+                stroke="rgba(125,211,252,0.62)" stroke-width="5" stroke-linecap="round" />
+
+          <g class="node" id="n0">
+            <circle cx="140" cy="100" r="34" fill="rgba(14,165,233,0.20)" />
+            <circle cx="140" cy="100" r="25" fill="none"
+                    stroke="rgba(125,211,252,0.55)" stroke-width="3" />
+            <circle cx="140" cy="100" r="15" fill="#7dd3fc" />
+          </g>
+          <g class="node" id="n1">
+            <circle cx="340" cy="100" r="34" fill="rgba(14,165,233,0.20)" />
+            <circle cx="340" cy="100" r="25" fill="none"
+                    stroke="rgba(125,211,252,0.55)" stroke-width="3" />
+            <circle cx="340" cy="100" r="15" fill="#7dd3fc" />
+          </g>
+          <g class="node" id="n2">
+            <circle cx="540" cy="100" r="34" fill="rgba(14,165,233,0.20)" />
+            <circle cx="540" cy="100" r="25" fill="none"
+                    stroke="rgba(125,211,252,0.55)" stroke-width="3" />
+            <circle cx="540" cy="100" r="15" fill="#7dd3fc" />
+          </g>
+          <g class="node" id="n3">
+            <circle cx="740" cy="100" r="34" fill="rgba(14,165,233,0.20)" />
+            <circle cx="740" cy="100" r="25" fill="none"
+                    stroke="rgba(125,211,252,0.55)" stroke-width="3" />
+            <circle cx="740" cy="100" r="15" fill="#7dd3fc" />
+          </g>
+          <g class="node" id="n4">
+            <circle cx="940" cy="100" r="34" fill="rgba(14,165,233,0.20)" />
+            <circle cx="940" cy="100" r="25" fill="none"
+                    stroke="rgba(125,211,252,0.55)" stroke-width="3" />
+            <circle cx="940" cy="100" r="15" fill="#7dd3fc" />
+          </g>
+        </svg>
+
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      /* ============ ACT 1 — the photo holds and the headline lands ========
+         Frame-0 state comes from CSS (a tl.set at position 0 never fires):
+         #bg-fill and #photo-wrap are already at opacity 1, and the headline
+         is already at 0.5 -- never 0 -- on frame 0.                        */
+
+      /* slow push-in on the PHOTO ONLY. Nothing typographic is inside
+         #photo-wrap, so the composed worst-case scale on the type is 1.000. */
+      tl.fromTo("#photo",
+        { scale: 1 },
+        { scale: 1.055, duration: 4.90, ease: "sine.inOut" }, 0);
+
+      /* the headline resolves at 0.62 -- inside the 0.2..1.3 landing window
+         for "a relay race you never see" -- then holds. */
+      tl.fromTo("#headline",
+        { opacity: 0.5, y: 24, scale: 1.04 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.62, ease: "power3.out" }, 0);
+
+      /* ============ THE TURN — the relay track ghosts back in =============
+         0.70 is 0.70s after the headline's reveal began (>= the 0.6s
+         stagger floor), so the two never read as simultaneous.            */
+      tl.fromTo("#track",
+        { opacity: 0 },
+        { opacity: 0.88, duration: 0.34, ease: "power3.out",
+          immediateRender: false }, 0.70);
+
+      /* the rail draws itself left to right: 0.84 -> 1.44 */
+      tl.fromTo("#rail",
+        { strokeDashoffset: 800 },
+        { strokeDashoffset: 0, duration: 0.60, ease: "power3.out",
+          immediateRender: false }, 0.84);
+
+      /* five hand-offs light in sequence. This is ONE composed gesture, not
+         five independent reveals, so they run 0.10s apart. Last completes
+         at 1.68 -- the composition is resolved early and then held.       */
+      const nodeAt = [0.98, 1.08, 1.18, 1.28, 1.38];
+      for (let i = 0; i < 5; i++) {
+        tl.fromTo("#n" + i,
+          { opacity: 0.16 },
+          { opacity: 1, duration: 0.30, ease: "power3.out",
+            immediateRender: false }, nodeAt[i]);
+      }
+
+      /* ============ HOLD — ambient life, nothing new to read ============= */
+      tl.fromTo("#headline", { scale: 1 },
+        { scale: 1.012, duration: 0.26, ease: "power3.out",
+          immediateRender: false }, 1.72);
+      tl.fromTo("#headline", { scale: 1.012 },
+        { scale: 1.0, duration: 0.32, ease: "sine.inOut",
+          immediateRender: false }, 1.98);
+
+      /* the only repeating tween. repeat:1 is ODD, so it lands back on the
+         base value, and it COMPLETES at 2.50 + 2*0.85 = 4.20 -- 0.40s
+         before the fade starts, so it can never win the DOM write. */
+      tl.fromTo(".node", { opacity: 1 },
+        { opacity: 0.74, duration: 0.85, ease: "sine.inOut",
+          yoyo: true, repeat: 1, immediateRender: false }, 2.50);
+
+      /* ============ FADE — finishes at exactly 4.900, zero buffer ========
+         One fromTo per visible leaf with an explicit {opacity:1} start.
+         All five targets are siblings under #scene, so no element sits
+         under two fading ancestors and no opacity is multiplied to zero
+         early. 4.60 + 0.30 = 4.900 = the declared duration.               */
+      tl.fromTo("#bg-fill", { opacity: 1 },
+        { opacity: 0, duration: 0.30, ease: "power2.out",
+          immediateRender: false }, 4.60);
+      tl.fromTo("#photo-wrap", { opacity: 1 },
+        { opacity: 0, duration: 0.30, ease: "power2.out",
+          immediateRender: false }, 4.60);
+      tl.fromTo("#scrim", { opacity: 1 },
+        { opacity: 0, duration: 0.30, ease: "power2.out",
+          immediateRender: false }, 4.60);
+      tl.fromTo("#headline", { opacity: 1 },
+        { opacity: 0, duration: 0.30, ease: "power2.out",
+          immediateRender: false }, 4.60);
+      tl.fromTo("#track", { opacity: 0.88 },
+        { opacity: 0, duration: 0.30, ease: "power2.out",
+          immediateRender: false }, 4.60);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

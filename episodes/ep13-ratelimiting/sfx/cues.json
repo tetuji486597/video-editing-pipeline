@@ -1,0 +1,66 @@
+{
+  "video": "final_nosfx.mp4",
+  "out": "final.mp4",
+  "cues": [
+    {
+      "at": 4.56,
+      "sfx": "stamp",
+      "vol": 0.6,
+      "why": "HOOK: shutter flash / 429 toast slam"
+    },
+    {
+      "at": 9.1,
+      "sfx": "impact_trim",
+      "vol": 0.55,
+      "why": "PROBLEM: server flood transition"
+    },
+    {
+      "at": 17.55,
+      "sfx": "drip",
+      "vol": 0.5,
+      "why": "BUILD: token drip 1/6"
+    },
+    {
+      "at": 17.85,
+      "sfx": "drip",
+      "vol": 0.5,
+      "why": "BUILD: token drip 2/6"
+    },
+    {
+      "at": 18.15,
+      "sfx": "drip",
+      "vol": 0.5,
+      "why": "BUILD: token drip 3/6"
+    },
+    {
+      "at": 18.45,
+      "sfx": "drip",
+      "vol": 0.5,
+      "why": "BUILD: token drip 4/6"
+    },
+    {
+      "at": 18.75,
+      "sfx": "drip",
+      "vol": 0.5,
+      "why": "BUILD: token drip 5/6"
+    },
+    {
+      "at": 19.05,
+      "sfx": "drip",
+      "vol": 0.5,
+      "why": "BUILD: token drip 6/6"
+    },
+    {
+      "at": 26.5,
+      "sfx": "stamp",
+      "vol": 0.6,
+      "why": "NEW_COMPONENT: hero 429 slam (recurring rejected motif)"
+    },
+    {
+      "at": 48.1,
+      "sfx": "ding",
+      "vol": 0.6,
+      "why": "PAYOFF: hero line lands"
+    }
+  ]
+}

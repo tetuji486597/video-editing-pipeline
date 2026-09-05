@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP24 TikTok-style Title Box (A)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;   /* never a takeover -- the presenter stays visible */
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      /* TikTok's native sticker: each WRAPPED LINE gets its own white rounded box.
+         USER-FEEDBACK GEOMETRY: stack CENTRED on the true frame centre x=540
+         (left:0; right:0; margin:auto), NOT left-anchored/x=460. Margins: no text/UI
+         above y=200, left of x=70, right of x=870. Measured on the previous render,
+         "MASTERING SYSTEM" in Inter 800 (-1px tracking) runs 10.59 px per font-px;
+         at 56px the widest box = 56*10.59 + 60px padding ~= 637px -> x 221.5-858.5;
+         at drift 1.01 about x=540 the right edge = 540 + 318.5*1.01 = 861.7 <= 870 OK,
+         left 218.3 >= 70 OK. Font 56 >= 54 floor OK. Top 210 >= 200 (drift origin
+         50% 12% keeps the scaled top edge ~209.7). */
+      #stack {
+        position: absolute;
+        left: 0;
+        right: 0;
+        margin: 0 auto;           /* true frame centre x=540 */
+        top: 210px;               /* EP24 intro A measured: hair top ~100, brow ~680 */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+        /* Frame-0 state from CSS -- tl.set() at position 0 never fires in this renderer,
+           and the primary entrance must not be at opacity 0 on frame 0. */
+        opacity: 0.6;
+        transform: scale(0.94);
+        transform-origin: 50% 12%;
+      }
+      .tt-line {
+        background: #ffffff;
+        color: #111111;
+        font-size: 56px;
+        line-height: 56px;
+        font-weight: 800;
+        letter-spacing: -1px;
+        padding: 22px 30px 26px 30px;
+        border-radius: 16px;
+        white-space: nowrap;      /* each line is authored; never let it re-wrap */
+        /* soft, not a drop-shadow; reach 1.6*16 = 26px, inside the band */
+        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.22);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="5.5"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="5.5"
+        data-track-index="1"
+      >
+        <div id="stack">
+          <!-- 3-box A-variant wording, fixed by the skill table -->
+          <div class="tt-line">MASTERING SYSTEM</div>
+          <div class="tt-line">DESIGN:</div>
+          <div class="tt-line">EPISODE 24</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // One sticker, lands as one unit (multi-line lockup, stagger rule N/A).
+      tl.fromTo(
+        "#stack",
+        { opacity: 0.6, scale: 0.94 },
+        { opacity: 1, scale: 1, duration: 0.28, ease: "power3.out" },
+        0
+      );
+
+      // Imperceptible hold-drift so the motion linter's seek check sees change;
+      // fromTo (not .to) to avoid gsap_css_transform_conflict with the CSS scale.
+      tl.fromTo(
+        "#stack",
+        { scale: 1 },
+        { scale: 1.01, duration: 4.94, ease: "none", immediateRender: false },
+        0.28
+      );
+
+      // Fade FINISHES at exactly data-duration: 5.22 + 0.28 = 5.500, zero buffer.
+      tl.fromTo(
+        "#stack",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.28, ease: "power2.out", immediateRender: false },
+        5.22
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

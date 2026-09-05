@@ -1,0 +1,202 @@
+{
+  "version": 1,
+  "sources": {
+    "ep29": "C:/Users/gordo/Downloads/drive-download-20260904T054818Z-1-001/ep29.mp4"
+  },
+  "ranges": [
+    {
+      "source": "ep29",
+      "start": 6.6,
+      "end": 9.83,
+      "beat": "INTRO",
+      "quote": "explaining content moderation pipelines to Gen Alpha in thirty seconds.",
+      "reason": "LAST complete take (the 1.78s attempt breaks off at 'to--'). Acoustic onset 6.70 (ASR 'explaining' 6.72, agrees within 20ms); start 6.60 = 100ms pad on -64dB room tone. Acoustic offset 9.72 -- ASR boxes 'seconds.' to 9.68 but there is voiced tail at -27..-36dB through 9.71, so the ASR end is 40ms EARLY here; end 9.83 = 110ms after the true offset, 9.73+ is -57dB and below.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep29",
+      "start": 16.0,
+      "end": 21.8,
+      "beat": "HOOK",
+      "quote": "A billion posts a day, a billion. MrBeast can't even count to a billion. So who's reading your skibidi posts?",
+      "reason": "Only take. Acoustic onset of 'A' 16.06 (ASR 16.10); start 16.00 sits in -54..-60dB room tone, after a lip click at 15.29 and a mouth noise at 15.94 which are both excluded. ASR boxes 'posts?' as 21.12-23.30 -- a 2.18s word, the Scribe padding trap -- while the voice actually stops at 21.63 (-63dB from 21.65). End 21.80 = 170ms after the true offset and BEFORE the breath at 22.04-22.14 and mouth noises at 22.87-23.00. Padding off the ASR box would have shipped 1.5s of silence.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep29",
+      "start": 79.92,
+      "end": 89.58,
+      "beat": "PROBLEM",
+      "quote": "People are too slow, and robots are fast, but lokenuanly dumb. Like a robot will see some Livvy Dunn post and go, \"Erm, that's a level ten gyat, booted.\" Wrong, buddy. Skill issue.",
+      "reason": "LAST full take -- every earlier attempt (28.06-79.28) breaks on 'Livvy Dunn'/'level'/'gyat' or doubles 'Skill issue'. Acoustic onset 80.00 (ASR 80.02); start 79.92 = 80ms pad in -59..-65dB tone, after a soft breath at 79.61-79.80 which is excluded. Acoustic offset 89.45 (ASR 'issue.' 89.43, agrees); end 89.58 = 130ms pad. Internal: 380ms beat after 'booted.' before 'Wrong, buddy' (87.51-87.89) is the turn of the beat, kept.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep29",
+      "start": 112.32,
+      "end": 121.16,
+      "beat": "BUILD",
+      "quote": "So they use a funnel. First, anything that's an exact copy of something that already got banned is a mad sus. Tung, tung, tung, gone. Just put the fries in the bag.",
+      "reason": "LAST take (the 97.84 take is complete but this is the later, per the presenter's rule). ASR boxes 'So' at 112.48 but the acoustic onset is 112.38 -- ASR is 100ms LATE; start 112.32 = 60ms pad, after a breath at 112.02-112.28 which is excluded (112.30-112.36 is -58..-63dB). Acoustic offset 121.04 (ASR 'bag.' 121.04, agrees); end 121.16 = 120ms pad. Internal: ASR boxes 'gone.' 119.18-119.82 but the voice stops ~119.47 and the 360ms to 'Just' is a natural beat, kept.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep29",
+      "start": 201.96,
+      "end": 219.04,
+      "beat": "NEW_COMPONENT",
+      "quote": "Then the robot looks at everything else and gives each post a score. Is it a Chad? It stays. Is it subhuman? You're cooked, buddy. In the mid-tier normies where the robot goes, \"Uh, I don't know, chat. Like a sixty or seventy percent,\" those go to an actual person, and the person decides, and the robot watches what the person picked and gets a little more based every time.",
+      "reason": "LAST full take. 125.40-199.52 is a long run of flubs ('mid-tort--', repeated 'Uh, I don't know, chat' pickups, 'Erm'/'uh' false starts, one take that ends on a stray re-read) and is not used. Acoustic onset 202.05 (ASR 'Then' 202.02, 30ms early); start 201.96 = 90ms pad, in -61..-64dB tone after a soft breath at 201.58-201.90 which is excluded. Acoustic offset 218.92 (ASR 'time.' 218.90, agrees); end 219.04 = 120ms pad. Internal: 390ms breath between 'picked' and 'and' at 217.01-217.40 is above the dead-air floor, kept.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep29",
+      "start": 224.52,
+      "end": 235.3,
+      "beat": "AI_ANGLE",
+      "quote": "There's a name for that too, human in the loop. The robot does the giant pile, and people do the goofy ahh ones, and the robot keeps learning from the people. Robot mogs on volume, human mogs on vibes.",
+      "reason": "Only take. Acoustic onset 224.62 (ASR 224.64, agrees); start 224.52 = 100ms pad in -60..-65dB tone. Acoustic offset 235.16 (ASR 'vibes.' 235.16, agrees); end 235.30 = 140ms pad. Internal: 260ms beat after 'people.' before 'Robot mogs' (231.89-232.15), kept -- it is the setup for the closing couplet.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep29",
+      "start": 239.6,
+      "end": 247.7,
+      "beat": "PAYOFF",
+      "quote": "So the robot takes the easy ones. Humans take the weird ones. Next, we'll look at how apps run experiments on you without telling you. You're the NPC. Sorry.",
+      "reason": "Only take. ASR boxes 'So' at 239.76 but the acoustic onset is 239.70 -- ASR 60ms LATE; start 239.60 = 100ms pad in -61..-65dB tone. Acoustic offset 247.55 (ASR 'Sorry.' 247.56, agrees); end 247.70 = 150ms pad, 247.59+ is -63dB.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    }
+  ],
+  "grade": "eq=contrast=1.15:saturation=1.05,colorbalance=rs=-0.04:gs=0.02:bs=0.05:rm=0.01:gm=0.0:bm=-0.01:rh=0.06:gh=0.02:bh=-0.06,vignette=angle=0.7,unsharp=5:5",
+  "overlays": [
+    {
+      "file": "animations/slot_tiktok_title/render.webm",
+      "start_in_output": 0.0,
+      "duration": 3.2
+    },
+    {
+      "file": "animations/slot_hook/render.webm",
+      "start_in_output": 3.85,
+      "duration": 5.2
+    },
+    {
+      "file": "animations/slot_problem/render.webm",
+      "start_in_output": 9.65,
+      "duration": 9.1
+    },
+    {
+      "file": "animations/slot_build/render.webm",
+      "start_in_output": 19.3,
+      "duration": 8.9
+    },
+    {
+      "file": "animations/slot_new_component/render.webm",
+      "start_in_output": 30.0,
+      "duration": 14.7
+    },
+    {
+      "file": "animations/slot_ai_angle/render.webm",
+      "start_in_output": 45.9,
+      "duration": 9.5
+    },
+    {
+      "file": "animations/slot_payoff/render.webm",
+      "start_in_output": 56.3,
+      "duration": 7.3
+    }
+  ],
+  "subtitles": "master.ass",
+  "_variant": "Single variant -- brainrot edition ('explaining content moderation pipelines to Gen Alpha in thirty seconds').",
+  "_take_rule": "Presenter's rule: the LAST attempt at any line is the best one. Every beat uses the last complete take.",
+  "_edge_note": "Every range START and END was measured acoustically (find_dead_air.py at 100ms, then 20ms RMS around each edge) rather than off the Scribe word box; ASR-vs-acoustic disagreements are recorded per range in 'reason'. Pads are 60-170ms outside the true onset/offset.",
+  "_zoom_note": "Gradual zoom on the talking head, focal (540,730) eye-line. Direction alternates per segment (1.0->1.08->1.0...) so each range starts at the scale the previous one ended on and the drift is continuous across every cut.",
+  "_beat_windows_output_timeline": {
+    "INTRO": [
+      0.0,
+      3.25
+    ],
+    "HOOK": [
+      3.25,
+      9.0833
+    ],
+    "PROBLEM": [
+      9.0833,
+      18.75
+    ],
+    "BUILD": [
+      18.75,
+      27.625
+    ],
+    "NEW_COMPONENT": [
+      27.625,
+      44.7083
+    ],
+    "AI_ANGLE": [
+      44.7083,
+      55.5
+    ],
+    "PAYOFF": [
+      55.5,
+      63.625
+    ]
+  },
+  "total_duration_s": 63.625,
+  "_windows_note": "Output-timeline windows on render.py's real 24fps extract grid: each segment's rendered duration is ceil((end-start)*24)/24, not the raw source span. Verified against rendered clips where measurable. Overlay start_in_output values are derived from THESE numbers.",
+  "_overlay_note": "Adjacent overlays are separated by DELIBERATE gaps of >=0.5s (0.65/0.60/0.55/1.80/1.20/0.90), never a sub-0.5s sliver; every composition's fade lands at exactly its declared duration (rule 12). Landings: hook counter on the 2nd 'billion' 4.67; problem card on 'Livvy Dunn' 13.52, BOOTED 16.28, WRONG 17.10, SKILL ISSUE 17.90; build funnel 19.63, EXACT COPY 21.07, SUS 23.69, tung x3 24.65/24.88/25.11, gone 25.61, fries 26.77; new_component STAYS 31.75, COOKED 33.1, idk chat 36.03, 67% + LaMelo 37.0, HUMAN lane 38.95, BASED 43.83; ai_angle headline 46.17, VOLUME 52.83, VIBES 54.37; payoff headline 58.22, YOU crewmate 62.52.",
+  "gameplay": {
+    "file": "../../shared_assets/brainrot/gameplay/subway_surfers_QPW3XwBoQlw.mp4",
+    "src_start": 75.0,
+    "y": 1300,
+    "h": 620,
+    "crop": {
+      "x": 0,
+      "y": 1000,
+      "w": 1080,
+      "h": 620
+    },
+    "_note": "Brainrot gameplay strip (user request). Bottom 620px = shirt only (chin ~1200). Composited above overlays, below captions; muted."
+  }
+}

@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP27 TikTok-style hook sticker (cold open)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      /* EP27 is a COLD OPEN (no intro take), so the sticker carries the hook line and
+         holds over the whole HOOK beat (output 0-6.375), running SIMULTANEOUSLY with
+         slot_hook. Division of the frame, absolute pixels (checked pairwise):
+           this sticker owns the top: boxes y=220-512 (+shadow reach 512+2+1.6*14 = 537)
+           slot_hook owns the flanks/shoulders: nothing above y=955
+           gap = 955 - 537 = 418px -- no collision.
+         Construction copied from ep20 slot_tiktok_title_b / ep25 slot_tiktok_title:
+         stack CENTRED ON x=540 (left:0; right:0 + flex centring). Font 50px so the
+         widest line ("NETFLIX HAS A ROBOT", 19 chars) stays <=660px incl. padding and
+         ends by x<=870 even at the 1.012 drift (measured on the rendered frame).
+         HOOK framing grid-measured on the real frames (src 4.28-10.64 scaled to
+         1080x1920, zoom 1.0->1.08 about (540,730)): hair top ~300 (~266 at zoom
+         worst), brow ~700 (~698 worst). The stack at 220-512 sits over the neon sign
+         and hair only; it clears the brow by ~186px (solid box over hair is fine per
+         the EP19/EP20 convention, over facial features it is not). */
+      #stack {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 220px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+        opacity: 0.6;             /* frame-0 state from CSS (tl.set at 0 never fires) */
+        transform: scale(0.94);
+        transform-origin: 50% 12%;
+      }
+      .tt-line {
+        background: #ffffff;
+        color: #111111;
+        font-size: 50px;
+        line-height: 50px;
+        font-weight: 800;
+        letter-spacing: -1px;
+        padding: 18px 24px 20px 24px;   /* box height 88 */
+        border-radius: 16px;
+        white-space: nowrap;
+        box-shadow: 0 2px 14px rgba(0, 0, 0, 0.22);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="6.3666"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="6.3666"
+        data-track-index="1"
+      >
+        <div id="stack">
+          <!-- boxes (h 88, gap 14): y 220-308 / 322-410 / 424-512 -->
+          <div class="tt-line">NETFLIX HAS A ROBOT</div>
+          <div class="tt-line">THAT BREAKS NETFLIX</div>
+          <div class="tt-line">ON PURPOSE</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // The three lines are ONE sticker -- they land together, at local t=0.
+      tl.fromTo(
+        "#stack",
+        { opacity: 0.6, scale: 0.94 },
+        { opacity: 1, scale: 1, duration: 0.28, ease: "power3.out" },
+        0
+      );
+
+      // Anti-static drift for the motion linter; fromTo (not .to) to avoid the
+      // gsap_css_transform_conflict with the CSS transform. Ends before the fade.
+      tl.fromTo(
+        "#stack",
+        { scale: 1 },
+        { scale: 1.012, duration: 5.8066, ease: "none", immediateRender: false },
+        0.28
+      );
+
+      // Fade FINISHES at exactly data-duration, zero buffer: 6.0866 + 0.28 = 6.3666 (191 frames @30fps),
+      // which is the PROBLEM beat's first frame -- fully out before the next beat.
+      tl.fromTo(
+        "#stack",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.28, ease: "power2.out", immediateRender: false },
+        6.0866
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

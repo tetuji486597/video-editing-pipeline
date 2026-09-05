@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body {
+        font-family: Inter, sans-serif;
+      }
+
+      /* ---------------------------------------------------------------
+         CORNER ACCENT — top-left. No #bg-fill, no vignette, no
+         full-frame anything. The live footage is untouched everywhere
+         except this one small chip.
+
+         Backdrop measured on draft_16.mp4 over output 37.9-41.9:
+         source crop 198x125 @ (29,152) -> canvas 296x187 @ (44,228)
+         Y range 46-83, mean ~62. Dark, uniform, no presenter, no neon.
+
+         Vertical position was measured on the RENDERED alpha plane, not
+         computed: at top:214 the box-shadow tail put alpha=1 on rows
+         <180 (Chrome's blur support runs ~1.5x the nominal radius, so
+         the real reach is ~34px, not the 20px the CSS number implies).
+         Shifted +20px so the measured tail lands at y~194.
+         --------------------------------------------------------------- */
+
+      #chip {
+        position: absolute;
+        left: 44px;
+        top: 234px;
+        width: 296px;
+        height: 96px;
+        /* frame-0 opacity lives in CSS -- a tl.set() at position 0 never fires.
+           The frame-0 TRANSFORM is stamped by the build-time gsap.set() below
+           (a CSS transform here would be clobbered by the GSAP y drift). */
+        opacity: 0.55;
+      }
+
+      #chip-plate {
+        position: absolute;
+        inset: 0;
+        border-radius: 22px;
+        /* translucent: 0.68-0.74 alpha over a Y~60 backdrop -> ~30 luma.
+           Reads as a lit glass pill, not an opaque card. */
+        background: linear-gradient(
+          150deg,
+          rgba(9, 17, 30, 0.68),
+          rgba(4, 9, 18, 0.74)
+        );
+        border: 2px solid rgba(56, 189, 248, 0.55);
+        /* downward-offset drop shadow: measured top reach ~ y=196 */
+        box-shadow: 0 16px 34px rgba(2, 6, 18, 0.5);
+        z-index: 1;
+      }
+
+      /* glow: measured top reach ~ y=194 on the rendered alpha plane */
+      #chip-glow-cyan {
+        position: absolute;
+        inset: 0;
+        border-radius: 22px;
+        box-shadow: 0 0 20px rgba(56, 189, 248, 0.5);
+        opacity: 1;
+        z-index: 0;
+      }
+      #chip-glow-green {
+        position: absolute;
+        inset: 0;
+        border-radius: 22px;
+        box-shadow: 0 0 20px rgba(52, 211, 153, 0.58);
+        opacity: 0;
+        z-index: 0;
+      }
+
+      /* deterministic feTurbulence grain, confined to the chip */
+      #chip-grain {
+        position: absolute;
+        inset: 0;
+        border-radius: 22px;
+        opacity: 0.055;
+        pointer-events: none;
+        z-index: 4;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' seed='11' stitchTiles='stitch'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
+        background-size: 160px 160px;
+      }
+
+      #chip-window {
+        position: absolute;
+        inset: 0;
+        border-radius: 22px;
+        overflow: hidden;
+        z-index: 3;
+      }
+
+      .face {
+        position: absolute;
+        left: 0;
+        width: 296px;
+        height: 96px;
+        display: flex;
+        align-items: center;
+        padding-left: 26px;
+        padding-right: 20px;
+      }
+      #face-code {
+        top: 0;
+      }
+      #face-301 {
+        top: 96px; /* parked below the window, clipped */
+      }
+
+      /* CSS-border spinner ring: real width AND height, no degenerate bbox */
+      #spin-ring {
+        width: 30px;
+        height: 30px;
+        flex: 0 0 30px;
+        border-radius: 50%;
+        border: 3px solid rgba(56, 189, 248, 0.2);
+        border-top-color: rgba(125, 211, 252, 0.98);
+        opacity: 1;
+      }
+      #ring-done {
+        position: absolute;
+        left: 26px;
+        top: 33px;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: 3px solid rgba(52, 211, 153, 0.95);
+        box-shadow: 0 0 12px rgba(52, 211, 153, 0.65);
+        opacity: 0;
+      }
+
+      #code-text {
+        margin-left: 16px;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 46px;
+        font-weight: 600;
+        letter-spacing: 0;
+        color: #e0f2fe;
+        white-space: pre;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9),
+          0 0 14px rgba(56, 189, 248, 0.35);
+        opacity: 1;
+      }
+
+      #dot {
+        width: 14px;
+        height: 14px;
+        flex: 0 0 14px;
+        border-radius: 50%;
+        background: #34d399;
+        box-shadow: 0 0 10px rgba(52, 211, 153, 0.8);
+        margin-left: 8px;
+        opacity: 0;
+      }
+      #code-301 {
+        margin-left: 16px;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 46px;
+        font-weight: 700;
+        color: #d1fae5;
+        white-space: pre;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9),
+          0 0 14px rgba(52, 211, 153, 0.4);
+        opacity: 0;
+      }
+      #arrow {
+        margin-left: 14px;
+        display: inline-flex;
+        align-items: center;
+        width: 34px;
+        height: 20px;
+        opacity: 0;
+      }
+
+      /* specular sweep for the turn -- clipped by #chip-window */
+      #sweep {
+        position: absolute;
+        left: -140px;
+        top: -52px;
+        width: 110px;
+        height: 200px;
+        transform-origin: 50% 50%;
+        background: linear-gradient(
+          100deg,
+          rgba(255, 255, 255, 0) 0%,
+          rgba(214, 245, 255, 0.55) 48%,
+          rgba(255, 255, 255, 0) 100%
+        );
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      #ghost {
+        position: absolute;
+        left: 44px;
+        top: 372px; /* chip bottom (drifted) 326 -> 46px separation */
+        width: 296px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 23px;
+        font-weight: 500;
+        letter-spacing: 0;
+        color: #cbd5e1;
+        white-space: pre;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="4.00"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="4.00"
+        data-track-index="1"
+      >
+        <!-- the ghosted original URL: dim texture, sits BELOW the chip in z -->
+        <div id="ghost">example.com/item?id...</div>
+
+        <div id="chip">
+          <div id="chip-glow-cyan"></div>
+          <div id="chip-glow-green"></div>
+          <div id="chip-plate"></div>
+
+          <div id="chip-window">
+            <div id="face-code" class="face" data-layout-allow-overflow="true">
+              <div id="spin-ring"></div>
+              <div id="code-text">/3mK9Qa</div>
+            </div>
+
+            <div id="ring-done" data-layout-allow-overflow="true"></div>
+
+            <div id="face-301" class="face" data-layout-allow-overflow="true">
+              <div id="dot"></div>
+              <div id="code-301">301</div>
+              <span id="arrow">
+                <svg width="34" height="20" viewBox="0 0 34 20" fill="none">
+                  <path
+                    d="M3 10 H27"
+                    stroke="#6ee7b7"
+                    stroke-width="3.2"
+                    stroke-linecap="round"
+                  />
+                  <path
+                    d="M20.5 3.5 L27 10 L20.5 16.5"
+                    stroke="#6ee7b7"
+                    stroke-width="3.2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    fill="none"
+                  />
+                </svg>
+              </span>
+            </div>
+
+            <div id="sweep" data-layout-allow-overflow="true"></div>
+          </div>
+
+          <div id="chip-grain"></div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      /* =============================================================
+         LOCAL CLOCK (output = local + 37.900)
+         narration "looks up the number and redirects" = local 0.87-2.57
+
+         0.00  ACT 1  chip enters (from CSS opacity .55 -> 1)
+         0.00         lookup spinner runs, ease "none"
+         1.45  TURN   spinner resolves + specular sweep + cyan -> green
+         1.65  ACT 2  chip flips: /3mK9Qa slides out, 301 -> slides in
+         1.95         301 lands  (output 39.85, inside 38.77-40.47)
+         2.45         original URL ghosts in behind the chip
+         3.70  FADE   0.30s -> finishes at exactly 4.000
+         ============================================================= */
+
+      const RESOLVE = 1.45;
+      const FLIP = 1.65;
+      const GHOST = 2.45;
+      const FADE = 3.7;
+      const FADE_DUR = 0.3; // 3.70 + 0.30 = 4.000 exactly
+
+      /* Build-time (NOT timeline) set: stamps the frame-0 transform state.
+         gsap.set() outside the timeline applies immediately, unlike tl.set()
+         at position 0, which never fires in this renderer. */
+      gsap.set("#chip", { x: -14, y: 0, scale: 0.94 });
+
+      /* ---------- ACT 1: primary entrance, begins at local t=0 ---------- */
+      tl.fromTo(
+        "#chip",
+        { opacity: 0.55, x: -14, scale: 0.94 },
+        { opacity: 1, x: 0, scale: 1, duration: 0.42, ease: "power3.out" },
+        0
+      );
+
+      /* ambient drift; ends exactly when the fade begins */
+      tl.to("#chip", { y: -4, duration: 3.25, ease: "sine.inOut" }, 0.45);
+
+      /* lookup spinner. Rotating a CSS-border ring (real w/h), NOT an SVG line.
+         true end = 0 + (1+1)*0.725 + 0*1 = 1.450  <  3.700  OK
+         final value 360deg is congruent to the 0deg base. */
+      tl.to(
+        "#spin-ring",
+        { rotation: 360, duration: 0.725, repeat: 1, repeatDelay: 0, ease: "none" },
+        0
+      );
+
+      /* ---------- THE TURN at 1.45: the lookup resolves ---------- */
+      tl.fromTo(
+        "#spin-ring",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.18, ease: "power3.out", immediateRender: false },
+        RESOLVE
+      );
+      tl.fromTo(
+        "#ring-done",
+        { opacity: 0, scale: 0.72 },
+        {
+          opacity: 1,
+          scale: 1.14,
+          duration: 0.14,
+          ease: "power4.out",
+          immediateRender: false,
+        },
+        RESOLVE
+      );
+      tl.to("#ring-done", { scale: 1, duration: 0.2, ease: "power3.out" }, RESOLVE + 0.14);
+
+      /* colour phase-shift carries the turn: cyan (pending) -> green (resolved) */
+      tl.fromTo(
+        "#chip-glow-cyan",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.35, ease: "power3.out", immediateRender: false },
+        RESOLVE
+      );
+      tl.fromTo(
+        "#chip-glow-green",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.35, ease: "power3.out", immediateRender: false },
+        RESOLVE
+      );
+      tl.fromTo(
+        "#chip-plate",
+        { borderColor: "rgba(56,189,248,0.55)" },
+        {
+          borderColor: "rgba(52,211,153,0.62)",
+          duration: 0.35,
+          ease: "power3.out",
+          immediateRender: false,
+        },
+        RESOLVE
+      );
+
+      /* specular sweep across the chip -- clipped by #chip-window */
+      tl.fromTo(
+        "#sweep",
+        { opacity: 0 },
+        { opacity: 0.85, duration: 0.08, ease: "power3.out", immediateRender: false },
+        RESOLVE
+      );
+      tl.fromTo(
+        "#sweep",
+        { x: 0 },
+        { x: 470, duration: 0.32, ease: "power2.inOut", immediateRender: false },
+        RESOLVE
+      );
+      tl.fromTo(
+        "#sweep",
+        { opacity: 0.85 },
+        { opacity: 0, duration: 0.12, ease: "power3.in", immediateRender: false },
+        RESOLVE + 0.2
+      ); // -> opacity 0 at 1.77, excluded from the final fade
+
+      /* ---------- ACT 2 at 1.65: the chip flips to 301 -> ---------- */
+      tl.fromTo(
+        "#ring-done",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.2, ease: "power3.in", immediateRender: false },
+        FLIP
+      ); // -> opacity 0 at 1.85
+
+      tl.fromTo(
+        "#code-text",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.22, ease: "power3.in", immediateRender: false },
+        FLIP
+      ); // -> opacity 0 at 1.87
+
+      tl.fromTo(
+        "#face-code",
+        { y: 0 },
+        { y: -96, duration: 0.3, ease: "power3.out", immediateRender: false },
+        FLIP
+      );
+      tl.fromTo(
+        "#face-301",
+        { y: 0 },
+        { y: -96, duration: 0.3, ease: "power3.out", immediateRender: false },
+        FLIP
+      );
+
+      /* the 301 face's leaves start at CSS opacity 0 and ride in with the flip */
+      tl.fromTo(
+        "#dot",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.26, ease: "power3.out", immediateRender: false },
+        FLIP + 0.06
+      );
+      tl.fromTo(
+        "#code-301",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.26, ease: "power3.out", immediateRender: false },
+        FLIP + 0.06
+      );
+      tl.fromTo(
+        "#arrow",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.26, ease: "power3.out", immediateRender: false },
+        FLIP + 0.06
+      );
+      /* 301 -> fully landed at 1.65 + 0.30 = 1.95  (output 39.85) */
+
+      /* ambient: the arrow nudges once.
+         true end = 2.30 + (1+1)*0.45 = 3.200 < 3.700 OK; odd repeat + yoyo -> base */
+      tl.to(
+        "#arrow",
+        { x: 5, duration: 0.45, repeat: 1, yoyo: true, ease: "sine.inOut" },
+        2.3
+      );
+
+      /* ---------- the original URL ghosts in behind the chip ---------- */
+      tl.fromTo(
+        "#ghost",
+        { opacity: 0, y: -26 },
+        {
+          opacity: 0.5,
+          y: 0,
+          duration: 0.45,
+          ease: "power3.out",
+          immediateRender: false,
+        },
+        GHOST
+      ); // lands 2.90 -> 0.80s settle before the fade
+
+      /* ambient breathe on the resolved glow.
+         true end = 2.60 + (1+1)*0.50 = 3.600 < 3.700 OK; odd repeat + yoyo -> base 1 */
+      tl.to(
+        "#chip-glow-green",
+        { opacity: 0.6, duration: 0.5, repeat: 1, yoyo: true, ease: "sine.inOut" },
+        2.6
+      );
+
+      /* ---------- FINAL FADE: leaves only, explicit fromTo starts ----------
+         Excluded because they are already at opacity 0 by 3.70:
+         #chip-glow-cyan (0 @1.80), #spin-ring (0 @1.63), #ring-done (0 @1.85),
+         #code-text (0 @1.87), #sweep (0 @1.77).
+         Wrappers #chip / #chip-window / #face-code / #face-301 paint nothing. */
+      const fadeLeaves = [
+        ["#chip-plate", 1],
+        ["#chip-glow-green", 1],
+        ["#chip-grain", 0.055],
+        ["#dot", 1],
+        ["#code-301", 1],
+        ["#arrow", 1],
+        ["#ghost", 0.5],
+      ];
+      fadeLeaves.forEach(function (pair) {
+        tl.fromTo(
+          pair[0],
+          { opacity: pair[1] },
+          {
+            opacity: 0,
+            duration: FADE_DUR,
+            ease: "power3.out",
+            immediateRender: false,
+          },
+          FADE
+        );
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

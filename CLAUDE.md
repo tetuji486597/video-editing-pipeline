@@ -18,10 +18,18 @@ EDL + HyperFrames configs).
    into `~/.claude/skills/` if `setup_check.sh` reports it missing or out of date — git
    does not populate that directory, so a fresh clone never has it registered until this
    copy step runs.
-3. Read `STYLE.md` before making any editorial decision (title/caption placement,
+3. Read `LESSONS_EP20-26.md` and `LESSONS_EP27-29.md` — the hard-won rules from the EP20-26 batch (border
+   margins x70-870/y200-1280, graphics-never-block-text, centered title stickers,
+   SFX variety expectations, the seek-renderer fromTo trap, the frozen-`iw` crop trap,
+   the audio chain traps). These came from direct user feedback; re-breaking them
+   costs a full batch re-render.
+4. Read `WRITING_RULES.md` before writing or rewriting ANY script or on-screen text — the
+   de-AI rules (no "it's not X, it's Y", no em dashes in narration, no rules of three,
+   no slogan payoffs). Direct user feedback; applied across the whole script doc.
+5. Read `STYLE.md` before making any editorial decision (title/caption placement,
    music/SFX choices, overlay design, zoom behavior) — it's the confirmed-good defaults
    for this series, not a starting guess.
-4. **Before building or regenerating any episode's overlays specifically**, load the
+6. **Before building or regenerating any episode's overlays specifically**, load the
    `system-design-overlays` skill (via the Skill tool, once registered per step 2) and
    read `episodes/ep4-captcha/animations/slot_new_component/` and `slot_problem/` — EP4
    is the confirmed gold-standard reference for overlay presentation and pacing, cited

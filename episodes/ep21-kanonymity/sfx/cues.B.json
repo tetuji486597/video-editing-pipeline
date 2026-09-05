@@ -1,0 +1,86 @@
+{
+  "cues": [
+    {
+      "at": 8.85,
+      "sfx": "tt_notif_trim",
+      "vol": 0.65,
+      "why": "HOOK: the breach-warning dialog arrives"
+    },
+    {
+      "at": 11.6,
+      "sfx": "tt_wrong_buzzer",
+      "vol": 0.29,
+      "why": "HOOK: red X on the outbound arrow"
+    },
+    {
+      "at": 13.05,
+      "sfx": "tt_hold_up",
+      "vol": 0.55,
+      "why": "HOOK voice meme: 'That sounds impossible'"
+    },
+    {
+      "at": 16.0,
+      "sfx": "tt_bass_drop",
+      "vol": 0.22,
+      "why": "PROBLEM: vault counter -- hundreds of millions"
+    },
+    {
+      "at": 19.95,
+      "sfx": "tt_error_glitch",
+      "vol": 0.54,
+      "why": "PROBLEM: the hash chip cracks on 'even hashed'"
+    },
+    {
+      "at": 22.8,
+      "sfx": "tt_record_scratch",
+      "vol": 0.52,
+      "why": "PROBLEM: the catch-22 stalemate"
+    },
+    {
+      "at": 25.0,
+      "sfx": "tt_keyboard_trim",
+      "vol": 0.95,
+      "why": "BUILD: the real SHA-1 digest types on-device"
+    },
+    {
+      "at": 27.85,
+      "sfx": "tt_click_trim",
+      "vol": 0.95,
+      "why": "BUILD: the scissor-snip detaches CBFDA (script: snip)"
+    },
+    {
+      "at": 29.46,
+      "sfx": "swoosh_deep",
+      "vol": 0.33,
+      "why": "BUILD: only the prefix travels off-frame (variety: deep swell)"
+    },
+    {
+      "at": 31.5,
+      "sfx": "tt_whoosh",
+      "vol": 0.5,
+      "why": "SCAN: the wall of 1,972 real suffixes pours in"
+    },
+    {
+      "at": 35.85,
+      "sfx": "tt_correct_ding",
+      "vol": 0.75,
+      "why": "SCAN: the real matching row lights green"
+    },
+    {
+      "at": 42.55,
+      "sfx": "tt_sparkle_trim",
+      "vol": 0.72,
+      "why": "KANON: the k-ANONYMITY label lands on the word"
+    },
+    {
+      "at": 49.4,
+      "sfx": "tt_bubble_pop",
+      "vol": 0.45,
+      "why": "PAYOFF: the ghost crowd fades in behind the HIBP card"
+    }
+  ],
+  "_vol_note": "Volumes = 0.45 * 10^(0.6*(-18-mean)/20) clamped [0.15,0.95] (the shipped TIKTOK_SFX_NOTES calibration), with the usual manual overrides: bass-heavy (vine/bass_drop/bass_hit) held <=0.45, voice memes carry the x1.25 speech bump, sparkle boosted (broadband shimmer masks easily). Diversity pass 2026-08-28: no sound repeats within an episode except deliberate anchors; underused files (ding, riser, swoosh_elec/double/deep, pop_balloon/bubble, bass_hit, impact_trim, shutter, whoosh_trim) rotated in per user feedback.",
+  "video": "final_nosfx_B.mp4",
+  "out": "final_B.mp4",
+  "_note": "Variant B: every cue = A - 0.5s. Voice meme: tt_hold_up (file sanitized -- see TIKTOK_SFX_NOTES). 13 distinct sounds."
+}

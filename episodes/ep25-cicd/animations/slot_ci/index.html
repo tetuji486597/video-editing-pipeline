@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP25 CI — merge-triggers-build/test motion graphic</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* MOTION GRAPHIC over live footage, upper band. This beat is a TIGHT shot
+         (measured: hair top ~190, brow ~690, chin ~1240): everything sits in
+         y 200-660 (>=40px above the brow at 690), x 60-860. Translucent fills only
+         (<=0.30) so the band reads as linework over the hair (rule 11).
+         No push-in; ambient life comes from the pulses and breathing chips. */
+
+      #mg { position: absolute; inset: 0; opacity: 0.55; }  /* frame-0 from CSS */
+
+      #rail-svg { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: visible; }
+      #main-line { fill: none; stroke: rgba(34, 211, 238, 0.85); stroke-width: 5; stroke-linecap: round; }
+      #branch { fill: none; stroke: rgba(251, 191, 36, 0.8); stroke-width: 4; stroke-linecap: round; }
+      .connector { fill: none; stroke: rgba(34, 211, 238, 0.5); stroke-width: 3; stroke-dasharray: 7 9; }
+
+      .commit {
+        position: absolute; left: 0; top: 0; width: 26px; height: 26px; border-radius: 50%;
+        background: #fbbf24; box-shadow: 0 0 14px 3px rgba(251, 191, 36, 0.7);
+        opacity: 0;
+      }
+      .pulse {
+        position: absolute; left: 0; top: 0; width: 16px; height: 16px; border-radius: 50%;
+        background: #22d3ee; box-shadow: 0 0 12px 3px rgba(34, 211, 238, 0.8);
+        opacity: 0;
+      }
+      #merge-ring {
+        position: absolute; left: 302px; top: 492px; width: 56px; height: 56px;
+        border-radius: 50%; border: 3px solid rgba(34, 211, 238, 0.9);
+        opacity: 0;
+      }
+
+      .station {
+        position: absolute; top: 260px; width: 180px; height: 100px;
+        border-radius: 16px;
+        background: rgba(8, 14, 20, 0.30);
+        border: 1.5px solid rgba(34, 211, 238, 0.6);
+        box-shadow: 0 0 10px rgba(34, 211, 238, 0.25);  /* reach 1.6*10=16px; top 244>180 */
+        display: flex; align-items: center; justify-content: center;
+        color: #a5f3fc; font-size: 44px; font-weight: 700; letter-spacing: 3px;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85);
+        opacity: 0;
+      }
+      #st-build { left: 360px; }
+      #st-test  { left: 580px; }
+      .lamp {
+        position: absolute; top: -9px; right: -9px; width: 20px; height: 20px;
+        border-radius: 50%; background: #475569; border: 2px solid rgba(226, 232, 240, 0.5);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="4.50" data-width="1080" data-height="1920">
+      <section id="main-clip" class="clip" data-start="0" data-duration="4.50" data-track-index="1">
+        <div id="mg">
+          <svg id="rail-svg" viewBox="0 0 1080 1920">
+            <line id="main-line" x1="100" y1="520" x2="820" y2="520" />
+            <path id="branch" d="M140,300 C220,300 280,420 330,520" />
+            <line class="connector" x1="450" y1="516" x2="450" y2="364" />
+            <line class="connector" x1="670" y1="516" x2="670" y2="364" />
+          </svg>
+
+          <div id="merge-ring"></div>
+          <div class="commit" id="dot1"></div>
+          <div class="commit" id="dot2"></div>
+          <div class="pulse" id="p1"></div>
+          <div class="pulse" id="p2"></div>
+
+          <div class="station" id="st-build">BUILD<div class="lamp" id="lamp-b"></div></div>
+          <div class="station" id="st-test">TEST<div class="lamp" id="lamp-t"></div></div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+
+      // deterministic line-draw setup
+      const mainLine = document.getElementById("main-line");
+      const branch = document.getElementById("branch");
+      [mainLine, branch].forEach((el) => {
+        const len = el.getTotalLength();
+        el.style.strokeDasharray = String(len);
+        el.style.strokeDashoffset = String(len);
+      });
+
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ---------- entrance at t=0 ----------
+      tl.fromTo("#mg", { opacity: 0.55 }, { opacity: 1, duration: 0.3, ease: "power3.out" }, 0);
+      tl.to("#main-line", { strokeDashoffset: 0, duration: 0.5, ease: "power2.out" }, 0);
+      tl.to("#branch", { strokeDashoffset: 0, duration: 0.45, ease: "power2.out" }, 0.25);
+      tl.fromTo("#st-build", { opacity: 0, y: -12 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 0.35);
+      tl.fromTo("#st-test", { opacity: 0, y: -12 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 0.95);
+
+      // cubic-bezier travel along the branch (pure arithmetic, deterministic)
+      const B = [[140, 300], [220, 300], [280, 420], [330, 520]];
+      const bez = (t) => {
+        const u = 1 - t;
+        const x = u*u*u*B[0][0] + 3*u*u*t*B[1][0] + 3*u*t*t*B[2][0] + t*t*t*B[3][0];
+        const y = u*u*u*B[0][1] + 3*u*u*t*B[1][1] + 3*u*t*t*B[2][1] + t*t*t*B[3][1];
+        return [x, y];
+      };
+      const ride = (sel, obj) => () => {
+        const [x, y] = bez(obj.t);
+        gsap.set(sel, { x: x - 13, y: y - 13 });
+      };
+
+      // ---------- ACT 1: a commit merges (narration: "every code change …") ----------
+      const t1 = { t: 0 };
+      tl.set("#dot1", { opacity: 1 }, 0.7);
+      tl.to(t1, { t: 1, duration: 0.45, ease: "power1.inOut", onUpdate: ride("#dot1", t1) }, 0.7);
+      tl.fromTo("#merge-ring", { opacity: 0.9, scale: 0.4 }, { opacity: 0, scale: 1.6, duration: 0.45, ease: "power2.out", immediateRender: false }, 1.15);
+      tl.to("#dot1", { opacity: 0, duration: 0.15, ease: "power1.out" }, 1.2);
+
+      // TURN: the merge itself trips the pipeline, zero delay — a signal pulse runs
+      // the rail and flips each station ON ITS WORD ("built" abs 23.24 = local 2.24,
+      // "tested" abs 23.73 = local 2.73).
+      tl.set("#p1", { opacity: 1 }, 1.55);
+      tl.fromTo("#p1", { x: 330 - 8, y: 520 - 8 }, {y: 520, x: 450 - 8, duration: 0.45, ease: "power1.inOut", immediateRender: false }, 1.55);
+      tl.to("#p1", { y: 364 - 8, duration: 0.2, ease: "power2.in" }, 2.0);
+      tl.to("#p1", { opacity: 0, duration: 0.1 }, 2.2);
+      tl.to("#st-build", {
+        borderColor: "rgba(74,222,128,0.9)", color: "#bbf7d0",
+        boxShadow: "0 0 16px rgba(74,222,128,0.5)", duration: 0.2, ease: "power2.out",
+      }, 2.24);
+      tl.to("#lamp-b", { backgroundColor: "#4ade80", duration: 0.15 }, 2.24);
+      tl.fromTo("#st-build", { scale: 1 }, { scale: 1.06, duration: 0.12, ease: "power2.out", immediateRender: false }, 2.24);
+      tl.to("#st-build", { scale: 1, duration: 0.2, ease: "power2.out" }, 2.37);
+
+      tl.set("#p2", { opacity: 1 }, 2.3);
+      tl.fromTo("#p2", { x: 450 - 8, y: 520 - 8 }, {y: 520, x: 670 - 8, duration: 0.28, ease: "power1.inOut", immediateRender: false }, 2.3);
+      tl.to("#p2", { y: 364 - 8, duration: 0.15, ease: "power2.in" }, 2.58);
+      tl.to("#p2", { opacity: 0, duration: 0.1 }, 2.73);
+      tl.to("#st-test", {
+        borderColor: "rgba(74,222,128,0.9)", color: "#bbf7d0",
+        boxShadow: "0 0 16px rgba(74,222,128,0.5)", duration: 0.2, ease: "power2.out",
+      }, 2.73);
+      tl.to("#lamp-t", { backgroundColor: "#4ade80", duration: 0.15 }, 2.73);
+      tl.fromTo("#st-test", { scale: 1 }, { scale: 1.06, duration: 0.12, ease: "power2.out", immediateRender: false }, 2.73);
+      tl.to("#st-test", { scale: 1, duration: 0.2, ease: "power2.out" }, 2.85);
+
+      // ---------- ACT 2: the NEXT commit repeats the loop — continuous ----------
+      // ("the moment it's merged" abs 24.27-25.15 = local 3.27-4.15)
+      const t2 = { t: 0 };
+      tl.set("#dot2", { opacity: 1 }, 3.45);
+      tl.to(t2, { t: 1, duration: 0.38, ease: "power1.inOut", onUpdate: ride("#dot2", t2) }, 3.45);
+      tl.fromTo("#merge-ring", { opacity: 0.9, scale: 0.4 }, { opacity: 0, scale: 1.6, duration: 0.4, ease: "power2.out", immediateRender: false }, 3.83);
+      tl.to("#dot2", { opacity: 0, duration: 0.12, ease: "power1.out" }, 3.9);
+      // instant re-flash cascade (re-hits of already-lit stations, not new reveals)
+      tl.fromTo("#st-build", { scale: 1 }, { scale: 1.05, duration: 0.1, ease: "power2.out", immediateRender: false }, 3.95);
+      tl.to("#st-build", { scale: 1, duration: 0.16, ease: "power2.out" }, 4.05);
+      tl.fromTo("#st-test", { scale: 1 }, { scale: 1.05, duration: 0.1, ease: "power2.out", immediateRender: false }, 4.08);
+      tl.to("#st-test", { scale: 1, duration: 0.16, ease: "power2.out" }, 4.18);
+
+      // ambient breathing (yoyo, ODD repeats; both complete before the fade at 4.20)
+      tl.fromTo("#st-build", { boxShadow: "0 0 16px rgba(74,222,128,0.5)" },
+        { boxShadow: "0 0 24px rgba(74,222,128,0.7)", duration: 0.5, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 2.6);
+      tl.fromTo("#st-test", { boxShadow: "0 0 16px rgba(74,222,128,0.5)" },
+        { boxShadow: "0 0 24px rgba(74,222,128,0.7)", duration: 0.5, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 3.0);
+
+      // ---------- fade: FINISHES at exactly 4.500 (4.20 + 0.30) ----------
+      // #mg plus the transform-carrying stations individually (multiplied curves still
+      // land at zero on the boundary; transparent comp over live footage).
+      ["#mg", "#st-build", "#st-test"].forEach((sel) => {
+        tl.fromTo(sel, { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 4.2);
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

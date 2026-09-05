@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP29 new component — the score, and the human in the loop (takeover)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .fill { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+      @font-face { font-family: "Anton"; src: url("assets/fonts/anton.woff2") format("woff2"); font-weight: 400; font-style: normal; }
+      .meme { font-family: Anton, Inter, sans-serif; }
+
+      /* ---- background (exempt; opaque, on a CHILD div) ---- */
+      #bg-fill { background: radial-gradient(120% 90% at 50% 8%, #101a2e 0%, #080d1a 45%, #04060d 100%); }
+      #glow-cyan { position: absolute; left: -110px; top: -120px; width: 1300px; height: 1300px;
+        background: radial-gradient(circle, rgba(34, 211, 238, 0.20) 0%, rgba(34, 211, 238, 0) 60%); }
+      #glow-mag { position: absolute; left: 40px; top: 560px; width: 1300px; height: 1300px; opacity: 0;
+        background: radial-gradient(circle, rgba(232, 121, 249, 0.22) 0%, rgba(232, 121, 249, 0) 60%); }
+      #vignette { background: radial-gradient(ellipse 760px 1000px at 50% 48%, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 50%, rgba(0,0,0,0.5) 82%, rgba(0,0,0,0.9) 100%); }
+      #flash { background: #fff; opacity: 0; }
+      #grain { opacity: 1; }
+
+      /* ---- scene: push-in 1 -> 1.04 about (540,740); content inside x 100-840,
+         y 235-1230 -> composed worst case x 82-852, y 215-1250 ---- */
+      #scene { transform-origin: 540px 740px; }
+
+      /* headline: x 100-840 centred, y 240-300 (5 words) */
+      #head { position: absolute; left: 100px; top: 240px; width: 740px; height: 60px; text-align: center;
+        font-size: 56px; line-height: 60px; letter-spacing: 3px; color: #f8fafc; opacity: 0.5;
+        text-shadow: 0 3px 10px rgba(0, 0, 0, 0.85), 0 0 18px rgba(34, 211, 238, 0.35); }
+
+      /* ---- ACT 1 ---- */
+      /* Ballerina Cappuccina (the robot) spins in a wrapper with real size: x 360-580, y 330-550 */
+      #bal { position: absolute; left: 360px; top: 330px; width: 220px; height: 220px; opacity: 0; transform-origin: 50% 50%;
+        filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.6)); }
+      #bal img { width: 100%; height: 100%; object-fit: contain; }
+      #bal-glow { position: absolute; left: 330px; top: 300px; width: 280px; height: 280px; border-radius: 50%; opacity: 0;
+        background: radial-gradient(circle, rgba(34, 211, 238, 0.35) 0%, rgba(34, 211, 238, 0) 65%); }
+
+      /* card slot: x 110-330, y 330-560 (220x230). Explicit base; travel via x/y. */
+      .pcard { position: absolute; left: 110px; top: 330px; width: 220px; height: 230px; border-radius: 18px; opacity: 0;
+        background: #0f172a; border: 2px solid rgba(148, 163, 184, 0.4); box-shadow: 0 14px 28px rgba(0, 0, 0, 0.55); transform-origin: 0% 0%; }
+      .pcard .pic { position: absolute; left: 14px; top: 14px; width: 192px; height: 140px; border-radius: 10px; overflow: hidden; background: #1e293b; }
+      .pcard .pic svg { width: 100%; height: 100%; }
+      .pcard .line { position: absolute; left: 14px; height: 8px; border-radius: 4px; background: #475569; }
+      .pcard .l1 { top: 170px; width: 150px; }
+      .pcard .l2 { top: 186px; width: 100px; }
+      .verdict { position: absolute; left: 14px; top: 196px; width: 192px; height: 24px; border-radius: 6px; opacity: 0; transform-origin: 50% 50%;
+        text-align: center; font-size: 22px; line-height: 24px; letter-spacing: 3px; }
+      #stays { background: #16a34a; color: #f0fdf4; }
+      #cooked { background: #b91c1c; color: #ffffff; }
+      #okay { position: absolute; left: 14px; top: 196px; width: 192px; height: 24px; opacity: 0; transform-origin: 50% 50%; }
+
+      /* meters: labels x 110-230, bars x 240-440; rows y 600/652/704/756 (24px) */
+      .mrow { position: absolute; left: 110px; width: 330px; height: 24px; opacity: 0; }
+      .mrow .ml { position: absolute; left: 0; top: 0; font-size: 20px; line-height: 24px; letter-spacing: 1px; color: #94a3b8; }
+      .mrow .mt { position: absolute; left: 130px; top: 4px; width: 200px; height: 16px; border-radius: 8px; background: rgba(148, 163, 184, 0.2); overflow: hidden; }
+      .mrow .mf { position: absolute; left: 0; top: 0; width: 200px; height: 16px; border-radius: 8px; background: linear-gradient(90deg, #22d3ee, #f472b6); transform-origin: 0% 50%; transform: scaleX(0.02); }
+      #m1 { top: 600px; } #m2 { top: 652px; } #m3 { top: 704px; } #m4 { top: 756px; }
+
+      /* score dial: SVG 250x230 at x 560-810, y 600-830 (needle via trig/onUpdate) */
+      #dial { position: absolute; left: 560px; top: 600px; width: 250px; height: 230px; opacity: 0; }
+      #dial .arc { fill: none; stroke-width: 22; stroke-linecap: butt; }
+      #needle { stroke: #f8fafc; stroke-width: 6; stroke-linecap: round; }
+      #hub { fill: #f8fafc; }
+      .rd { position: absolute; left: 560px; top: 730px; width: 250px; height: 60px; text-align: center; font-size: 54px; line-height: 60px; font-weight: 800; opacity: 0;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9); }
+      #r92 { color: #4ade80; } #r14 { color: #f87171; } #r67 { color: #fbbf24; }
+
+      /* idk chat chip: x 560-760, y 850-896 (retired before the lane opens) */
+      #idk { position: absolute; left: 560px; top: 850px; width: 200px; height: 46px; border-radius: 23px; opacity: 0; transform-origin: 50% 50%;
+        background: rgba(40, 30, 6, 0.9); border: 2px solid #fbbf24; color: #fde68a; font-size: 26px; line-height: 42px; text-align: center; letter-spacing: 1px;
+        box-shadow: 0 0 12px rgba(251, 191, 36, 0.45); }
+
+      /* LaMelo 6-7 pop: x 620-830, y 330-560 (real photo, CC BY 2.0 Erik Drost) + two bobbing palms */
+      #melo { position: absolute; left: 620px; top: 330px; width: 210px; height: 230px; border-radius: 18px; overflow: hidden; opacity: 0; transform-origin: 50% 100%;
+        border: 3px solid #fbbf24; box-shadow: 0 10px 20px rgba(0, 0, 0, 0.6); }
+      #melo img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 0%; }
+      .palm { position: absolute; top: 470px; width: 44px; height: 60px; opacity: 0; }
+      #palmL { left: 596px; } #palmR { left: 826px; }
+      .palm path { fill: #f5c9a5; stroke: #8a5a3a; stroke-width: 3; stroke-linejoin: round; }
+
+      /* ---- ACT 2 ---- */
+      /* HUMAN lane: x 650-720, y 835-915 (drawn); label x 600-780, y 920-956 */
+      #lane { position: absolute; left: 640px; top: 832px; width: 90px; height: 90px; opacity: 0; }
+      #lane path { fill: none; stroke: #e879f9; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
+      #human { position: absolute; left: 600px; top: 920px; width: 180px; height: 36px; text-align: center; font-size: 30px; line-height: 36px; letter-spacing: 5px; color: #f5d0fe; opacity: 0;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9), 0 0 14px rgba(232, 121, 249, 0.6); }
+      /* Kai Cenat (real photo, CC BY 3.0 ImDavisss Live) x 600-780, y 960-1140 */
+      #kai { position: absolute; left: 600px; top: 960px; width: 180px; height: 180px; border-radius: 24px; overflow: hidden; opacity: 0; transform-origin: 50% 100%;
+        border: 3px solid #e879f9; box-shadow: 0 10px 20px rgba(0, 0, 0, 0.6); }
+      #kai img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 12%; }
+      /* loop arrow: leaves Kai's RIGHT edge (784,1050) so it never crosses the HUMAN label (x 610-770, y 920-956), up x=838, across at y=530 into the ballerina;
+         label x 600-840, y 560-598 sits 27px BELOW the y=530 run (stroke 5) so the line never crosses the text */
+      #loop { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; opacity: 0; }
+      #loop path { fill: none; stroke: #22d3ee; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 14 10; }
+      #pkt { position: absolute; left: 0; top: 0; width: 18px; height: 18px; border-radius: 50%; background: #22d3ee; opacity: 0; box-shadow: 0 0 14px 4px rgba(34, 211, 238, 0.8); }
+      #learns { position: absolute; left: 600px; top: 560px; width: 240px; height: 38px; text-align: center; font-size: 30px; line-height: 38px; letter-spacing: 4px; color: #a5f3fc; opacity: 0;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9), 0 0 14px rgba(34, 211, 238, 0.6); }
+      /* BASED meter: label x 110-200, bar x 210-390, y 1160-1220; +1 at x 400-460 */
+      #based { position: absolute; left: 110px; top: 1170px; width: 90px; height: 40px; font-size: 30px; line-height: 40px; letter-spacing: 3px; color: #f5d0fe; opacity: 0;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9); }
+      #bbar { position: absolute; left: 210px; top: 1172px; width: 180px; height: 36px; border-radius: 8px; opacity: 0; display: flex; gap: 6px; padding: 5px;
+        background: rgba(232, 121, 249, 0.12); border: 2px solid rgba(232, 121, 249, 0.5); }
+      #bbar .seg { flex: 1; border-radius: 4px; background: rgba(232, 121, 249, 0.18); }
+      #bbar .seg.on { background: #e879f9; box-shadow: 0 0 8px rgba(232, 121, 249, 0.8); }
+      #seg4 { opacity: 0; background: #e879f9; box-shadow: 0 0 8px rgba(232, 121, 249, 0.8); }
+      #plus { position: absolute; left: 400px; top: 1160px; width: 70px; height: 60px; font-size: 44px; line-height: 60px; font-weight: 800; color: #e879f9; opacity: 0; transform-origin: 50% 100%;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9), 0 0 16px rgba(232, 121, 249, 0.7); }
+      /* green check that Kai stamps on the card: 70x70 at the card's landing spot */
+      #kcheck { position: absolute; left: 470px; top: 1020px; width: 70px; height: 70px; opacity: 0; transform-origin: 50% 50%; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="14.7" data-width="1080" data-height="1920">
+      <section id="main-clip" class="clip" data-start="0" data-duration="14.7" data-track-index="1">
+        <div id="content-all" class="fill">
+          <div id="bg-fill" class="fill">
+            <div id="glow-cyan"></div>
+            <div id="glow-mag"></div>
+            <div id="vignette" class="fill"></div>
+          </div>
+
+          <div id="scene" class="fill">
+            <div id="head" class="meme">EVERY POST GETS A SCORE</div>
+
+            <div id="bal-glow"></div>
+            <div id="bal"><img src="assets/ballerina_cappuccina_render.png" alt="" /></div>
+
+            <!-- chad card -->
+            <div class="pcard" id="chad">
+              <div class="pic"><svg viewBox="0 0 192 140">
+                <rect width="192" height="140" fill="#0b1220"/>
+                <path d="M60 140 L60 96 C40 92 36 60 44 40 C52 16 84 6 106 12 C136 18 152 40 148 72 C146 90 138 100 132 104 L132 140 Z" fill="#e2e8f0"/>
+                <path d="M132 104 L150 96 L156 74 L144 70" fill="#e2e8f0"/>
+                <path d="M62 60 L88 56 M104 54 L130 52" stroke="#0b1220" stroke-width="5" stroke-linecap="round"/>
+                <path d="M74 84 L108 84" stroke="#0b1220" stroke-width="4" stroke-linecap="round"/>
+              </svg></div>
+              <div class="line l1"></div><div class="line l2"></div>
+              <div class="verdict meme" id="stays">STAYS</div>
+            </div>
+            <!-- burnt toast card -->
+            <div class="pcard" id="toast">
+              <div class="pic"><svg viewBox="0 0 192 140">
+                <rect width="192" height="140" fill="#1a1208"/>
+                <path d="M46 40 C40 18 70 12 96 18 C122 12 152 18 146 40 L146 120 C146 128 140 132 132 132 L60 132 C52 132 46 128 46 120 Z" fill="#3b2211" stroke="#1c0f06" stroke-width="4"/>
+                <path d="M62 60 C60 50 76 46 96 50 C116 46 132 50 130 60 L130 116 L62 116 Z" fill="#241408"/>
+                <path d="M70 30 C66 22 74 14 70 6 M96 26 C92 18 100 10 96 2 M122 30 C118 22 126 14 122 6" fill="none" stroke="#9ca3af" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+              </svg></div>
+              <div class="line l1"></div><div class="line l2"></div>
+              <div class="verdict meme" id="cooked">COOKED</div>
+            </div>
+            <!-- normie card -->
+            <div class="pcard" id="normie">
+              <div class="pic"><svg viewBox="0 0 192 140">
+                <rect width="192" height="140" fill="#101a2e"/>
+                <circle cx="96" cy="70" r="46" fill="#fcd9b6"/>
+                <circle cx="80" cy="62" r="5" fill="#1f2937"/><circle cx="112" cy="62" r="5" fill="#1f2937"/>
+                <path d="M78 90 L114 90" stroke="#1f2937" stroke-width="5" stroke-linecap="round"/>
+                <path d="M50 52 C56 22 136 22 142 52" fill="#6b4f2a"/>
+              </svg></div>
+              <div class="line l1"></div><div class="line l2"></div>
+              <svg id="okay" viewBox="0 0 192 24"><rect width="192" height="24" rx="6" fill="#fbbf24"/><path d="M88 6 L96 18 L104 6" fill="none" stroke="#3b2f00" stroke-width="3" stroke-linecap="round"/></svg>
+            </div>
+
+            <div class="mrow" id="m1"><span class="ml mono">NUDITY</span><div class="mt"><div class="mf" id="f1"></div></div></div>
+            <div class="mrow" id="m2"><span class="ml mono">VIOLENCE</span><div class="mt"><div class="mf" id="f2"></div></div></div>
+            <div class="mrow" id="m3"><span class="ml mono">SPAM</span><div class="mt"><div class="mf" id="f3"></div></div></div>
+            <div class="mrow" id="m4"><span class="ml mono">HATE</span><div class="mt"><div class="mf" id="f4"></div></div></div>
+
+            <svg id="dial" viewBox="0 0 250 230">
+              <path class="arc" d="M15 190 A110 110 0 0 1 70 95" stroke="#ef4444"/>
+              <path class="arc" d="M70 95 A110 110 0 0 1 180 95" stroke="#f59e0b"/>
+              <path class="arc" d="M180 95 A110 110 0 0 1 235 190" stroke="#22c55e"/>
+              <line id="needle" x1="125" y1="190" x2="35" y2="130" />
+              <circle id="hub" cx="125" cy="190" r="10" />
+            </svg>
+            <div class="rd mono" id="r92">92</div>
+            <div class="rd mono" id="r14">14</div>
+            <div class="rd mono" id="r67">67%</div>
+            <div id="idk" class="mono">idk chat</div>
+
+            <div id="melo"><img src="assets/lamelo_ball_allstar2022_900.jpg" alt="" /></div>
+            <svg class="palm" id="palmL" viewBox="0 0 44 60"><path d="M8 30 L8 14 C8 8 16 8 16 14 L16 26 L16 6 C16 0 24 0 24 6 L24 26 L24 10 C24 4 32 4 32 10 L32 28 L32 16 C32 11 40 11 40 16 L40 40 C40 52 30 58 22 58 C12 58 6 52 4 44 L2 34 C0 28 8 26 8 30 Z"/></svg>
+            <svg class="palm" id="palmR" viewBox="0 0 44 60"><path d="M8 30 L8 14 C8 8 16 8 16 14 L16 26 L16 6 C16 0 24 0 24 6 L24 26 L24 10 C24 4 32 4 32 10 L32 28 L32 16 C32 11 40 11 40 16 L40 40 C40 52 30 58 22 58 C12 58 6 52 4 44 L2 34 C0 28 8 26 8 30 Z"/></svg>
+
+            <svg id="lane" viewBox="0 0 90 90"><path id="lanep" d="M45 4 L45 70 M28 54 L45 72 L62 54" /></svg>
+            <div id="human" class="meme">HUMAN</div>
+            <div id="kai"><img src="assets/kai_cenat_2025.jpg" alt="" /></div>
+            <svg id="kcheck" viewBox="0 0 70 70"><circle cx="35" cy="35" r="32" fill="#16a34a" stroke="#bbf7d0" stroke-width="4"/><path d="M20 36 L31 47 L52 24" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+
+            <svg id="loop" viewBox="0 0 1080 1920"><path id="loopp" d="M784 1050 C820 1050 838 1030 838 990 L838 590 C838 530 800 530 760 530 L600 530 C585 530 580 525 580 518" /></svg>
+            <div id="pkt"></div>
+            <div id="learns" class="meme">ROBOT LEARNS</div>
+
+            <div id="based" class="meme">BASED</div>
+            <div id="bbar"><div class="seg on"></div><div class="seg on"></div><div class="seg on"></div><div class="seg" id="seg4"></div><div class="seg"></div></div>
+            <div id="plus" class="mono">+1</div>
+          </div>
+
+          <div id="flash" class="fill"></div>
+          <div id="grain" class="fill"></div>
+        </div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter" x="0%" y="0%" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.04 0" />
+      </filter>
+    </svg>
+
+    <script>
+      document.getElementById("grain").style.filter = "url(#grain-filter)";
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // needle: plain trig on a JS object, endpoint written in onUpdate (never SVG rotation)
+      const needle = document.getElementById("needle");
+      const nd = { a: 20 };
+      function drawNeedle() {
+        const th = Math.PI * (1 - nd.a / 100);
+        needle.setAttribute("x2", (125 + 100 * Math.cos(th)).toFixed(2));
+        needle.setAttribute("y2", (190 - 100 * Math.sin(th)).toFixed(2));
+      }
+      drawNeedle();
+      const laneP = document.getElementById("lanep"), loopP = document.getElementById("loopp");
+      [laneP].forEach((el) => { const L = el.getTotalLength(); el.style.strokeDasharray = L; el.style.strokeDashoffset = L; });
+      const loopLen = loopP.getTotalLength();
+      loopP.style.strokeDasharray = "14 10"; // dashed look, drawn via a clip-less offset trick below
+      loopP.style.strokeDashoffset = 0;
+
+      // slow camera push-in under everything
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.04, duration: 14.7, ease: "sine.inOut" }, 0);
+
+      // ---------- ACT 1 (cyan): the robot scores three posts ----------
+      tl.fromTo("#head", { opacity: 0.5, y: -16 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 0);
+      tl.fromTo("#bal", { opacity: 0, scale: 0.6, rotation: 0 }, { opacity: 1, scale: 1, rotation: 0, duration: 0.45, ease: "back.out(1.6)", immediateRender: false }, 0.15);
+      tl.fromTo("#bal-glow", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out", immediateRender: false }, 0.3);
+      tl.fromTo("#bal", { rotation: 0 }, { rotation: 1800, duration: 13.4, ease: "none", immediateRender: false }, 0.6); // ends 14.0 < fade
+      ["#m1", "#m2", "#m3", "#m4"].forEach((m, i) => {
+        tl.fromTo(m, { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 0.35 + i * 0.12);
+      });
+      tl.fromTo("#dial", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 0.6);
+
+      function fillMeters(vals, t) {
+        vals.forEach((v, i) => {
+          tl.fromTo("#f" + (i + 1), { scaleX: 0.02 }, { scaleX: v / 100, duration: 0.5, ease: "power3.out", immediateRender: false }, t + i * 0.07);
+        });
+      }
+      function resetMeters(t) {
+        [1, 2, 3, 4].forEach((i) => tl.to("#f" + i, { scaleX: 0.02, duration: 0.3, ease: "power2.in" }, t));
+      }
+      function swing(from, to, t, d) {
+        tl.fromTo(nd, { a: from }, { a: to, duration: d, ease: "power3.out", immediateRender: false, onUpdate: drawNeedle }, t);
+      }
+
+      // chad (@1.09): safe -> 92 -> STAYS (@1.75)
+      tl.fromTo("#chad", { opacity: 0, x: -60, y: 0, scale: 1 }, { opacity: 1, x: 0, y: 0, scale: 1, duration: 0.4, ease: "power3.out", immediateRender: false }, 1.0);
+      fillMeters([6, 4, 9, 3], 1.15);
+      swing(20, 92, 1.2, 0.7);
+      tl.fromTo("#r92", { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.25, ease: "power2.out", immediateRender: false }, 1.6);
+      tl.fromTo("#stays", { opacity: 0, scale: 1.6 }, { opacity: 1, scale: 1, duration: 0.25, ease: "power4.out", immediateRender: false }, 1.75);
+      // toast (@2.37): high meters -> 14 -> COOKED (@3.1)
+      tl.fromTo("#chad", { opacity: 1, x: 0, y: 0 }, { opacity: 0, x: 0, y: -60, duration: 0.3, ease: "power2.in", immediateRender: false }, 2.2);
+      tl.fromTo("#r92", { opacity: 1 }, { opacity: 0, duration: 0.2, ease: "power2.out", immediateRender: false }, 2.3);
+      resetMeters(2.25);
+      tl.fromTo("#toast", { opacity: 0, x: -60, y: 0, scale: 1 }, { opacity: 1, x: 0, y: 0, scale: 1, duration: 0.4, ease: "power3.out", immediateRender: false }, 2.4);
+      fillMeters([72, 88, 40, 91], 2.55);
+      swing(92, 14, 2.6, 0.6);
+      tl.fromTo("#r14", { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.25, ease: "power2.out", immediateRender: false }, 2.95);
+      tl.fromTo("#flash", { opacity: 0 }, { opacity: 0.3, duration: 0.05, ease: "power3.out", immediateRender: false }, 3.1);
+      tl.to("#flash", { opacity: 0, duration: 0.25, ease: "power3.out" }, 3.15);
+      tl.fromTo("#cooked", { opacity: 0, scale: 1.6 }, { opacity: 1, scale: 1, duration: 0.25, ease: "power4.out", immediateRender: false }, 3.1);
+      tl.fromTo("#toast", { x: 0 }, { x: 6, duration: 0.05, ease: "sine.inOut", yoyo: true, repeat: 5, immediateRender: false }, 3.12); // ends 3.42
+      // normie (@4.2): middling meters, the needle can't settle
+      tl.fromTo("#toast", { opacity: 1, x: 0, y: 0 }, { opacity: 0, x: 0, y: -60, duration: 0.3, ease: "power2.in", immediateRender: false }, 4.0);
+      tl.fromTo("#r14", { opacity: 1 }, { opacity: 0, duration: 0.2, ease: "power2.out", immediateRender: false }, 4.05);
+      resetMeters(4.05);
+      tl.fromTo("#normie", { opacity: 0, x: -60, y: 0, scale: 1 }, { opacity: 1, x: 0, y: 0, scale: 1, duration: 0.4, ease: "power3.out", immediateRender: false }, 4.2);
+      fillMeters([46, 52, 38, 44], 4.35);
+      swing(14, 55, 4.4, 0.5);
+      tl.fromTo(nd, { a: 55 }, { a: 79, duration: 0.25, ease: "sine.inOut", yoyo: true, repeat: 5, immediateRender: false, onUpdate: drawNeedle }, 4.9); // ends 6.4
+      tl.fromTo("#okay", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "power2.out", immediateRender: false }, 5.2);
+
+      // ---------- TURN @6.0-7.0: "idk chat" / 67% / LaMelo 6-7 ----------
+      tl.fromTo("#idk", { opacity: 0, scale: 0.6, rotation: -6 }, { opacity: 1, scale: 1, rotation: 0, duration: 0.3, ease: "back.out(2)", immediateRender: false }, 6.03);
+      tl.fromTo(nd, { a: 62 }, { a: 72, duration: 0.25, ease: "sine.inOut", yoyo: true, repeat: 3, immediateRender: false, onUpdate: drawNeedle }, 6.4); // ends 7.4
+      tl.fromTo(nd, { a: 62 }, { a: 67, duration: 0.3, ease: "power2.out", immediateRender: false, onUpdate: drawNeedle }, 7.4);
+      tl.fromTo("#r67", { opacity: 0, scale: 1.6 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)", immediateRender: false }, 7.0);
+      tl.fromTo("#melo", { opacity: 0, scale: 0.5, y: 0 }, { opacity: 1, scale: 1, y: 0, duration: 0.3, ease: "back.out(2)", immediateRender: false }, 7.0);
+      tl.fromTo(".palm", { opacity: 0 }, { opacity: 1, duration: 0.15, ease: "power2.out", immediateRender: false }, 7.15);
+      tl.fromTo("#palmL", { y: 0 }, { y: -26, duration: 0.16, ease: "sine.inOut", yoyo: true, repeat: 5, immediateRender: false }, 7.2); // ends 8.16
+      tl.fromTo("#palmR", { y: -26 }, { y: 0, duration: 0.16, ease: "sine.inOut", yoyo: true, repeat: 5, immediateRender: false }, 7.2);
+      tl.fromTo("#melo", { opacity: 1, scale: 1 }, { opacity: 0, scale: 0.6, duration: 0.25, ease: "power2.in", immediateRender: false }, 8.25);
+      tl.fromTo(".palm", { opacity: 1 }, { opacity: 0, duration: 0.2, ease: "power2.out", immediateRender: false }, 8.2);
+
+      // ---------- ACT 2 (magenta): "actual person" @8.95 -> HUMAN lane, Kai decides, robot learns ----------
+      tl.fromTo("#glow-mag", { opacity: 0 }, { opacity: 1, duration: 0.8, ease: "power2.out", immediateRender: false }, 8.8);
+      tl.fromTo("#idk", { opacity: 1 }, { opacity: 0, duration: 0.25, ease: "power2.out", immediateRender: false }, 8.8);
+      tl.fromTo("#lane", { opacity: 0 }, { opacity: 1, duration: 0.05, immediateRender: false }, 8.9);
+      tl.to("#lanep", { strokeDashoffset: 0, duration: 0.4, ease: "power3.out" }, 8.9);
+      tl.fromTo("#human", { opacity: 0, y: -10 }, { opacity: 1, y: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 9.15);
+      tl.fromTo("#kai", { opacity: 0, scale: 0.6, y: 0 }, { opacity: 1, scale: 1, y: 0, duration: 0.4, ease: "back.out(1.8)", immediateRender: false }, 9.25);
+      // the normie card slides down the lane to Kai: (110,330) -> (420,980) at 0.6
+      tl.fromTo("#normie", { x: 0, y: 0, scale: 1 }, { x: 310, y: 650, scale: 0.6, duration: 0.7, ease: "power2.inOut", immediateRender: false }, 9.4);
+      // Kai decides (@10.5): nod + green check on the card
+      tl.fromTo("#kai", { scale: 1, y: 0 }, { scale: 1.06, y: -8, duration: 0.18, ease: "sine.inOut", yoyo: true, repeat: 3, immediateRender: false }, 10.3); // ends 11.02
+      tl.fromTo("#kcheck", { opacity: 0, scale: 0.3 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2.4)", immediateRender: false }, 10.5);
+      tl.fromTo("#normie", { borderColor: "rgba(148,163,184,0.4)" }, { borderColor: "rgba(74,222,128,0.95)", duration: 0.3, ease: "power2.out", immediateRender: false }, 10.5);
+      // the loop back into the robot (@11.5): dashed path reveals via opacity + the packet travels it
+      tl.fromTo("#loop", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.out", immediateRender: false }, 11.5);
+      const pk = { t: 0 };
+      const pktEl = document.getElementById("pkt");
+      function movePkt() { const p = loopP.getPointAtLength(pk.t * loopLen); pktEl.style.left = (p.x - 9) + "px"; pktEl.style.top = (p.y - 9) + "px"; }
+      tl.fromTo("#pkt", { opacity: 0 }, { opacity: 1, duration: 0.15, immediateRender: false }, 11.8);
+      tl.fromTo(pk, { t: 0 }, { t: 1, duration: 1.3, ease: "power1.inOut", immediateRender: false, onUpdate: movePkt }, 11.8);
+      tl.fromTo("#pkt", { opacity: 1 }, { opacity: 0, duration: 0.15, immediateRender: false }, 13.05);
+      tl.fromTo("#learns", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 12.0);
+      tl.fromTo("#bal-glow", { scale: 1 }, { scale: 1.5, duration: 0.3, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 13.1); // ends 13.7
+      // BASED meter (@13.83)
+      tl.fromTo("#based", { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 13.0);
+      tl.fromTo("#bbar", { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 13.1);
+      tl.fromTo("#seg4", { opacity: 0 }, { opacity: 1, duration: 0.12, ease: "power2.out", immediateRender: false }, 13.83);
+      tl.fromTo("#plus", { opacity: 0, y: 14, scale: 0.6 }, { opacity: 1, y: 0, scale: 1, duration: 0.25, ease: "back.out(2)", immediateRender: false }, 13.83);
+      tl.fromTo("#plus", { opacity: 1, y: 0 }, { opacity: 0, y: -18, duration: 0.3, ease: "power2.in", immediateRender: false }, 14.1);
+
+      // ---------- fade: finishes at EXACTLY 14.7 (14.4 + 0.3), zero buffer; two sibling leaves ----------
+      tl.fromTo("#scene", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 14.4);
+      tl.fromTo("#bg-fill", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 14.4);
+      tl.fromTo("#grain", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 14.4);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

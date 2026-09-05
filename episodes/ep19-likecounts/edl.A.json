@@ -1,0 +1,212 @@
+{
+  "version": 1,
+  "sources": {
+    "ep19": "C:/Users/gordo/Downloads/drive-download-20260819T201857Z-1-001/ep19.mp4"
+  },
+  "ranges": [
+    {
+      "source": "ep19",
+      "start": 11.17,
+      "end": 19.73,
+      "beat": "INTRO",
+      "quote": "This is episode 19 of preparing you for your system design interview. Today, we'll be talking about approximate counters and eventual consistency.",
+      "reason": "HOOK VARIANT A (system-design-interview framing). Scribe boxes the opening 'This' from 8.70 to 11.35 -- a 2.65s word. find_dead_air puts real onset at 11.22, so the range starts there; using the ASR box would have opened the episode on 2.5s of silence.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.045,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep19",
+      "start": 37.01,
+      "end": 42.77,
+      "beat": "HOOK",
+      "quote": "So when you look at a Ronaldo post, that like count isn't exact, and that's actually the smart design choice.",
+      "reason": "Only take. ASR boxes 'choice.' to 43.10 against an acoustic end of 42.67.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.045,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep19",
+      "start": 48.01,
+      "end": 59.19,
+      "beat": "PROBLEM",
+      "quote": "Here's the problem. If every like had to instantly update one perfectly accurate number, that single row becomes a bottleneck. Millions of people liking at once would all fight to write to the same place.",
+      "reason": "Single clean take. The 480ms beat after 'bottleneck.' is the turn inside the beat and is where the overlay's second act starts.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.045,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep19",
+      "start": 60.17,
+      "end": 68.79,
+      "beat": "BUILD",
+      "quote": "So at massive scale, we relax. Likes are counted across many servers and added up, with the displayed number trailing slightly behind reality.",
+      "reason": "Single clean take, only delivery.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.045,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep19",
+      "start": 71.21,
+      "end": 78.19,
+      "beat": "NEW_COMPONENT",
+      "quote": "This is eventual consistency. The count converges to correct in seconds, but in any instant, it might be approximate.",
+      "reason": "Single clean take. Split from the next range at the 510ms gap after 'approximate.'",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.045,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep19",
+      "start": 78.55,
+      "end": 82.98,
+      "beat": "APPROX_OK",
+      "quote": "For likes, nobody cares if it briefly says a million instead of a million three.",
+      "reason": "Contiguous in the source, kept separate so the 'nobody cares' example gets its own overlay instead of being buried in the eventual-consistency beat.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.045,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep19",
+      "start": 83.47,
+      "end": 90.66,
+      "beat": "TRADEOFF",
+      "quote": "Speed and availability matter far more than perfect accuracy. Your bank balance, of course, gets the opposite treatment.",
+      "reason": "Single clean take. The 690ms beat before 'Your bank balance' is the pivot the overlay's likes-vs-bank contrast cut lands on.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.045,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep19",
+      "start": 105.49,
+      "end": 112.18,
+      "beat": "PAYOFF",
+      "quote": "At a billion likes, close enough beats exactly right. Next episode, we'll talk about how computers understand meaning.",
+      "reason": "Only take. DROPPED: an off-script aside at 95.30-97.86 ('Let me know if you want me to talk more about this in a future episode') that sits between TRADEOFF and PAYOFF -- it breaks the tight close the series uses and is not in the script.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.045,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    }
+  ],
+  "grade": "eq=contrast=1.15:saturation=1.05,colorbalance=rs=-0.04:gs=0.02:bs=0.05:rm=0.01:gm=0.0:bm=-0.01:rh=0.06:gh=0.02:bh=-0.06,vignette=angle=0.7,unsharp=5:5",
+  "overlays": [
+    {
+      "file": "animations/slot_tiktok_title/render.webm",
+      "start_in_output": 0.0,
+      "duration": 7.4
+    },
+    {
+      "file": "animations/slot_hook/render.webm",
+      "start_in_output": 9.0,
+      "duration": 5.3
+    },
+    {
+      "file": "animations/slot_problem/render.webm",
+      "start_in_output": 15.1,
+      "duration": 9.4
+    },
+    {
+      "file": "animations/slot_build/render.webm",
+      "start_in_output": 26.3,
+      "duration": 7.2
+    },
+    {
+      "file": "animations/slot_new_component/render.webm",
+      "start_in_output": 34.9,
+      "duration": 5.9
+    },
+    {
+      "file": "animations/slot_approx_ok/render.webm",
+      "start_in_output": 41.6,
+      "duration": 4.7
+    },
+    {
+      "file": "animations/slot_tradeoff/render.webm",
+      "start_in_output": 46.3,
+      "duration": 6.9
+    },
+    {
+      "file": "animations/slot_payoff/render.webm",
+      "start_in_output": 53.2,
+      "duration": 5.6
+    }
+  ],
+  "_beat_windows_output_timeline": {
+    "INTRO": [
+      0.0,
+      8.5833
+    ],
+    "HOOK": [
+      8.5833,
+      14.375
+    ],
+    "PROBLEM": [
+      14.375,
+      25.5833
+    ],
+    "BUILD": [
+      25.5833,
+      34.2083
+    ],
+    "NEW_COMPONENT": [
+      34.2083,
+      41.2083
+    ],
+    "APPROX_OK": [
+      41.2083,
+      45.6667
+    ],
+    "TRADEOFF": [
+      45.6667,
+      52.875
+    ],
+    "PAYOFF": [
+      52.875,
+      59.5833
+    ]
+  },
+  "_windows_note": "Output-timeline windows on render.py's real 24fps extract grid: each segment's rendered duration is ceil((end-start)*24)/24, not the raw source span. Verified against rendered clips where measurable. Overlay start_in_output values are derived from THESE numbers.",
+  "subtitles": "master.A.ass",
+  "total_duration_s": 59.5833,
+  "_variant": "Variant A -- 'preparing you for your system design interview' intro.",
+  "_overlay_gap_audit": "Gaps >= 0.5s are deliberate returns to the talking head (ep13 shipped 1.0-6.7s gaps at 49-54% coverage). Anything shorter is closed to exactly zero, per rule 12 -- a sub-half-second hole reads as a bare-footage flash, not a breath. EP19 tradeoff->payoff is contiguous for exactly this reason: its beats butt up against each other and a 0.3s gap would have landed on the punchline.",
+  "_zoom_note": "Gradual CENTERED zoom on the talking head. focal (540,960) = exact frame centre, not render.py's eye-line default. Direction alternates per segment so each range starts at the scale the previous one ended on -- the drift is continuous across every cut instead of snapping back to 1.0 at each edit. Magnitude capped at 4.5%: the overlays were placed against measured face positions with clearances as tight as 40px, and a centered zoom displaces a point by distance_from_centre*(Z-1), so 4.5% costs the tightest one ~13px while 12% would cost it ~35px and push graphics into the face.",
+  "_title_note": "EP19 uses a TikTok-native text-box title (slot_tiktok_title) INSTEAD of the house title card (slot_title), per request -- this is a swap, not an addition: the white boxes sit where the house card's top-left block lives and the two would collide. slot_title/ is untouched on disk, so reverting is a one-line EDL change back to animations/slot_title/render.webm at 0.000 for 2.766."
+}

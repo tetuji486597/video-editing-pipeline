@@ -1,0 +1,47 @@
+# EP20 — real tokenizer values, read off https://platform.openai.com/tokenizer
+# Captured 2026-08-28, tokenizer setting: "GPT-5.x & O1/3" (the default; o200k-family encoding).
+# These are the REAL values shown on the page — the overlay should animate exactly these.
+
+## Input 1: I love strawberries
+Tokens: 3    Characters: 19
+Token strings (leading spaces are part of the token):
+  1. "I"
+  2. " love"
+  3. " strawberries"
+Token IDs: [40, 3047, 106502]
+  "I"             -> 40
+  " love"         -> 3047
+  " strawberries" -> 106502
+
+## Input 2: How many R's are in "strawberry"?
+Tokens: 11    Characters: 33
+Token strings (leading spaces are part of the token):
+  1. "How"
+  2. " many"
+  3. " R"
+  4. "'s"
+  5. " are"
+  6. " in"
+  7. " \""
+  8. "st"
+  9. "raw"
+ 10. "berry"
+ 11. "\"?"
+Token IDs: [5299, 1991, 460, 885, 553, 306, 392, 302, 1618, 19772, 69029]
+  "How"   -> 5299
+  " many" -> 1991
+  " R"    -> 460
+  "'s"    -> 885
+  " are"  -> 553
+  " in"   -> 306
+  " \""   -> 392
+  "st"    -> 302
+  "raw"   -> 1618
+  "berry" -> 19772
+  "\"?"   -> 69029
+
+## The money detail for the episode
+Inside the quoted question, "strawberry" is split into THREE chunks: st | raw | berry
+(IDs 302, 1618, 19772). The model never sees the individual letters — which is why
+counting the R's is hard. Note the contrast: standalone " strawberries" is ONE token
+(106502).

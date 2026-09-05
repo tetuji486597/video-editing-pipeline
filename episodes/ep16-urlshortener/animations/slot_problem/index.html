@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+
+      :root {
+        --cy: #22d3ee;
+        --cy-soft: #67e8f9;
+        --vi: #a78bfa;
+        --vi-soft: #c4b5fd;
+        --red: #ef4444;
+        --red-soft: #f87171;
+      }
+
+      #root { position: relative; }
+      .fill { position: absolute; inset: 0; }
+
+      /* ---------------- background (exempt from the 180-1280 band) --------- */
+      #bg-fill {
+        background:
+          radial-gradient(120% 86% at 50% 30%, #101827 0%, #0a0f1a 44%, #05080e 76%, #02040a 100%);
+      }
+      #bg-glow-a {
+        position: absolute;
+        left: 50%; top: 26%;
+        width: 1500px; height: 1500px;
+        margin-left: -750px; margin-top: -750px;
+        background: radial-gradient(circle, rgba(34, 211, 238, 0.15) 0%, rgba(34, 211, 238, 0) 62%);
+        transform-origin: 50% 50%;
+      }
+      #bg-glow-b {
+        position: absolute;
+        left: 50%; top: 70%;
+        width: 1400px; height: 1400px;
+        margin-left: -700px; margin-top: -700px;
+        background: radial-gradient(circle, rgba(167, 139, 250, 0.13) 0%, rgba(167, 139, 250, 0) 60%);
+      }
+      #bg-glow-red {
+        position: absolute;
+        left: 50%; top: 58%;
+        width: 1500px; height: 1500px;
+        margin-left: -750px; margin-top: -750px;
+        background: radial-gradient(circle, rgba(239, 68, 68, 0.24) 0%, rgba(239, 68, 68, 0) 60%);
+        opacity: 0;
+      }
+      #vignette {
+        background: radial-gradient(
+          ellipse 760px 980px at 50% 42%,
+          rgba(0, 0, 0, 0) 0%,
+          rgba(0, 0, 0, 0) 46%,
+          rgba(2, 4, 8, 0.6) 78%,
+          rgba(1, 2, 5, 0.94) 100%
+        );
+      }
+      #grain { opacity: 1; pointer-events: none; }
+
+      /* ---------------- camera push-in wrapper ---------------------------- */
+      #scene { transform-origin: 540px 735px; }
+
+      /* ---------------- source chips (A / B) ------------------------------ */
+      .chip {
+        position: absolute;
+        top: 262px;
+        width: 320px;
+        height: 96px;
+        border-radius: 22px;
+        display: flex;
+        align-items: center;
+        padding: 16px;
+        gap: 14px;
+        background: linear-gradient(160deg, rgba(17, 27, 40, 0.96), rgba(8, 13, 22, 0.98));
+        opacity: 0.5;
+      }
+      #chip-a {
+        left: 140px;
+        border: 2px solid rgba(34, 211, 238, 0.46);
+        box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5), 0 0 20px 1px rgba(34, 211, 238, 0.16);
+      }
+      #chip-b {
+        left: 620px;
+        border: 2px solid rgba(167, 139, 250, 0.46);
+        box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5), 0 0 20px 1px rgba(167, 139, 250, 0.16);
+      }
+      .chip-badge {
+        width: 60px; height: 60px;
+        border-radius: 16px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 34px; font-weight: 800; letter-spacing: 0.5px;
+        flex-shrink: 0;
+      }
+      #chip-a .chip-badge { background: rgba(34, 211, 238, 0.18); border: 2px solid rgba(34, 211, 238, 0.7); color: var(--cy-soft); }
+      #chip-b .chip-badge { background: rgba(167, 139, 250, 0.18); border: 2px solid rgba(167, 139, 250, 0.7); color: var(--vi-soft); }
+      .chip-bar {
+        width: 214px; height: 48px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        display: flex; align-items: center;
+        padding: 0 8px; gap: 10px;
+      }
+      .chip-bar i { height: 12px; border-radius: 6px; display: block; }
+      #chip-a .chip-bar i { background: rgba(103, 232, 249, 0.42); }
+      #chip-b .chip-bar i { background: rgba(196, 181, 253, 0.42); }
+
+      /* ---------------- connector lines ----------------------------------- */
+      #link-svg {
+        position: absolute; inset: 0;
+        width: 1080px; height: 1920px;
+        overflow: visible;
+        opacity: 0.5;
+      }
+      .link { fill: none; stroke-width: 3; stroke-linecap: round; }
+      #line-a { stroke: rgba(34, 211, 238, 0.6); }
+      #line-b { stroke: rgba(167, 139, 250, 0.6); }
+
+      /* ---------------- hash block ---------------------------------------- */
+      #hash-card {
+        position: absolute;
+        left: 290px; top: 428px;
+        width: 500px; height: 146px;
+        border-radius: 24px;
+        border: 2px solid rgba(34, 211, 238, 0.4);
+        background:
+          repeating-linear-gradient(115deg, rgba(34, 211, 238, 0.07) 0 2px, rgba(0, 0, 0, 0) 2px 16px),
+          linear-gradient(160deg, rgba(14, 24, 36, 0.97), rgba(7, 12, 20, 0.98));
+        box-shadow: 0 22px 54px rgba(0, 0, 0, 0.55), 0 0 22px 2px rgba(34, 211, 238, 0.18);
+        display: flex; align-items: center; justify-content: center; gap: 26px;
+        opacity: 0.5;
+      }
+      #hash-glyph { width: 76px; height: 76px; flex-shrink: 0; }
+      #hash-label {
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 46px; font-weight: 700;
+        letter-spacing: 10px;
+        color: #a5f3fc;
+      }
+
+      /* ---------------- digest rows --------------------------------------- */
+      .digest {
+        position: absolute;
+        left: 100px;
+        width: 880px;
+        height: 146px;
+      }
+      #digest-a { top: 644px; }
+      #digest-b { top: 840px; }
+      .pill-bg {
+        position: absolute; inset: 0;
+        border-radius: 26px;
+        transform-origin: 0% 50%;
+        transform: scaleX(0.05);
+        opacity: 0;
+      }
+      #digest-a .pill-bg {
+        background: linear-gradient(150deg, rgba(11, 26, 34, 0.96), rgba(6, 13, 20, 0.98));
+        border: 2px solid rgba(34, 211, 238, 0.42);
+        box-shadow: 0 20px 46px rgba(0, 0, 0, 0.5), 0 0 22px 2px rgba(34, 211, 238, 0.16);
+      }
+      #digest-b .pill-bg {
+        background: linear-gradient(150deg, rgba(22, 18, 40, 0.96), rgba(9, 8, 18, 0.98));
+        border: 2px solid rgba(167, 139, 250, 0.42);
+        box-shadow: 0 20px 46px rgba(0, 0, 0, 0.5), 0 0 22px 2px rgba(167, 139, 250, 0.16);
+      }
+      .pill-content {
+        position: absolute; inset: 0;
+        display: flex; align-items: center;
+        padding-left: 36px; gap: 28px;
+        opacity: 0;
+      }
+      .dmark {
+        width: 56px; height: 56px;
+        border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 32px; font-weight: 800;
+        flex-shrink: 0;
+      }
+      #digest-a .dmark { background: rgba(34, 211, 238, 0.18); border: 2px solid rgba(34, 211, 238, 0.72); color: var(--cy-soft); }
+      #digest-b .dmark { background: rgba(167, 139, 250, 0.18); border: 2px solid rgba(167, 139, 250, 0.72); color: var(--vi-soft); }
+      .dmono {
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 110px;
+        font-weight: 600;
+        letter-spacing: 0;
+        line-height: 1;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      /* fixed advance widths: JetBrains Mono = 0.6em -> 66px/char at 110px */
+      .keep { display: inline-block; width: 396px; }
+      .drop { display: inline-block; width: 264px; color: #94a3b8; }
+      #digest-a .keep { color: var(--cy-soft); }
+      #digest-b .keep { color: var(--vi-soft); }
+
+      /* ---------------- truncation blade ---------------------------------- */
+      /* outer carries a STATIC css rotation and has real width+height;
+         only the inner bar's scaleY is animated -- GSAP never tweens rotation */
+      #blade-tilt {
+        position: absolute;
+        left: 596px; top: 616px;
+        width: 40px; height: 424px;
+        transform: rotate(-4deg);
+        transform-origin: 50% 50%;
+      }
+      #blade {
+        position: absolute;
+        left: 14px; top: 0;
+        width: 12px; height: 424px;
+        border-radius: 6px;
+        background: linear-gradient(to bottom, rgba(255, 255, 255, 0.95), rgba(252, 165, 165, 0.95), rgba(239, 68, 68, 0.9));
+        box-shadow: 0 0 26px 3px rgba(248, 113, 113, 0.75);
+        transform: scaleY(0);
+        transform-origin: 50% 0%;
+      }
+
+      /* ---------------- collision badge ----------------------------------- */
+      #collision-badge {
+        position: absolute;
+        left: 706px; top: 742px;
+        width: 270px; height: 142px;
+        border-radius: 22px;
+        border: 2px solid rgba(239, 68, 68, 0.8);
+        background: linear-gradient(160deg, rgba(58, 10, 14, 0.94), rgba(30, 6, 9, 0.96));
+        box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55), 0 0 24px 3px rgba(239, 68, 68, 0.28);
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: 12px;
+        opacity: 0;
+      }
+      #collision-badge svg { width: 56px; height: 50px; }
+      #collision-badge .cb-text {
+        font-size: 36px; font-weight: 800;
+        letter-spacing: 2px;
+        color: #fecaca;
+      }
+
+      /* ---------------- headline ------------------------------------------ */
+      #headline {
+        position: absolute;
+        left: 100px; top: 1040px;
+        width: 880px;
+        text-align: center;
+        font-size: 76px;
+        font-weight: 800;
+        line-height: 84px;
+        letter-spacing: -1px;
+        color: #f1f5f9;
+        text-shadow: 0 2px 18px rgba(0, 0, 0, 0.85);
+        opacity: 0;
+      }
+
+      /* ---------------- effects ------------------------------------------- */
+      .packet {
+        position: absolute;
+        left: 0; top: 0;
+        width: 18px; height: 18px;
+        border-radius: 50%;
+        opacity: 0;
+      }
+      #pk-in-a, #pk-out-a { background: var(--cy-soft); box-shadow: 0 0 16px 5px rgba(34, 211, 238, 0.8); }
+      #pk-in-b, #pk-out-b { background: var(--vi-soft); box-shadow: 0 0 16px 5px rgba(167, 139, 250, 0.8); }
+
+      #flash { background: #ffffff; opacity: 0; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="6.80"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="main-clip" class="clip" data-start="0" data-duration="6.80" data-track-index="1">
+        <div id="content-all" class="fill">
+          <div id="bg-fill" class="fill"></div>
+          <div id="bg-glow-a"></div>
+          <div id="bg-glow-b"></div>
+          <div id="bg-glow-red"></div>
+          <div id="vignette" class="fill"></div>
+
+          <div id="scene" class="fill">
+            <!-- connectors -->
+            <svg id="link-svg" viewBox="0 0 1080 1920" data-layout-allow-overflow="true">
+              <path class="link" id="line-a" d="M300,358 L480,428" />
+              <path class="link" id="line-b" d="M780,358 L600,428" />
+            </svg>
+
+            <!-- ACT 1 : two different sources -->
+            <div class="chip" id="chip-a">
+              <div class="chip-badge">A</div>
+              <div class="chip-bar">
+                <i style="width: 88px"></i><i style="width: 40px"></i><i style="width: 50px"></i>
+              </div>
+            </div>
+            <div class="chip" id="chip-b">
+              <div class="chip-badge">B</div>
+              <div class="chip-bar">
+                <i style="width: 60px"></i><i style="width: 72px"></i><i style="width: 46px"></i>
+              </div>
+            </div>
+
+            <!-- the hash function -->
+            <div id="hash-card">
+              <svg id="hash-glyph" viewBox="0 0 76 76">
+                <line x1="26" y1="6" x2="18" y2="70" stroke="#67e8f9" stroke-width="6" stroke-linecap="round" />
+                <line x1="54" y1="6" x2="46" y2="70" stroke="#67e8f9" stroke-width="6" stroke-linecap="round" />
+                <line x1="8" y1="26" x2="70" y2="26" stroke="#67e8f9" stroke-width="6" stroke-linecap="round" />
+                <line x1="6" y1="50" x2="68" y2="50" stroke="#67e8f9" stroke-width="6" stroke-linecap="round" />
+              </svg>
+              <div id="hash-label">HASH</div>
+            </div>
+
+            <!-- the two digests -->
+            <div class="digest" id="digest-a">
+              <div class="pill-bg"></div>
+              <div class="pill-content">
+                <div class="dmark">A</div>
+                <div class="dmono"><span class="keep" data-layout-allow-occlusion="true">9f2b7a</span><span class="drop" data-layout-allow-occlusion="true">c41d</span></div>
+              </div>
+            </div>
+            <div class="digest" id="digest-b">
+              <div class="pill-bg"></div>
+              <div class="pill-content">
+                <div class="dmark">B</div>
+                <div class="dmono"><span class="keep" data-layout-allow-occlusion="true">9f2b7a</span><span class="drop" data-layout-allow-occlusion="true">5e83</span></div>
+              </div>
+            </div>
+
+            <!-- ACT 2 : the collision -->
+            <div id="collision-badge">
+              <svg viewBox="0 0 56 50" fill="none">
+                <path d="M28 4 L53 46 L3 46 Z" stroke="#f87171" stroke-width="4" stroke-linejoin="round" fill="rgba(239,68,68,0.16)" />
+                <line x1="28" y1="19" x2="28" y2="33" stroke="#fecaca" stroke-width="4.5" stroke-linecap="round" />
+                <circle cx="28" cy="40" r="2.6" fill="#fecaca" />
+              </svg>
+              <div class="cb-text">COLLISION</div>
+            </div>
+
+            <div id="headline">Neither short<br />nor unique</div>
+
+            <!-- the turn : truncation blade -->
+            <div id="blade-tilt" data-layout-allow-occlusion="true">
+              <div id="blade"></div>
+            </div>
+
+            <!-- travelling packets -->
+            <div class="packet" id="pk-in-a" data-layout-allow-occlusion="true"></div>
+            <div class="packet" id="pk-in-b" data-layout-allow-occlusion="true"></div>
+            <div class="packet" id="pk-out-a" data-layout-allow-occlusion="true"></div>
+            <div class="packet" id="pk-out-b" data-layout-allow-occlusion="true"></div>
+          </div>
+
+          <div id="grain" class="fill"></div>
+          <div id="flash" class="fill"></div>
+        </div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.042 0" />
+      </filter>
+    </svg>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      document.getElementById("grain").style.filter = "url(#grain-filter)";
+
+      // deterministic stroke-draw setup, measured at load (geometry only, font-independent)
+      ["line-a", "line-b"].forEach(function (id) {
+        var el = document.getElementById(id);
+        var len = el.getTotalLength();
+        el.style.strokeDasharray = String(len);
+        el.style.strokeDashoffset = String(len);
+      });
+
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+
+      var D = 6.8;
+
+      // hard-coded layout constants (see report arithmetic)
+      var CUT_X = 616;          // right edge of the 6 kept hex chars
+      var PILL_W_CUT = 552;     // 36 pad + 56 marker + 28 gap + 396 keep + 36 pad
+
+      // ---------------- continuous camera push-in ----------------
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.05, duration: D, ease: "sine.inOut" }, 0);
+
+      // ---------------- ambient background breathe (odd repeat, ends 6.30) ----
+      tl.to("#bg-glow-a", { scale: 1.1, duration: 1.05, ease: "sine.inOut", yoyo: true, repeat: 5 }, 0);
+
+      // ================= ACT 1 : two URLs -> one hash function =================
+      // primary content is already at opacity .5 from CSS on frame 0
+      tl.to("#hash-card", { opacity: 1, duration: 0.55, ease: "power3.out" }, 0);
+      tl.to("#chip-a", { opacity: 1, duration: 0.55, ease: "power3.out" }, 0.12);
+      tl.to("#chip-b", { opacity: 1, duration: 0.55, ease: "power3.out" }, 0.24);
+      tl.to("#link-svg", { opacity: 1, duration: 0.5, ease: "power3.out" }, 0.2);
+
+      // hash block ambient glow (odd repeat -> lands back on base; ends 2.78)
+      tl.to(
+        "#hash-card",
+        {
+          boxShadow: "0 22px 54px rgba(0,0,0,0.55), 0 0 40px 6px rgba(34,211,238,0.42)",
+          duration: 0.62,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 3,
+        },
+        0.3
+      );
+
+      // --- channel A ---
+      tl.to("#line-a", { strokeDashoffset: 0, duration: 0.4, ease: "power3.out" }, 0.3);
+      tl.fromTo(
+        "#pk-in-a",
+        { x: 291, y: 349, opacity: 0 },
+        { x: 471, y: 419, opacity: 1, duration: 0.36, ease: "power1.inOut", immediateRender: false },
+        0.45
+      );
+      tl.to("#pk-in-a", { opacity: 0, duration: 0.1, ease: "power3.out" }, 0.81);
+      tl.to("#hash-card", { borderColor: "rgba(103,232,249,0.95)", duration: 0.12, ease: "power4.out" }, 0.83);
+      tl.to("#hash-card", { borderColor: "rgba(34,211,238,0.4)", duration: 0.32, ease: "power3.out" }, 0.95);
+      tl.fromTo(
+        "#pk-out-a",
+        { x: 491, y: 565, opacity: 0 },
+        { x: 155, y: 708, opacity: 1, duration: 0.34, ease: "power1.inOut", immediateRender: false },
+        0.86
+      );
+      tl.to("#pk-out-a", { opacity: 0, duration: 0.12, ease: "power3.out" }, 1.2);
+      // REVEAL 1 : digest A
+      tl.fromTo(
+        "#digest-a .pill-bg",
+        { scaleX: 0.05, opacity: 0 },
+        { scaleX: 1, opacity: 1, duration: 0.45, ease: "power3.out", immediateRender: false },
+        1.2
+      );
+      tl.fromTo(
+        "#digest-a .pill-content",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.32, ease: "power3.out", immediateRender: false },
+        1.34
+      );
+
+      // --- channel B ---
+      tl.to("#line-b", { strokeDashoffset: 0, duration: 0.4, ease: "power3.out" }, 1.55);
+      tl.fromTo(
+        "#pk-in-b",
+        { x: 771, y: 349, opacity: 0 },
+        { x: 591, y: 419, opacity: 1, duration: 0.36, ease: "power1.inOut", immediateRender: false },
+        1.7
+      );
+      tl.to("#pk-in-b", { opacity: 0, duration: 0.1, ease: "power3.out" }, 2.06);
+      tl.to("#hash-card", { borderColor: "rgba(196,181,253,0.95)", duration: 0.12, ease: "power4.out" }, 2.08);
+      tl.to("#hash-card", { borderColor: "rgba(34,211,238,0.4)", duration: 0.32, ease: "power3.out" }, 2.2);
+      tl.fromTo(
+        "#pk-out-b",
+        { x: 571, y: 565, opacity: 0 },
+        { x: 155, y: 904, opacity: 1, duration: 0.34, ease: "power1.inOut", immediateRender: false },
+        2.11
+      );
+      tl.to("#pk-out-b", { opacity: 0, duration: 0.12, ease: "power3.out" }, 2.45);
+      // REVEAL 2 : digest B  (1.25s after reveal 1)
+      tl.fromTo(
+        "#digest-b .pill-bg",
+        { scaleX: 0.05, opacity: 0 },
+        { scaleX: 1, opacity: 1, duration: 0.45, ease: "power3.out", immediateRender: false },
+        2.45
+      );
+      tl.fromTo(
+        "#digest-b .pill-content",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.32, ease: "power3.out", immediateRender: false },
+        2.59
+      );
+
+      // ================= THE TURN : truncation blade @ 3.32 =================
+      tl.fromTo(
+        "#blade",
+        { scaleY: 0 },
+        { scaleY: 1, duration: 0.2, ease: "power4.out", transformOrigin: "50% 0%", immediateRender: false },
+        3.32
+      );
+      tl.fromTo("#flash", { opacity: 0 }, { opacity: 0.5, duration: 0.05, ease: "power4.out", immediateRender: false }, 3.34);
+      tl.to("#flash", { opacity: 0, duration: 0.26, ease: "power3.out" }, 3.39);
+
+      // the apparatus recedes so ACT 2 owns the frame (and HASH label retires)
+      tl.to("#chip-a, #chip-b, #hash-card, #link-svg", { opacity: 0.32, duration: 0.5, ease: "power3.out" }, 3.4);
+      tl.to("#hash-label", { opacity: 0, duration: 0.28, ease: "power3.out" }, 3.42);
+
+      // the discarded tails detach (ends 3.82, before the badge at 3.86)
+      tl.to(
+        ".drop",
+        { x: 78, y: 28, opacity: 0, color: "#ef4444", duration: 0.3, ease: "power3.out" },
+        3.52
+      );
+
+      // ================= ACT 2 : the collision =================
+      tl.to("#digest-a, #digest-b", { width: PILL_W_CUT, duration: 0.24, ease: "power4.out" }, 3.54);
+      tl.to(".keep", { color: "#f87171", duration: 0.26, ease: "power4.out" }, 3.54);
+      tl.to(
+        ".pill-bg",
+        {
+          borderColor: "rgba(239,68,68,0.9)",
+          boxShadow: "0 20px 46px rgba(0,0,0,0.5), 0 0 28px 3px rgba(239,68,68,0.4)",
+          duration: 0.3,
+          ease: "power3.out",
+        },
+        3.54
+      );
+      tl.fromTo("#bg-glow-red", { opacity: 0 }, { opacity: 1, duration: 0.55, ease: "power3.out", immediateRender: false }, 3.54);
+      tl.to("#blade", { opacity: 0, duration: 0.28, ease: "power3.out" }, 3.56);
+
+      // REVEAL 3 : collision badge (1.41s after reveal 2)
+      tl.fromTo(
+        "#collision-badge",
+        { opacity: 0, scale: 0.82 },
+        { opacity: 1, scale: 1, duration: 0.42, ease: "back.out(1.5)", transformOrigin: "50% 50%", immediateRender: false },
+        3.86
+      );
+
+      // ambient red life -- odd repeats, both finish before the fade
+      tl.to(
+        "#collision-badge",
+        {
+          boxShadow: "0 18px 44px rgba(0,0,0,0.55), 0 0 44px 8px rgba(239,68,68,0.5)",
+          duration: 0.55,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 3,
+        },
+        4.15
+      ); // ends 4.15 + 4*0.55 = 6.35
+      tl.to(
+        ".pill-bg",
+        {
+          boxShadow: "0 20px 46px rgba(0,0,0,0.5), 0 0 46px 8px rgba(239,68,68,0.55)",
+          duration: 0.55,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 3,
+        },
+        4.2
+      ); // ends 4.20 + 4*0.55 = 6.40
+
+      // REVEAL 4 : headline settles exactly on "gives you neither cleanly" (5.30)
+      tl.fromTo(
+        "#headline",
+        { opacity: 0, y: 26 },
+        { opacity: 1, y: 0, duration: 0.45, ease: "power3.out", immediateRender: false },
+        4.85
+      );
+
+      // ================= FADE : finishes at exactly 6.80 =================
+      var FADE_FULL = [
+        "#bg-fill",
+        "#bg-glow-a",
+        "#bg-glow-b",
+        "#bg-glow-red",
+        "#vignette",
+        "#grain",
+        "#digest-a .pill-bg",
+        "#digest-a .pill-content",
+        "#digest-b .pill-bg",
+        "#digest-b .pill-content",
+        "#collision-badge",
+        "#headline",
+      ].join(", ");
+      var FADE_DIM = "#chip-a, #chip-b, #hash-card, #link-svg";
+
+      tl.fromTo(
+        FADE_FULL,
+        { opacity: 1 },
+        { opacity: 0, duration: 0.3, ease: "power3.out", immediateRender: false },
+        6.5
+      );
+      tl.fromTo(
+        FADE_DIM,
+        { opacity: 0.32 },
+        { opacity: 0, duration: 0.3, ease: "power3.out", immediateRender: false },
+        6.5
+      );
+
+      // blade sits on the kept/dropped character boundary (mirrors the CSS value)
+      document.getElementById("blade-tilt").style.left = CUT_X - 20 + "px";
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

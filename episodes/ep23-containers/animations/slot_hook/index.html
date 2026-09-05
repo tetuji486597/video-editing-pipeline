@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP23 hook — "works on my machine" gets crushed</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* HALF-PANEL (upper band) over live footage. HOOK shot grid-measured (src ~41s):
+         hair top ~110, brow ~620-660, eyes ~650-730, mouth ~980-1070. All content in
+         y=205-595, x=90-866 -- above the eyes/brow, inside the x70-870 margins.
+
+         REDESIGN (user feedback: "graphics should never block text"): the card and the
+         container glyph now own SEPARATE regions. Card (with all text) sits lower-left
+         x90-750 y355-595; the box's rest position is upper-right x550-830 y205-410 and
+         it only ever overlaps the card's EMPTY top-right shoulder (a deliberate 55px
+         "seat", x550-750 y355-410 -- nearest text is 126px left / 41px below of it).
+         The old build ALSO had the box visible at rest over the text for all of act 1:
+         its drop fromTo used immediateRender:false with no hidden CSS state, so frame-0
+         CSS (top over the card) showed until t=3.05. Frame-0 state must come from CSS:
+         the box now carries transform: translateY(-520px) (fully off-frame) in CSS. */
+      #fade-all { position: absolute; inset: 0; opacity: 1; }
+
+      /* thread-reply card: x 90-750, y 355-595 (660x240). Translucent fill, border+glow.
+         Glow blur 12 -> left alpha reach 90 - 1.6*12 = 70.8 >= 70 OK;
+         top reach 355 - 19.2 = 335.8 >= 200 OK. */
+      #card {
+        position: absolute;
+        left: 90px; top: 355px; width: 660px; height: 240px;
+        border-radius: 20px;
+        background: rgba(8, 12, 20, 0.30);
+        border: 1.5px solid rgba(148, 197, 255, 0.45);
+        box-shadow: 0 0 12px rgba(56, 189, 248, 0.18);
+        opacity: 0.55;
+        /* identity filter declared so the dim tween never starts from computed `none` */
+        filter: grayscale(0) brightness(1);
+        z-index: 1;
+      }
+      /* avatar+name+check = one lockup row. abs: avatar x116-172 y371-427;
+         name x190-~358 y378-410; check chip x412-452 y373-413. */
+      #row { position: absolute; left: 26px; top: 16px; width: 360px; height: 60px; opacity: 0; }
+      #avatar {
+        position: absolute; left: 0; top: 0; width: 56px; height: 56px;
+        border-radius: 50%; background: rgba(148, 163, 184, 0.35);
+        border: 1.5px solid rgba(226, 232, 240, 0.5);
+        display: flex; align-items: center; justify-content: center;
+      }
+      #avatar svg { width: 34px; height: 34px; }
+      #uname {
+        position: absolute; left: 74px; top: 7px;
+        color: #cbd5e1; font-size: 28px; letter-spacing: 0.5px;
+      }
+      #check {
+        position: absolute; left: 296px; top: 2px; width: 40px; height: 40px;
+        border-radius: 50%; background: rgba(34, 197, 94, 0.85);
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 0 14px rgba(34, 197, 94, 0.5);
+      }
+      #check svg { width: 22px; height: 22px; }
+      /* comment text: two authored lines, 56px Inter 700, white + shadow (over forehead
+         -- plain text with strong shadow there is the series convention).
+         abs: line1 y451-507 x130-~490, line2 y521-577 x130-~550. Both fully clear of
+         the box (box bottom 410 -> 41px gap to line1) and of the eyes (brow ~620). */
+      .cline {
+        position: absolute; left: 40px;
+        color: #f8fafc; font-size: 56px; font-weight: 700; letter-spacing: -0.5px;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85), 0 0 30px rgba(0, 0, 0, 0.5);
+        white-space: nowrap; opacity: 0;
+      }
+      #cline1 { top: 96px; }
+      #cline2 { top: 166px; }
+      #cline2 b { color: #fbbf24; font-style: normal; }
+
+      /* the container box: final rest x 550-830, y 205-410 (280x205). FRAME-0 STATE
+         FROM CSS: opacity 0 -- the box is INVISIBLE for all of act 1 and only appears
+         inside the drop tween, which starts it at y=-520 (fully off-frame) anyway.
+         (The old build's act-1 text collision was exactly this hidden state missing:
+         its drop fromTo had immediateRender:false and no CSS hidden state, so the box
+         sat at its CSS rest position over the text until t=3.05. A CSS translateY
+         was tried first but trips gsap_css_transform_conflict with the plain .to
+         bounce tweens, so the hidden state is opacity, not transform.)
+         At rest it seats 55px onto the card's empty top-right shoulder. Settle bob
+         scale 1.02 uses transform-origin 50% 0% so the top edge stays at y=205 >= 200
+         (a centred bob would lift it to y~203 -- fine -- but top-origin keeps it exact). */
+      #box {
+        position: absolute; left: 550px; top: 205px; width: 280px; height: 205px;
+        z-index: 3;
+        opacity: 0;
+        filter: drop-shadow(0 14px 26px rgba(0, 0, 0, 0.55));
+      }
+
+      /* red X stamp over the smug check: check centre ~(432,393) -> 84px box
+         x390-474 y347-431; ink (path insets) ~x400-464 y357-421. 34px+ ink gap to
+         line1's cap tops (~459); 16px box gap argued -- the stamp deliberately lands
+         on the badge, text below it stays untouched. */
+      #xstamp {
+        position: absolute; left: 390px; top: 347px; width: 84px; height: 84px;
+        z-index: 4; opacity: 0; transform: rotate(-12deg);
+      }
+
+      /* R.I.P. headstone chip: x 630-730, y 470-590 -- sits on the crushed card's
+         lower-right corner deliberately (66px right of line2's end, 60px below the
+         box). x<=870, above the brow (~620) OK. */
+      #rip { position: absolute; left: 630px; top: 470px; width: 100px; height: 120px; z-index: 4; opacity: 0; }
+
+      /* impact dust puffs at the box's landing corners */
+      .puff { position: absolute; z-index: 2; opacity: 0; }
+      #puffL { left: 500px; top: 390px; width: 70px; height: 40px; }
+      #puffR { left: 760px; top: 390px; width: 70px; height: 40px; }
+
+      /* impact flash ring at the box's bottom centre (690, 410) */
+      #ring {
+        position: absolute; left: 630px; top: 350px; width: 120px; height: 120px;
+        border-radius: 50%; border: 5px solid rgba(255, 255, 255, 0.9);
+        z-index: 5; opacity: 0; transform: scale(0.4);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="4.7"
+         data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="4.7" data-track-index="1">
+        <div id="fade-all">
+          <div id="card">
+            <div id="row">
+              <div id="avatar">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="8.2" r="4" stroke="#e2e8f0" stroke-width="1.8"/>
+                  <path d="M4.5 20c1.4-3.6 4.2-5.4 7.5-5.4s6.1 1.8 7.5 5.4" stroke="#e2e8f0" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <div id="uname" class="mono">senior_dev</div>
+              <div id="check">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M4 12.5L9.5 18L20 6" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div id="cline1" class="cline">&ldquo;but it works</div>
+            <div id="cline2" class="cline">on <b>MY</b> machine&rdquo;</div>
+          </div>
+
+          <div id="puffL" class="puff">
+            <svg viewBox="0 0 70 40" fill="none">
+              <path d="M64 34 C48 34 40 26 34 18 C28 12 18 8 6 12" stroke="rgba(226,232,240,0.75)" stroke-width="5" stroke-linecap="round"/>
+              <path d="M58 22 C48 20 42 14 38 8" stroke="rgba(226,232,240,0.55)" stroke-width="4" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div id="puffR" class="puff">
+            <svg viewBox="0 0 70 40" fill="none">
+              <path d="M6 34 C22 34 30 26 36 18 C42 12 52 8 64 12" stroke="rgba(226,232,240,0.75)" stroke-width="5" stroke-linecap="round"/>
+              <path d="M12 22 C22 20 28 14 32 8" stroke="rgba(226,232,240,0.55)" stroke-width="4" stroke-linecap="round"/>
+            </svg>
+          </div>
+
+          <div id="box">
+            <svg viewBox="0 0 300 220">
+              <!-- corrugated shipping-container front, teal -->
+              <rect x="4" y="4" width="292" height="212" rx="10"
+                    fill="rgba(13,68,84,0.85)" stroke="#2dd4bf" stroke-width="4"/>
+              <g stroke="rgba(94,234,212,0.55)" stroke-width="5">
+                <line x1="42"  y1="18" x2="42"  y2="202"/>
+                <line x1="84"  y1="18" x2="84"  y2="202"/>
+                <line x1="126" y1="18" x2="126" y2="202"/>
+                <line x1="168" y1="18" x2="168" y2="202"/>
+                <line x1="210" y1="18" x2="210" y2="202"/>
+                <line x1="252" y1="18" x2="252" y2="202"/>
+              </g>
+              <rect x="112" y="88" width="76" height="44" rx="6"
+                    fill="rgba(6,24,32,0.9)" stroke="#5eead4" stroke-width="2.5"/>
+              <!-- corner castings -->
+              <rect x="8" y="8" width="18" height="18" fill="#134e4a" stroke="#2dd4bf" stroke-width="2"/>
+              <rect x="274" y="8" width="18" height="18" fill="#134e4a" stroke="#2dd4bf" stroke-width="2"/>
+              <rect x="8" y="194" width="18" height="18" fill="#134e4a" stroke="#2dd4bf" stroke-width="2"/>
+              <rect x="274" y="194" width="18" height="18" fill="#134e4a" stroke="#2dd4bf" stroke-width="2"/>
+            </svg>
+          </div>
+
+          <div id="xstamp">
+            <svg viewBox="0 0 120 120" fill="none">
+              <path d="M22 22 L98 98 M98 22 L22 98" stroke="#ef4444" stroke-width="16" stroke-linecap="round"/>
+            </svg>
+          </div>
+
+          <div id="rip">
+            <!-- hand-drawn SVG headstone; NO emoji -->
+            <svg viewBox="0 0 100 120">
+              <path d="M14 112 L14 46 C14 24 30 10 50 10 C70 10 86 24 86 46 L86 112 Z"
+                    fill="rgba(71,85,105,0.92)" stroke="#cbd5e1" stroke-width="3.5"/>
+              <rect x="4" y="106" width="92" height="10" rx="4" fill="rgba(51,65,85,0.95)" stroke="#94a3b8" stroke-width="2"/>
+              <text x="50" y="58" text-anchor="middle" fill="#e2e8f0"
+                    font-family="Inter, sans-serif" font-size="22" font-weight="800">R.I.P.</text>
+              <path d="M30 76 L70 76 M36 90 L64 90" stroke="rgba(203,213,225,0.65)" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+          </div>
+
+          <div id="ring"></div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ACT 1 -- the smug reply assembles. Card enters at local t=0 from CSS opacity .55.
+      // The container box is OFF-FRAME (CSS translateY(-520)) for all of act 1, so the
+      // card's text is fully readable the whole act.
+      tl.fromTo("#card", { opacity: 0.55, y: 18 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 0);
+      tl.fromTo("#row", { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: 0.35, ease: "power3.out", immediateRender: false }, 0.35);
+      tl.fromTo("#cline1", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 0.75);
+      tl.fromTo("#cline2", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 1.45);
+      // smug pulse on the green check (yoyo repeat 1 = odd, lands back on base; ends 2.9)
+      tl.to("#check", { scale: 1.18, duration: 0.35, ease: "sine.inOut", yoyo: true, repeat: 1 }, 2.2);
+
+      // TURN -- the container box drops, landing exactly on "killed" (A local 3.243).
+      // It slams onto the card's EMPTY top-right shoulder (x550-750 seat), never the text.
+      // opacity 1 is written in BOTH from and to vars so the CSS opacity:0 hidden state
+      // is actively overridden for every sampled frame of the drop and after.
+      tl.fromTo("#box", { y: -520, opacity: 1 }, { y: 0, opacity: 1, duration: 0.19, ease: "power2.in", immediateRender: false }, 3.05);
+      // impact: settle bounce, flash ring, dust, card crushed downward (text stays clear)
+      tl.to("#box", { y: -14, duration: 0.1, ease: "power2.out" }, 3.24);
+      tl.to("#box", { y: 0, duration: 0.16, ease: "power3.out" }, 3.34);
+      tl.fromTo("#ring", { opacity: 0.9, scale: 0.4 }, { opacity: 0, scale: 2.6, duration: 0.4, ease: "power3.out", immediateRender: false }, 3.24);
+      tl.fromTo("#puffL", { opacity: 0.9, x: 0 }, { opacity: 0, x: -46, duration: 0.5, ease: "power3.out", immediateRender: false }, 3.24);
+      tl.fromTo("#puffR", { opacity: 0.9, x: 0 }, { opacity: 0, x: 36, duration: 0.5, ease: "power3.out", immediateRender: false }, 3.24);
+      tl.to("#card", { rotation: -2, scaleY: 0.95, y: 8, duration: 0.22, ease: "power3.out" }, 3.24);
+      tl.to("#card", { filter: "grayscale(0.7) brightness(0.6)", duration: 0.35, ease: "power3.out" }, 3.26);
+
+      // ACT 2 -- the phrase is dead: X over the smug check, then R.I.P. on "containers" (3.643).
+      tl.fromTo("#xstamp", { opacity: 0, scale: 2.0 }, { opacity: 1, scale: 1, duration: 0.2, ease: "power4.out", immediateRender: false }, 3.42);
+      tl.fromTo("#rip", { opacity: 0, scale: 0.6, y: 16 }, { opacity: 1, scale: 1, y: 0, duration: 0.3, ease: "back.out(1.5)", immediateRender: false }, 3.64);
+      // gentle settle bob on the box (yoyo repeat 1 = odd; ends 3.9+0.4 = 4.3 < fade 4.35).
+      // top-origin so the bob never lifts the box top above y=205 (margin y>=200).
+      tl.to("#box", { scale: 1.02, transformOrigin: "50% 0%", duration: 0.2, ease: "sine.inOut", yoyo: true, repeat: 1 }, 3.9);
+
+      // FADE -- finishes at exactly 4.70, zero buffer. Single non-transformed wrapper.
+      tl.fromTo("#fade-all", { opacity: 1 }, { opacity: 0, duration: 0.35, ease: "power2.out", immediateRender: false }, 4.35);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

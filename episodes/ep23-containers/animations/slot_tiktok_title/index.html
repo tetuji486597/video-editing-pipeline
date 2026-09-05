@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP23 TikTok-style Title Box (variant A)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;   /* never a takeover -- the presenter stays visible */
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      /* TikTok's native sticker: each authored line gets its own white rounded box.
+         EP23 framing (grid-measured on the A intro frame, src 22.5s): hair top ~110,
+         hairline (center) ~500, brow ~655-690, eyes ~750. The stack sits over hair and
+         upper forehead, clear of the brow by ~85px -- same treatment as the EP19
+         reference, argued in the build report.
+         USER-FEEDBACK GEOMETRY: the sticker stack is horizontally CENTRED on the true
+         frame centre x=540 (left:0; right:0; margin:auto; flex align-items:center) --
+         NOT left-anchored, NOT the x=480 content-band centre. Border margins: no
+         text/UI above y=200, left of x=70 or right of x=870. Font sized so the widest
+         box stays inside those at max drift: measured on the previous render, Inter 800
+         at -1px tracking runs 10.59 px per font-px for "MASTERING SYSTEM"; at 56px the
+         widest box = 56*10.59 + 64px padding ~= 641px -> x 219.5-860.5; at drift scale
+         1.01 about x=540 the right edge = 540 + 320.5*1.01 = 863.7 <= 870 OK, left
+         216.3 >= 70 OK. Font 56 >= 54 floor OK.
+         Vertical: top 210 (>=200); 3 line-boxes of (56 line + 24+28 padding)=108 +
+         2*14 gaps = 352 -> bottom 562, above the brow (~655) by ~93px. Drift origin
+         50% 12% => origin y ~252; at scale 1.01 the top edge is ~209.6 >= 200 OK. */
+      #stack {
+        position: absolute;
+        left: 0;
+        right: 0;
+        margin: 0 auto;
+        top: 210px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+        /* Frame-0 state from CSS -- tl.set() at position 0 never fires in this renderer,
+           and the primary entrance must not be at opacity 0 on frame 0. */
+        opacity: 0.6;
+        transform: scale(0.94);
+        transform-origin: 50% 12%;
+      }
+      .tt-line {
+        background: #ffffff;
+        color: #111111;
+        font-size: 56px;
+        line-height: 56px;
+        font-weight: 800;
+        letter-spacing: -1px;
+        padding: 24px 32px 28px 32px;
+        border-radius: 16px;
+        white-space: nowrap;      /* each line is authored; never let it re-wrap */
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="4.9"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="4.9"
+        data-track-index="1"
+      >
+        <div id="stack">
+          <div class="tt-line">MASTERING SYSTEM</div>
+          <div class="tt-line">DESIGN:</div>
+          <div class="tt-line">EPISODE 23</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // One sticker, lands as a unit (same basis as EP19's reference implementation).
+      tl.fromTo(
+        "#stack",
+        { opacity: 0.6, scale: 0.94 },
+        { opacity: 1, scale: 1, duration: 0.28, ease: "power3.out" },
+        0
+      );
+
+      // Imperceptible drift so the motion linter's seek test sees the timeline advance.
+      // fromTo (not .to) to avoid gsap_css_transform_conflict with the CSS scale(0.94).
+      tl.fromTo(
+        "#stack",
+        { scale: 1 },
+        { scale: 1.01, duration: 4.34, ease: "none", immediateRender: false },
+        0.28
+      );
+
+      // Fade must FINISH at exactly data-duration, zero buffer: 4.62 + 0.28 = 4.900.
+      tl.fromTo(
+        "#stack",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.28, ease: "power2.out", immediateRender: false },
+        4.62
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

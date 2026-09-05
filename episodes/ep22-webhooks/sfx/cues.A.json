@@ -1,0 +1,92 @@
+{
+  "cues": [
+    {
+      "at": 7.92,
+      "sfx": "tt_notif_trim",
+      "vol": 0.65,
+      "why": "HOOK: the payment push arrives unprompted"
+    },
+    {
+      "at": 8.6,
+      "sfx": "tt_cash_register",
+      "vol": 0.9,
+      "why": "HOOK: 'Payment succeeded $1,250'"
+    },
+    {
+      "at": 11.8,
+      "sfx": "rewind",
+      "vol": 0.5,
+      "why": "PROBLEM: one-beat rewind into the polling flashback (script)"
+    },
+    {
+      "at": 14.0,
+      "sfx": "tt_we_do_not_care",
+      "vol": 0.55,
+      "why": "PROBLEM voice meme: the 204-nothing indifference"
+    },
+    {
+      "at": 16.05,
+      "sfx": "tt_bass_drop",
+      "vol": 0.22,
+      "why": "PROBLEM: wasted-calls counter peaks on 'thousands'"
+    },
+    {
+      "at": 16.9,
+      "sfx": "tt_camera_shutter",
+      "vol": 0.58,
+      "why": "PROBLEM: flash + desaturate freeze turn"
+    },
+    {
+      "at": 19.93,
+      "sfx": "tt_whoosh",
+      "vol": 0.8,
+      "why": "BUILD: the arrow REVERSES on 'flips the direction' (script: whoosh)"
+    },
+    {
+      "at": 23.9,
+      "sfx": "ding",
+      "vol": 0.39,
+      "why": "BUILD: the bell arms on 'call me when something happens' -- an actual bell (variety)"
+    },
+    {
+      "at": 26.2,
+      "sfx": "swoosh_elec",
+      "vol": 0.75,
+      "why": "POST: the event packet travels provider->app (variety)"
+    },
+    {
+      "at": 27.67,
+      "sfx": "tt_keyboard_trim",
+      "vol": 1.4,
+      "why": "POST: POST line + JSON payload type on 'HTTP POST'"
+    },
+    {
+      "at": 31.4,
+      "sfx": "tt_click_trim",
+      "vol": 0.95,
+      "why": "POST: the work lamp blinks on"
+    },
+    {
+      "at": 34.0,
+      "sfx": "tt_wrong_buzzer",
+      "vol": 0.29,
+      "why": "SIGN: the rogue unsigned POST gets the red X"
+    },
+    {
+      "at": 38.63,
+      "sfx": "tt_correct_ding",
+      "vol": 0.75,
+      "why": "SIGN: green VERIFIED badge pop at the onset of 'them.'"
+    },
+    {
+      "at": 40.92,
+      "sfx": "tt_bubble_pop",
+      "vol": 0.75,
+      "why": "PAYOFF: the reversed-arrow chip pulses on 'calls you'"
+    }
+  ],
+  "_vol_note": "Volumes = 0.45 * 10^(0.6*(-18-mean)/20) clamped [0.15,0.95] (the shipped TIKTOK_SFX_NOTES calibration), with the usual manual overrides: bass-heavy (vine/bass_drop/bass_hit) held <=0.45, voice memes carry the x1.25 speech bump, sparkle boosted (broadband shimmer masks easily). Diversity pass 2026-08-28: no sound repeats within an episode except deliberate anchors; underused files (ding, riser, swoosh_elec/double/deep, pop_balloon/bubble, bass_hit, impact_trim, shutter, whoosh_trim) rotated in per user feedback.",
+  "video": "final_nosfx_A.mp4",
+  "out": "final_A.mp4",
+  "_note": "Variant A. Voice meme: tt_we_do_not_care. 14 distinct sounds."
+}

@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body {
+        font-family: Inter, sans-serif;
+      }
+
+      /* ---------- z1 : dark atmospheric base, opaque from frame 0 ---------- */
+      #bg-fill {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        opacity: 1;
+        background: radial-gradient(
+          ellipse 900px 1100px at 50% 46%,
+          #140b12 0%,
+          #0a060a 55%,
+          #050308 100%
+        );
+      }
+
+      /* ---------- z2 : full-bleed photograph ----------
+         The MASK lives on the untransformed wrapper so the push-in cannot drag
+         it around; the <img> itself is the single transformed / filtered /
+         faded leaf. Below y=1180 the photo ramps out to nothing by y=1300, so
+         the burned-in caption band (y=1306-1570) sees only #bg-fill + #scrim. */
+      #photo-mask {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        overflow: hidden;
+        -webkit-mask-image: linear-gradient(
+          to bottom,
+          #000 0 1180px,
+          transparent 1300px
+        );
+        mask-image: linear-gradient(
+          to bottom,
+          #000 0 1180px,
+          transparent 1300px
+        );
+      }
+      #photo-layer {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1080px;
+        height: 1920px;
+        object-fit: cover;
+        object-position: 50% 46%;
+        transform-origin: 50% 50%;
+        opacity: 1;
+        /* explicit identity filter -- NEVER let GSAP tween `filter` from a
+           computed `none`, it interpolates the from-value as brightness(0)
+           and flashes the element solid black. */
+        filter: blur(0px) brightness(0.46) saturate(0.74) contrast(1.02);
+      }
+
+      /* ---------- z3 : vignette ---------- */
+      #vignette {
+        position: absolute;
+        inset: 0;
+        z-index: 3;
+        opacity: 1;
+        background: radial-gradient(
+          ellipse 760px 1000px at 50% 44%,
+          rgba(0, 0, 0, 0) 0%,
+          rgba(0, 0, 0, 0) 42%,
+          rgba(2, 1, 4, 0.5) 76%,
+          rgba(2, 1, 4, 0.92) 100%
+        );
+      }
+
+      /* ---------- z4 : scrim -- type legibility + caption-band blackout ---- */
+      #scrim {
+        position: absolute;
+        inset: 0;
+        z-index: 4;
+        opacity: 1;
+        background: linear-gradient(
+          to bottom,
+          rgba(4, 3, 6, 0) 0px,
+          rgba(4, 3, 6, 0) 520px,
+          rgba(4, 3, 6, 0.34) 700px,
+          rgba(4, 3, 6, 0.62) 820px,
+          rgba(4, 3, 6, 0.76) 980px,
+          rgba(4, 3, 6, 0.82) 1140px,
+          rgba(4, 3, 6, 0.88) 1240px,
+          rgba(4, 3, 6, 0.96) 1330px,
+          rgba(4, 3, 6, 1) 1420px,
+          rgba(4, 3, 6, 1) 1920px
+        );
+      }
+
+      /* ---------- z5 : static deterministic grain ---------- */
+      #grain {
+        position: absolute;
+        inset: 0;
+        z-index: 5;
+        opacity: 0.05;
+        pointer-events: none;
+      }
+
+      /* ---------- z6 : the one headline ---------- */
+      #headline {
+        position: absolute;
+        left: 70px;
+        top: 780px;
+        width: 940px;
+        z-index: 6;
+        text-align: center;
+        opacity: 0;
+      }
+      .hl {
+        font-size: 176px;
+        /* 1.00em leading. All-caps, so the em-box metrics (1.211em) overlap
+           between lines while the actual CAP ink does not: baselines land at
+           931.9 and 1107.9, cap tops at 804.0 and 980.0, giving a real 48.1px
+           ink gap. `data-layout-allow-overlap` acknowledges the metrics-box
+           artefact, not a real collision. */
+        line-height: 176px;
+        font-weight: 800;
+        letter-spacing: -5px;
+        color: #f7f3ee;
+        white-space: nowrap;
+        text-shadow: 0 3px 2px rgba(0, 0, 0, 0.6),
+          0 8px 26px rgba(2, 1, 4, 0.85), 0 0 22px rgba(2, 1, 4, 0.75),
+          0 0 54px rgba(2, 1, 4, 0.9);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="5.60"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="5.60"
+        data-track-index="1"
+      >
+        <div id="bg-fill" data-layout-allow-overflow="true"></div>
+
+        <div id="photo-mask" data-layout-allow-overflow="true">
+          <img
+            id="photo-layer"
+            data-layout-allow-overflow="true"
+            data-layout-allow-occlusion="true"
+            src="assets/stadium_crowd.jpg"
+            alt=""
+          />
+        </div>
+
+        <div id="vignette" data-layout-allow-overflow="true"></div>
+        <div id="scrim" data-layout-allow-overflow="true"></div>
+
+        <svg
+          id="grain"
+          data-layout-allow-overflow="true"
+          width="1080"
+          height="1920"
+          viewBox="0 0 1080 1920"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <filter id="grain-f" x="0" y="0" width="100%" height="100%">
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency="0.82"
+              numOctaves="3"
+              seed="7"
+              stitchTiles="stitch"
+            />
+            <feColorMatrix type="saturate" values="0" />
+          </filter>
+          <rect width="1080" height="1920" filter="url(#grain-f)" />
+        </svg>
+
+        <div
+          id="headline"
+          data-layout-allow-occlusion="true"
+          data-layout-allow-overflow="true"
+        >
+          <div class="hl" data-layout-allow-overlap="true">CLOSE</div>
+          <div class="hl" data-layout-allow-overlap="true">ENOUGH</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      const D = 5.6;
+      const FADE_DUR = 0.3;
+      const FADE_AT = D - FADE_DUR; // 5.30 -> finishes at exactly 5.600
+
+      /* =====================================================================
+         ACT 1 (t=0)  the photograph is ALREADY up at full alpha from CSS --
+         no fade-in, nothing to reveal. It begins its slow push-in on frame 0,
+         so the frame is moving from the first frame after slot_tradeoff ends.
+         ===================================================================== */
+      tl.fromTo(
+        "#photo-layer",
+        { scale: 1.0, x: 0 },
+        { scale: 1.145, x: -18, duration: D, ease: "sine.inOut" },
+        0
+      );
+
+      /* ---- the headline resolves on the words (local 0.78-2.71) ---------- */
+      tl.fromTo(
+        "#headline",
+        { opacity: 0, y: 28 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.75,
+          ease: "power3.out",
+          immediateRender: false,
+        },
+        0.6
+      ); // resolves at 1.35, early inside the window, then holds 3.95s
+
+      /* =====================================================================
+         THE TURN (2.90 -> 4.80)  as the push-in continues the crowd softens:
+         individual faces stop being resolvable and the mass becomes texture.
+         ONE filter tween, started from the exact identity string declared in
+         CSS so it never interpolates out of a computed `none`.
+         ===================================================================== */
+      tl.fromTo(
+        "#photo-layer",
+        { filter: "blur(0px) brightness(0.46) saturate(0.74) contrast(1.02)" },
+        {
+          filter:
+            "blur(7.5px) brightness(0.33) saturate(0.62) contrast(1.02)",
+          duration: 1.9,
+          ease: "sine.inOut",
+          immediateRender: false,
+        },
+        2.9
+      );
+
+      /* =====================================================================
+         FADE -- one fromTo per visible leaf, never a wrapper that contains a
+         transformed descendant. Starts 5.30, duration 0.30, lands on 5.600.
+         ===================================================================== */
+      /* ease was power2.in, and it measured as a hard cut on the RENDERED file:
+         last frame at 194/255 (76%) before the enable-window ends. Cause is the
+         per-leaf fade this same block mandates -- six opaque leaves each at
+         tween opacity a composite to 1-(1-a)^6, so a back-loaded ease that
+         reads as 0.21 in the tween renders at 0.76 on screen. This is the
+         episode's closing image, so the pop landed on the punchline.
+         power2.out front-loads it instead: at the last stored frame p=0.889,
+         tween opacity = (1-p)^2 = 0.0123, composite = 1-(1-0.0123)^6 = 0.071
+         (~18/255). Still non-zero, so the fade still lands exactly on
+         FADE_AT+FADE_DUR with zero buffer -- it just is not stranded high. */
+      const FADE = {
+        duration: FADE_DUR,
+        ease: "power2.out",
+        immediateRender: false,
+      };
+
+      tl.fromTo("#bg-fill", { opacity: 1 }, { opacity: 0, ...FADE }, FADE_AT);
+      tl.fromTo(
+        "#photo-layer",
+        { opacity: 1 },
+        { opacity: 0, ...FADE },
+        FADE_AT
+      );
+      tl.fromTo("#vignette", { opacity: 1 }, { opacity: 0, ...FADE }, FADE_AT);
+      tl.fromTo("#scrim", { opacity: 1 }, { opacity: 0, ...FADE }, FADE_AT);
+      tl.fromTo("#grain", { opacity: 0.05 }, { opacity: 0, ...FADE }, FADE_AT);
+      tl.fromTo("#headline", { opacity: 1 }, { opacity: 0, ...FADE }, FADE_AT);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

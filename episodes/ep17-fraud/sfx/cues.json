@@ -1,0 +1,68 @@
+{
+  "video": "final_nosfx.mp4",
+  "out": "final.mp4",
+  "cues": [
+    {
+      "at": 7.83,
+      "sfx": "tt_notif_trim",
+      "vol": 0.654,
+      "why": "HOOK: the bank push notification arriving on 'declined'"
+    },
+    {
+      "at": 12.47,
+      "sfx": "tt_vine_boom",
+      "vol": 0.3,
+      "why": "HOOK: the 40 ms decision time landing"
+    },
+    {
+      "at": 19.6,
+      "sfx": "tt_metal_pipe",
+      "vol": 0.42,
+      "why": "PROBLEM: the rigid rule bar slamming across the stream"
+    },
+    {
+      "at": 28.92,
+      "sfx": "tt_sparkle_trim",
+      "vol": 0.72,
+      "why": "BUILD: the three signals merging into one baseline ring"
+    },
+    {
+      "at": 35.6,
+      "sfx": "tt_cash_register",
+      "vol": 0.904,
+      "why": "NEW_COMPONENT: the four-dollar coffee scoring normal"
+    },
+    {
+      "at": 42.0,
+      "sfx": "tt_error_glitch",
+      "vol": 0.539,
+      "why": "OUTLIER: the arc slamming past the threshold"
+    },
+    {
+      "at": 42.6,
+      "sfx": "tt_emotional_damage",
+      "vol": 0.28,
+      "why": "OUTLIER: the BLOCKED stamp landing on the wild outlier"
+    },
+    {
+      "at": 48.28,
+      "sfx": "tt_click_trim",
+      "vol": 0.95,
+      "why": "FEATURE_STORE: the precomputed lookup returning instantly"
+    },
+    {
+      "at": 52.42,
+      "sfx": "tt_whoosh",
+      "vol": 0.503,
+      "why": "AI_ANGLE: the habits shifting, a new cluster appearing"
+    },
+    {
+      "at": 58.5,
+      "sfx": "tt_bubble_pop",
+      "vol": 0.447,
+      "why": "PAYOFF: the chip contact pads scanning"
+    }
+  ],
+  "_vol_note": "Volumes derived from each file's measured mean level, partially normalised (k=0.6) toward -18 dB so a 32 dB spread across the set does not make hot files dominate and quiet ones vanish. sparkle/vine_boom/bass_drop carry stated manual overrides.",
+  "_meme_note": "Voice meme tt_emotional_damage placed at 42.6 in place of tt_wrong_buzzer, per request. One per episode, on the beat whose narration the meme actually matches."
+}

@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP21 slot_payoff — the crowd it hides in</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;   /* photo card over live footage, NOT a takeover */
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      #gfx {
+        position: absolute; inset: 0;
+        transform-origin: 480px 351px;
+        opacity: 0.55;             /* frame-0 state from CSS */
+      }
+
+      /* ghosted REAL suffix rows — the crowd, peeking past the card edges */
+      .ghost-row {
+        position: absolute;
+        left: 0; width: 960px;      /* centred on x=480 */
+        text-align: center;
+        color: #67e8f9;
+        font-size: 22px;
+        line-height: 22px;
+        letter-spacing: 0.5px;
+        text-shadow: 0 1px 6px rgba(0,0,0,0.9);
+        opacity: 0;
+        white-space: nowrap;
+      }
+
+      /* the held card: real haveibeenpwned result capture in browser chrome.
+         x 110-850; header y 216-252; image 740x234 -> y 252-486. */
+      #card {
+        position: absolute;
+        left: 110px; top: 216px; width: 740px; height: 270px;
+        border-radius: 16px;
+        overflow: hidden;
+        background: #16060d;
+        border: 1.5px solid rgba(236, 72, 153, 0.55);
+        box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55), 0 0 10px rgba(236, 72, 153, 0.25);
+      }
+      #card-bar {
+        position: absolute;
+        left: 0; top: 0; width: 100%; height: 36px;
+        background: rgba(30, 10, 20, 0.98);
+        border-bottom: 1px solid rgba(236, 72, 153, 0.35);
+        display: flex; align-items: center;
+      }
+      #card-bar .dot { width: 11px; height: 11px; border-radius: 50%; margin-left: 10px;
+                       background: rgba(236, 72, 153, 0.55); }
+      #card-bar .dot:first-child { margin-left: 18px; }
+      #card-url { margin-left: 18px; color: #f9a8d4; font-size: 18px; letter-spacing: 0.5px; }
+      #card img {
+        position: absolute;
+        left: 0; top: 36px; width: 740px; height: 234px;
+        object-fit: cover;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="5.4"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="scene" class="clip" data-start="0" data-duration="5.4" data-track-index="1">
+        <div id="gfx">
+          <!-- real rows from range_CBFDA.txt (the crowd; none is the matching line) -->
+          <div class="ghost-row mono" id="gr1" style="top: 186px;">C4659DBB38B9B34CF45C54C9EE60AEE0F1A:168</div>
+          <div class="ghost-row mono" id="gr2" style="top: 498px;">C5BA69E75BA54CD26FCA5F68B55FA04FE59:375</div>
+          <div class="ghost-row mono" id="gr3" style="top: 534px;">C5ED33E0DCF809CC77E3D1D1E7148041393:59</div>
+          <div class="ghost-row mono" id="gr4" style="top: 570px;">C6336DEAF4B46A3601C03F20860547491AA:52</div>
+
+          <div id="card">
+            <div id="card-bar">
+              <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+              <div id="card-url" class="mono">haveibeenpwned.com/passwords</div>
+            </div>
+            <img src="assets/hibp_tight.png" alt="" />
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ---------- Act 1: the card lands ----------
+      tl.fromTo("#gfx", { opacity: 0.55 },
+        { opacity: 1, duration: 0.4, ease: "power3.out" }, 0);
+      tl.fromTo("#card", { y: 16, scale: 0.965, transformOrigin: "50% 50%" },
+        { y: 0, scale: 1, duration: 0.6, ease: "power3.out" }, 0);
+
+      // ---------- Turn: the crowd fades in around it ("send a crowd it can hide in") ----------
+      ["#gr1", "#gr2", "#gr3", "#gr4"].forEach((id, i) => {
+        tl.fromTo(id, { opacity: 0 },
+          { opacity: 0.30, duration: 0.5, ease: "power2.out", immediateRender: false },
+          1.0 + i * 0.2);
+      });
+
+      // ---------- Act 2: deliberate stillness — slow drift only ----------
+      tl.fromTo("#gfx", { scale: 1 },
+        { scale: 1.02, duration: 4.2, ease: "sine.inOut", immediateRender: false }, 0.6);
+      // one soft glow breathe; odd repeat, ends 2.6+2*0.8=4.2 < 5.1 fade start
+      tl.to("#card", { boxShadow: "0 18px 44px rgba(0,0,0,0.55), 0 0 22px rgba(236,72,153,0.45)",
+        duration: 0.8, ease: "sine.inOut", yoyo: true, repeat: 1 }, 2.6);
+
+      // ---------- fade out, FINISHING exactly at 5.4 ----------
+      // #gfx carries the drift transform, so it fades itself.
+      tl.fromTo("#gfx", { opacity: 1 },
+        { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 5.1);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

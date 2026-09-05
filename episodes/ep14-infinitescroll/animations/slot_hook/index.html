@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP14 slot_hook — the feed that never ends</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      html, body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+
+      #root {
+        position: relative;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+      }
+      #scene { position: absolute; inset: 0; }
+
+      /* ------------------------------------------------------------------
+         NO #bg-fill. This overlay runs at output 0.000, simultaneously with
+         the episode title card (left:70 / top:190 / 0-2.766s), so it lives
+         entirely in the RIGHT half of the frame over live footage.
+         Design band used: x 590-1050, y 500-1240.
+         ------------------------------------------------------------------ */
+
+      /* full-frame atmospheric layer (exempt from the 180-1280 band) --
+         a soft dark pool weighted to the right so the photo column reads
+         against the footage. Alpha is ~0 by the time it reaches the title. */
+      #vignette {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 400px 580px at 820px 890px,
+          rgba(2, 4, 7, 0.60) 0%,
+          rgba(2, 4, 7, 0.38) 52%,
+          rgba(2, 4, 7, 0.14) 80%,
+          rgba(2, 4, 7, 0) 100%
+        );
+      }
+
+      /* stage carries the whole composition + the camera push-in.
+         transform-origin is pinned to the TOP of the content band so the
+         push-in can only grow downward/sideways and never climbs toward
+         the title block. */
+      #stage {
+        position: absolute;
+        inset: 0;
+        transform-origin: 820px 500px;
+        opacity: 0.55;           /* frame-0 state comes from CSS, not tl.set */
+      }
+
+      /* atmosphere glow behind the column (background layer, z below UI) */
+      #glow-cyan {
+        position: absolute;
+        left: 590px;
+        top: 640px;
+        width: 460px;
+        height: 460px;
+        z-index: 1;
+        border-radius: 50%;
+        opacity: 0.55;
+        transform-origin: 50% 50%;
+        background: radial-gradient(
+          circle,
+          rgba(56, 189, 248, 0.20) 0%,
+          rgba(56, 189, 248, 0.10) 44%,
+          rgba(56, 189, 248, 0) 72%
+        );
+      }
+
+      /* ---------------- the feed viewport ---------------- */
+      #viewport {
+        position: absolute;
+        left: 590px;
+        top: 500px;
+        width: 400px;
+        height: 740px;
+        z-index: 2;
+        overflow: hidden;
+        border-radius: 24px;
+        border: 1.5px solid rgba(148, 163, 184, 0.42);
+        box-shadow: 0 26px 70px rgba(0, 0, 0, 0.5);
+        -webkit-mask-origin: border-box;
+        mask-origin: border-box;
+        -webkit-mask-image: linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0) 0%,
+          #000 5%,
+          #000 91%,
+          rgba(0, 0, 0, 0) 100%
+        );
+        mask-image: linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0) 0%,
+          #000 5%,
+          #000 91%,
+          rgba(0, 0, 0, 0) 100%
+        );
+      }
+
+      #column {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 26px;
+      }
+
+      .tile {
+        position: relative;
+        width: 100%;
+        height: 340px;
+        flex: 0 0 340px;
+        border-radius: 20px;
+        overflow: hidden;
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        box-shadow: 0 16px 38px rgba(0, 0, 0, 0.45);
+        background: #0a0d12;
+      }
+      .tile img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: 50% 45%;
+        filter: saturate(1.02) contrast(1.04) brightness(0.94);
+      }
+      .tile::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 20px;
+        background: linear-gradient(
+          to bottom,
+          rgba(3, 6, 10, 0.1) 0%,
+          rgba(3, 6, 10, 0) 34%,
+          rgba(3, 6, 10, 0.28) 100%
+        );
+      }
+
+      /* ---------------- the scrollbar ---------------- */
+      #track {
+        position: absolute;
+        left: 1032px;
+        top: 500px;
+        width: 14px;
+        height: 740px;
+        z-index: 3;
+      }
+      /* ACT 1 chrome: a bounded, neutral track -- "there is an end" */
+      #track-solid {
+        position: absolute;
+        inset: 0;
+        border-radius: 7px;
+        background: rgba(148, 163, 184, 0.22);
+        opacity: 1;
+      }
+      /* ACT 2 chrome: cyan, and it simply stops being drawn -- no bottom */
+      #track-open {
+        position: absolute;
+        inset: 0;
+        border-radius: 7px;
+        opacity: 0;
+        background: linear-gradient(
+          to bottom,
+          rgba(125, 211, 252, 0.32) 0%,
+          rgba(125, 211, 252, 0.26) 34%,
+          rgba(125, 211, 252, 0.1) 72%,
+          rgba(125, 211, 252, 0) 100%
+        );
+      }
+      /* the end-cap: the literal bottom end of the track */
+      #track-cap {
+        position: absolute;
+        left: 0;
+        top: 728px;
+        width: 14px;
+        height: 10px;
+        border-radius: 5px;
+        background: rgba(203, 213, 225, 0.9);
+        box-shadow: 0 0 10px 1px rgba(203, 213, 225, 0.35);
+        transform-origin: 50% 100%;
+        opacity: 1;
+      }
+      #thumb {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 14px;
+        height: 200px;
+        border-radius: 7px;
+        background: rgba(226, 232, 240, 0.88);
+        box-shadow: 0 0 12px 1px rgba(226, 232, 240, 0.25);
+      }
+
+      /* full-frame deterministic grain (exempt layer) */
+      #grain {
+        position: absolute;
+        inset: 0;
+        opacity: 1;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="7.6"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="7.6"
+        data-track-index="1"
+      >
+        <div id="vignette"></div>
+
+        <div id="stage">
+          <div id="glow-cyan"></div>
+
+          <div id="viewport">
+            <div
+              id="column"
+              data-layout-allow-overflow="true"
+              data-layout-allow-occlusion="true"
+            >
+              <div class="tile" data-layout-allow-overflow="true" data-layout-allow-occlusion="true">
+                <img src="assets/feed_bbb85a47.jpg" alt="" data-layout-allow-overflow="true" />
+              </div>
+              <div class="tile" data-layout-allow-overflow="true" data-layout-allow-occlusion="true">
+                <img src="assets/feed_1b2a7584.jpg" alt="" data-layout-allow-overflow="true" />
+              </div>
+              <div class="tile" data-layout-allow-overflow="true" data-layout-allow-occlusion="true">
+                <img src="assets/feed_c69049e9.jpg" alt="" data-layout-allow-overflow="true" />
+              </div>
+              <div class="tile" data-layout-allow-overflow="true" data-layout-allow-occlusion="true">
+                <img src="assets/feed_ea30e5a3.jpg" alt="" data-layout-allow-overflow="true" />
+              </div>
+              <div class="tile" data-layout-allow-overflow="true" data-layout-allow-occlusion="true">
+                <img src="assets/feed_f1e06c66.jpg" alt="" data-layout-allow-overflow="true" />
+              </div>
+              <div class="tile" data-layout-allow-overflow="true" data-layout-allow-occlusion="true">
+                <img src="assets/feed_beb70e5b.jpg" alt="" data-layout-allow-overflow="true" />
+              </div>
+              <div class="tile" data-layout-allow-overflow="true" data-layout-allow-occlusion="true">
+                <img src="assets/feed_2e44c9b9.jpg" alt="" data-layout-allow-overflow="true" />
+              </div>
+              <div class="tile" data-layout-allow-overflow="true" data-layout-allow-occlusion="true">
+                <img src="assets/feed_69b6a75e.jpg" alt="" data-layout-allow-overflow="true" />
+              </div>
+            </div>
+          </div>
+
+          <div id="track">
+            <div id="track-solid"></div>
+            <div id="track-open"></div>
+            <div id="track-cap"></div>
+            <div id="thumb" data-layout-allow-occlusion="true"></div>
+          </div>
+        </div>
+
+        <div id="grain"></div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter">
+        <feTurbulence
+          type="fractalNoise"
+          baseFrequency="0.85"
+          numOctaves="2"
+          stitchTiles="stitch"
+          result="noise"
+        />
+        <feColorMatrix
+          in="noise"
+          type="matrix"
+          values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.04 0"
+        />
+      </filter>
+    </svg>
+
+    <script>
+      document.getElementById("grain").style.filter = "url(#grain-filter)";
+
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ------------------------------------------------------------------
+      // Local clock. Slot starts at output 0.000, so local == output.
+      //   ACT 1        0.00 - 1.97   constant-velocity scroll, bounded track
+      //   TURN         1.97 - 2.55   thumb collapses to a sliver, track's
+      //                              bottom end dissolves  ("never end" =
+      //                              output 1.97-2.44)
+      //   ACT 2        2.55 - 7.30   same scroll, track has no end
+      //   FADE         7.30 - 7.60   finishes at exactly 7.600
+      // ------------------------------------------------------------------
+      const D = 7.6;
+      const TURN = 1.97;
+      const FADE_AT = 7.3;
+      const FADE_DUR = 0.3; // 7.30 + 0.30 = 7.600 exactly
+
+      // Frame-0 transform state. These are BUILD-TIME gsap.set() calls (not
+      // tl.set(), which never fires at position 0 in this renderer), so they
+      // are written to the DOM at load and are present on frame 0.
+      gsap.set("#stage", { scale: 0.975 });
+      gsap.set("#column", { y: 0 });
+      gsap.set("#thumb", { y: 0 });
+
+      // ---------- primary entrance: begins at t=0, already 0.55 opacity ----------
+      tl.fromTo(
+        "#stage",
+        { opacity: 0.55, scale: 0.975 },
+        { opacity: 1, scale: 1, duration: 0.55, ease: "power3.out" },
+        0
+      );
+
+      // ---------- camera push-in (origin pinned to y=500, the band top) ----------
+      // 1.000 -> 1.045 about (820, 500). Worst-case composed bounds resolved
+      // in the report: x 572.4-1067.6, y 500-1273.3.
+      tl.to("#stage", { scale: 1.045, duration: 7.05, ease: "sine.inOut" }, 0.55);
+
+      // ---------- ACT 1 + ACT 2: one uninterrupted constant-velocity scroll ----------
+      // 8 tiles x 340px + 7 x 26px gap = 2902px of column inside a 737px
+      // viewport. 2150px of travel over 7.60s = 282.9 px/s. ease:"none" is
+      // deliberate (spec trap 6): a scroll that decelerates reads as ending.
+      tl.fromTo("#column", { y: 0 }, { y: -2150, duration: D, ease: "none" }, 0);
+
+      // ---------- ACT 1: the thumb descends AND shrinks ----------
+      // A shrinking thumb = "the content underneath keeps growing".
+      tl.fromTo(
+        "#thumb",
+        { y: 0, height: 200 },
+        { y: 300, height: 96, duration: TURN, ease: "none" },
+        0
+      );
+
+      // ---------- THE TURN @ 1.97 (lands inside "never end", 1.97-2.44) ----------
+      // 1. the thumb collapses to a sliver
+      tl.to("#thumb", { y: 470, height: 14, duration: 0.34, ease: "power4.out" }, TURN);
+      // 2. it flares cyan as it collapses, then settles into the act-2 colour
+      tl.to(
+        "#thumb",
+        {
+          backgroundColor: "rgba(125,211,252,1)",
+          boxShadow: "0 0 28px 5px rgba(125,211,252,0.9)",
+          duration: 0.12,
+          ease: "power4.out",
+        },
+        TURN
+      );
+      tl.to(
+        "#thumb",
+        {
+          backgroundColor: "rgba(125,211,252,0.92)",
+          boxShadow: "0 0 14px 2px rgba(125,211,252,0.45)",
+          duration: 0.45,
+          ease: "power3.out",
+        },
+        TURN + 0.12
+      );
+      // 3. the track's bottom END-CAP dissolves in place (no downward travel --
+      //    it would leave the 1280 band once the push-in is composed)
+      tl.to(
+        "#track-cap",
+        { scaleY: 0, opacity: 0, duration: 0.36, ease: "power3.out" },
+        TURN + 0.05
+      );
+      // 4. colour phase-shift: bounded slate track -> open cyan track that
+      //    simply fades out toward the bottom instead of ending
+      tl.to("#track-solid", { opacity: 0, duration: 0.5, ease: "power2.inOut" }, TURN + 0.08);
+      tl.to("#track-open", { opacity: 1, duration: 0.5, ease: "power2.inOut" }, TURN + 0.08);
+      tl.to(
+        "#viewport",
+        { borderColor: "rgba(125,211,252,0.55)", duration: 0.6, ease: "power2.out" },
+        TURN + 0.08
+      );
+      tl.to("#glow-cyan", { opacity: 1, scale: 1.03, duration: 0.55, ease: "power3.out" }, TURN + 0.13);
+
+      // ---------- ACT 2: the sliver creeps, asymptotically, forever ----------
+      tl.to("#thumb", { y: 560, height: 10, duration: 5.29, ease: "none" }, 2.31);
+
+      // ---------- ambient life (both yoyo repeats ODD -> land back on base) ----------
+      // ends 3.00 + (3+1)*0.60 = 5.40  < 7.30
+      tl.to(
+        "#thumb",
+        {
+          boxShadow: "0 0 24px 4px rgba(125,211,252,0.75)",
+          duration: 0.6,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 3,
+        },
+        3.0
+      );
+      // ends 3.20 + (3+1)*0.90 = 6.80  < 7.30 ; base is opacity 1
+      tl.to(
+        "#glow-cyan",
+        { opacity: 0.74, duration: 0.9, ease: "sine.inOut", yoyo: true, repeat: 3 },
+        3.2
+      );
+
+      // ---------- FADE: finishes at exactly 7.600, zero buffer ----------
+      // Explicit {opacity:1} start + gsap.defaults({lazy:false}).
+      // #track-solid and #track-cap are deliberately EXCLUDED: they already
+      // rest at opacity 0 after the turn, and a fromTo {opacity:1} would
+      // resurrect them for the last 0.3s. Every target below genuinely rests
+      // at opacity 1 at t=7.30.
+      tl.fromTo(
+        [
+          "#vignette",
+          "#stage",
+          "#glow-cyan",
+          "#viewport",
+          "#column",
+          "#track-open",
+          "#thumb",
+          "#grain",
+        ],
+        { opacity: 1 },
+        { opacity: 0, duration: FADE_DUR, ease: "power1.in", immediateRender: false },
+        FADE_AT
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

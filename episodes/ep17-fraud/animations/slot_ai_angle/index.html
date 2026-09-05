@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body {
+        font-family: Inter, sans-serif;
+      }
+
+      :root {
+        --cyan: #38bdf8;
+        --cyan-lt: #bae6fd;
+        --red: #ef4444;
+        --red-lt: #fecaca;
+        --mint: #34d399;
+        --mint-lt: #a7f3d0;
+      }
+
+      #root {
+        position: relative;
+      }
+      .fill {
+        position: absolute;
+        inset: 0;
+      }
+
+      /* ---------------- fade layer (the ONLY layer that fades) ---------------- */
+      #fade-wrap {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        opacity: 1;
+      }
+
+      /* ---------------- background: opaque, present on frame 0 ---------------- */
+      #bg-fill {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          125% 95% at 50% 30%,
+          #101a2a 0%,
+          #0a0f18 45%,
+          #05070c 80%,
+          #030407 100%
+        );
+      }
+      #glow-blue {
+        position: absolute;
+        left: 50%;
+        top: 44%;
+        width: 1500px;
+        height: 1500px;
+        margin-left: -750px;
+        margin-top: -750px;
+        background: radial-gradient(
+          circle,
+          rgba(56, 189, 248, 0.14) 0%,
+          rgba(56, 189, 248, 0) 62%
+        );
+        opacity: 1;
+      }
+      #glow-red {
+        position: absolute;
+        left: 68%;
+        top: 22%;
+        width: 1150px;
+        height: 1150px;
+        margin-left: -575px;
+        margin-top: -575px;
+        background: radial-gradient(
+          circle,
+          rgba(239, 68, 68, 0.11) 0%,
+          rgba(239, 68, 68, 0) 60%
+        );
+      }
+      #vignette {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 780px 1000px at 50% 44%,
+          rgba(0, 0, 0, 0) 0%,
+          rgba(0, 0, 0, 0) 44%,
+          rgba(2, 4, 8, 0.58) 76%,
+          rgba(1, 2, 5, 0.94) 100%
+        );
+      }
+
+      /* ---------------- camera push-in wrapper ---------------- */
+      #scene {
+        position: absolute;
+        inset: 0;
+        transform-origin: 540px 728px;
+      }
+
+      /* ---------------- headline ---------------- */
+      #headline {
+        position: absolute;
+        left: 90px;
+        top: 250px;
+        width: 900px;
+        text-align: center;
+        opacity: 0.55;
+      }
+      .hl-line {
+        font-size: 110px;
+        line-height: 116px;
+        font-weight: 800;
+        letter-spacing: -2px;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
+        white-space: nowrap;
+      }
+      #hl-1 {
+        color: #e9eff7;
+      }
+      #hl-2 {
+        color: #6ee7b7;
+        opacity: 0;
+      }
+
+      /* ---------------- the model card ---------------- */
+      #card {
+        position: absolute;
+        left: 100px;
+        top: 542px;
+        width: 880px;
+        height: 678px;
+        border-radius: 26px;
+        background: linear-gradient(
+          165deg,
+          rgba(16, 24, 36, 0.94) 0%,
+          rgba(8, 12, 20, 0.97) 100%
+        );
+        border: 1.5px solid rgba(120, 180, 235, 0.2);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        opacity: 0.55;
+        transform: scale(0.975);
+        transform-origin: 50% 50%;
+      }
+
+      #live-row {
+        position: absolute;
+        left: 60px;
+        top: 22px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        gap: 30px;
+        opacity: 0.5;
+      }
+      #live-dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #f87171;
+        box-shadow: 0 0 12px 3px rgba(248, 113, 113, 0.55);
+        flex-shrink: 0;
+      }
+      #live-label {
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 24px;
+        letter-spacing: 3px;
+        color: rgba(186, 230, 253, 0.82);
+        white-space: nowrap;
+      }
+
+      #chip {
+        position: absolute;
+        right: 60px;
+        top: 16px;
+        height: 52px;
+        padding: 0 24px;
+        display: flex;
+        align-items: center;
+        border-radius: 12px;
+        background: rgba(6, 34, 26, 0.9);
+        border: 1.5px solid rgba(52, 211, 153, 0.65);
+        box-shadow: 0 0 20px rgba(52, 211, 153, 0.3);
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 24px;
+        letter-spacing: 3px;
+        color: #a7f3d0;
+        white-space: nowrap;
+        opacity: 0;
+      }
+
+      #plot {
+        position: absolute;
+        left: 60px;
+        top: 106px;
+        width: 760px;
+        height: 522px;
+      }
+
+      .axis-rule {
+        stroke: rgba(148, 180, 220, 0.18);
+        stroke-width: 1.5;
+      }
+      #curve,
+      #curve-glow {
+        fill: none;
+        stroke-linecap: round;
+      }
+      #curve {
+        stroke: #38bdf8;
+        stroke-width: 5;
+      }
+      #curve-glow {
+        stroke: #38bdf8;
+        stroke-width: 15;
+        opacity: 0.28;
+        filter: blur(9px);
+      }
+      #curve-ghost {
+        fill: none;
+        stroke: #7dd3fc;
+        stroke-width: 2.5;
+        stroke-dasharray: 9 11;
+        opacity: 0;
+      }
+      .pt,
+      .cpt {
+        opacity: 0;
+      }
+      .dot {
+        fill: #bae6fd;
+        stroke: #0ea5e9;
+        stroke-width: 2;
+      }
+      .cdot {
+        fill: #fecaca;
+        stroke: #ef4444;
+        stroke-width: 2.5;
+      }
+
+      /* ---------------- full-frame effect layers ---------------- */
+      #turn-flash {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 980px 760px at 62% 46%,
+          rgba(248, 113, 113, 0.6) 0%,
+          rgba(248, 113, 113, 0) 70%
+        );
+        opacity: 0;
+        pointer-events: none;
+      }
+      #grain {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="5.70"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="stage"
+        class="clip"
+        data-start="0"
+        data-duration="5.70"
+        data-track-index="1"
+      >
+        <div id="fade-wrap">
+          <div id="bg-fill">
+            <div id="glow-blue"></div>
+            <div id="glow-red"></div>
+          </div>
+          <div id="vignette"></div>
+
+          <div id="scene">
+            <div id="headline">
+              <div class="hl-line" id="hl-1">The model</div>
+              <div class="hl-line" id="hl-2">keeps adapting</div>
+            </div>
+
+            <div id="card">
+              <div id="live-row">
+                <div id="live-dot"></div>
+                <div id="live-label">LIVE SCORING</div>
+              </div>
+
+              <div id="chip">ADAPTED</div>
+
+              <svg id="plot" viewBox="0 0 760 522" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <clipPath id="revealClip">
+                    <rect id="revealRect" x="0" y="0" width="0" height="522" />
+                  </clipPath>
+                  <linearGradient id="scanTrail" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0" stop-color="#38bdf8" stop-opacity="0" />
+                    <stop offset="1" stop-color="#38bdf8" stop-opacity="0.22" />
+                  </linearGradient>
+                  <linearGradient id="scanLine" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#7dd3fc" stop-opacity="0.12" />
+                    <stop offset="0.5" stop-color="#e0f2fe" stop-opacity="0.9" />
+                    <stop offset="1" stop-color="#7dd3fc" stop-opacity="0.12" />
+                  </linearGradient>
+                  <radialGradient id="haloCyan">
+                    <stop offset="0" stop-color="#38bdf8" stop-opacity="0.5" />
+                    <stop offset="1" stop-color="#38bdf8" stop-opacity="0" />
+                  </radialGradient>
+                  <radialGradient id="haloRed">
+                    <stop offset="0" stop-color="#f87171" stop-opacity="0.6" />
+                    <stop offset="1" stop-color="#f87171" stop-opacity="0" />
+                  </radialGradient>
+                  <radialGradient id="haloGreen">
+                    <stop offset="0" stop-color="#34d399" stop-opacity="0.55" />
+                    <stop offset="1" stop-color="#34d399" stop-opacity="0" />
+                  </radialGradient>
+                </defs>
+
+                <!-- unlabelled axis rules: no ticks, no numbers, no legend -->
+                <line class="axis-rule" x1="16" y1="14" x2="16" y2="502" />
+                <line class="axis-rule" x1="16" y1="502" x2="744" y2="502" />
+
+                <!-- the streaming feed: a scoring sweep at constant velocity -->
+                <g id="scan" transform="translate(-30,0)">
+                  <rect x="-92" y="14" width="92" height="488" fill="url(#scanTrail)" />
+                  <rect x="-2" y="14" width="3" height="488" fill="url(#scanLine)" />
+                </g>
+
+                <!-- the OLD baseline, left behind once the curve migrates -->
+                <path
+                  id="curve-ghost"
+                  d="M30,428 C130,410 210,372 300,336 C400,296 520,262 730,244"
+                />
+
+                <!-- the live baseline curve (drawn in under the sweep) -->
+                <g clip-path="url(#revealClip)">
+                  <path
+                    id="curve-glow"
+                    d="M30,428 C130,410 210,372 300,336 C400,296 520,262 730,244"
+                  />
+                  <path
+                    id="curve"
+                    d="M30,428 C130,410 210,372 300,336 C400,296 520,262 730,244"
+                  />
+                </g>
+
+                <!-- baseline transactions: on the curve -->
+                <g class="pt"><circle cx="72" cy="414" r="15" fill="url(#haloCyan)" /><circle class="dot" cx="72" cy="414" r="2" /></g>
+                <g class="pt"><circle cx="128" cy="400" r="15" fill="url(#haloCyan)" /><circle class="dot" cx="128" cy="400" r="2" /></g>
+                <g class="pt"><circle cx="186" cy="380" r="15" fill="url(#haloCyan)" /><circle class="dot" cx="186" cy="380" r="2" /></g>
+                <g class="pt"><circle cx="246" cy="356" r="15" fill="url(#haloCyan)" /><circle class="dot" cx="246" cy="356" r="2" /></g>
+                <g class="pt"><circle cx="300" cy="330" r="15" fill="url(#haloCyan)" /><circle class="dot" cx="300" cy="330" r="2" /></g>
+                <g class="pt"><circle cx="356" cy="316" r="15" fill="url(#haloCyan)" /><circle class="dot" cx="356" cy="316" r="2" /></g>
+                <g class="pt"><circle cx="414" cy="296" r="15" fill="url(#haloCyan)" /><circle class="dot" cx="414" cy="296" r="2" /></g>
+
+                <!-- the pattern shift: a new cluster, well off the curve -->
+                <g class="cpt">
+                  <circle class="chalo-red" cx="588" cy="160" r="17" fill="url(#haloRed)" />
+                  <circle class="chalo-grn" cx="588" cy="160" r="17" fill="url(#haloGreen)" opacity="0" />
+                  <circle class="cdot" cx="588" cy="160" r="2" />
+                </g>
+                <g class="cpt">
+                  <circle class="chalo-red" cx="634" cy="122" r="17" fill="url(#haloRed)" />
+                  <circle class="chalo-grn" cx="634" cy="122" r="17" fill="url(#haloGreen)" opacity="0" />
+                  <circle class="cdot" cx="634" cy="122" r="2" />
+                </g>
+                <g class="cpt">
+                  <circle class="chalo-red" cx="688" cy="150" r="17" fill="url(#haloRed)" />
+                  <circle class="chalo-grn" cx="688" cy="150" r="17" fill="url(#haloGreen)" opacity="0" />
+                  <circle class="cdot" cx="688" cy="150" r="2" />
+                </g>
+                <g class="cpt">
+                  <circle class="chalo-red" cx="646" cy="190" r="17" fill="url(#haloRed)" />
+                  <circle class="chalo-grn" cx="646" cy="190" r="17" fill="url(#haloGreen)" opacity="0" />
+                  <circle class="cdot" cx="646" cy="190" r="2" />
+                </g>
+                <g class="cpt">
+                  <circle class="chalo-red" cx="718" cy="100" r="17" fill="url(#haloRed)" />
+                  <circle class="chalo-grn" cx="718" cy="100" r="17" fill="url(#haloGreen)" opacity="0" />
+                  <circle class="cdot" cx="718" cy="100" r="2" />
+                </g>
+              </svg>
+            </div>
+          </div>
+
+          <div id="turn-flash"></div>
+          <div id="grain"></div>
+        </div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter">
+        <feTurbulence
+          type="fractalNoise"
+          baseFrequency="0.85"
+          numOctaves="2"
+          stitchTiles="stitch"
+          result="noise"
+        />
+        <feColorMatrix
+          in="noise"
+          type="matrix"
+          values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.042 0"
+        />
+      </filter>
+    </svg>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      document.getElementById("grain").style.filter = "url(#grain-filter)";
+
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      const D = 5.7;
+      const FADE_START = 5.36;
+      const FADE_DUR = 0.34; // 5.36 + 0.34 = 5.70 exactly
+
+      // ---------- curve migration: anchor/control literals, NO rotation ----------
+      const HEAD = "M30,428 C130,410 210,372 300,336 C";
+      const CURVE_A = [400, 296, 520, 262, 730, 244]; // fixed baseline
+      const CURVE_B = [410, 300, 520, 196, 730, 104]; // re-fit to the new cluster
+      const curveEl = document.getElementById("curve");
+      const curveGlowEl = document.getElementById("curve-glow");
+      const mig = { p: 0 };
+      function applyCurve() {
+        const p = mig.p;
+        const v = CURVE_A.map((a, i) => a + (CURVE_B[i] - a) * p);
+        const d =
+          HEAD +
+          v[0].toFixed(2) + "," + v[1].toFixed(2) + " " +
+          v[2].toFixed(2) + "," + v[3].toFixed(2) + " " +
+          v[4].toFixed(2) + "," + v[5].toFixed(2);
+        curveEl.setAttribute("d", d);
+        curveGlowEl.setAttribute("d", d);
+      }
+
+      // ---------- continuous: slow camera push-in ----------
+      // origin pinned to the content band's own centre (540px, 728px)
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.05, duration: D, ease: "sine.inOut" }, 0);
+
+      // ambient background breath (odd repeat -> lands back on base; ends 5.10)
+      tl.to("#glow-blue", { opacity: 0.62, duration: 2.55, ease: "sine.inOut", yoyo: true, repeat: 1 }, 0);
+
+      // ---------- frame-0 content, already visible at 0.5-0.55, ramps up ----------
+      tl.fromTo(
+        "#card",
+        { opacity: 0.55, scale: 0.975 },
+        { opacity: 1, scale: 1, duration: 0.6, ease: "power3.out" },
+        0
+      );
+      tl.to("#headline", { opacity: 1, duration: 0.6, ease: "power3.out" }, 0.12);
+      tl.to("#live-row", { opacity: 1, duration: 0.55, ease: "power3.out" }, 0.24);
+
+      // ---------- ACT 1 : the streaming feed (ONE visual event) ----------
+      // constant-velocity scoring sweep, 3 passes: 0 + 3*1.72 = 5.16 < 5.36
+      const SWEEP = 1.72;
+      tl.fromTo("#scan", { x: -30 }, { x: 790, duration: SWEEP, ease: "none", repeat: 2 }, 0);
+      // sweep is faded out before the timeline ends so nothing is stranded
+      tl.to("#scan", { opacity: 0, duration: 0.5, ease: "power2.out" }, 4.7);
+
+      // the baseline curve draws in exactly under the first sweep
+      // sweep x(t) = -30 + 820*(t/1.72) -> x=0 at t=0.063, x=760 at t=1.657
+      tl.to("#revealRect", { attr: { width: 760 }, duration: 1.594, ease: "none" }, 0.063);
+
+      // baseline transactions pop as the sweep crosses them (one stream, not 7 reveals)
+      const BASE_X = [72, 128, 186, 246, 300, 356, 414];
+      const BASE_PTS = document.querySelectorAll(".pt");
+      BASE_X.forEach((x, i) => {
+        const t = (SWEEP * (x + 30)) / 820;
+        tl.fromTo(
+          BASE_PTS[i],
+          { opacity: 0 },
+          { opacity: 1, duration: 0.3, ease: "power3.out", immediateRender: false },
+          t
+        );
+        tl.fromTo(
+          BASE_PTS[i].querySelector(".dot"),
+          { attr: { r: 2 } },
+          { attr: { r: 8 }, duration: 0.34, ease: "power3.out", immediateRender: false },
+          t
+        );
+      });
+
+      // ambient: live indicator (odd repeat, ends 0.30 + 8*0.55 = 4.70)
+      tl.to("#live-dot", { opacity: 0.28, duration: 0.55, ease: "sine.inOut", yoyo: true, repeat: 7 }, 0.3);
+      // ambient: baseline glow breath (odd repeat, ends 1.00 + 4*0.90 = 4.60)
+      tl.to("#curve-glow", { opacity: 0.52, duration: 0.9, ease: "sine.inOut", yoyo: true, repeat: 3 }, 1.0);
+
+      // ---------- THE TURN @ 2.02 : the spending pattern shifts ----------
+      tl.fromTo("#turn-flash", { opacity: 0 }, { opacity: 0.2, duration: 0.07, ease: "power4.out", immediateRender: false }, 2.02);
+      tl.to("#turn-flash", { opacity: 0, duration: 0.34, ease: "power3.out" }, 2.09);
+
+      tl.fromTo(
+        ".cpt",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.3, ease: "power3.out", stagger: 0.075, immediateRender: false },
+        2.08
+      );
+      tl.fromTo(
+        ".cdot",
+        { attr: { r: 2 } },
+        { attr: { r: 8 }, duration: 0.36, ease: "power4.out", stagger: 0.075, immediateRender: false },
+        2.08
+      );
+      // flagged pulse (odd repeat, ends 2.55 + 2*0.50 = 3.55)
+      tl.to(".chalo-red", { attr: { r: 24 }, opacity: 0.55, duration: 0.5, ease: "sine.inOut", yoyo: true, repeat: 1 }, 2.55);
+
+      // ---------- ACT 2 : the baseline MIGRATES  (2.82 -> 4.80) ----------
+      // lands across "keeps adapting as your habits change" = LOCAL 2.80-5.70
+      tl.to(mig, { p: 1, duration: 1.98, ease: "power2.inOut", onUpdate: applyCurve }, 2.82);
+      // the old baseline is left visible as a dashed ghost so the move is legible
+      tl.fromTo("#curve-ghost", { opacity: 0 }, { opacity: 0.32, duration: 0.5, ease: "power3.out", immediateRender: false }, 2.82);
+      tl.to("#curve-ghost", { opacity: 0.16, duration: 0.6, ease: "sine.inOut" }, 4.2);
+      // colour phase-shift: cyan baseline -> mint adapted baseline
+      tl.to("#curve", { stroke: "#34d399", duration: 1.9, ease: "sine.inOut" }, 2.9);
+      tl.to("#curve-glow", { stroke: "#34d399", duration: 1.9, ease: "sine.inOut" }, 2.9);
+
+      // the headline resolves on the word
+      tl.fromTo("#hl-2", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.55, ease: "power3.out", immediateRender: false }, 3.15);
+
+      // the flagged cluster goes green as the curve arrives (4.05 -> 4.80)
+      tl.to(".cdot", { fill: "#a7f3d0", stroke: "#10b981", duration: 0.35, ease: "power3.out", stagger: 0.1 }, 4.05);
+      tl.to(".chalo-red", { opacity: 0, duration: 0.35, ease: "power3.out", stagger: 0.1 }, 4.05);
+      tl.to(".chalo-grn", { opacity: 1, duration: 0.35, ease: "power3.out", stagger: 0.1 }, 4.05);
+
+      tl.fromTo("#chip", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 4.55);
+
+      // ---------- fade: ONE layer, finishes at exactly 5.70 ----------
+      tl.fromTo(
+        "#fade-wrap",
+        { opacity: 1 },
+        { opacity: 0, duration: FADE_DUR, ease: "power2.inOut", immediateRender: false },
+        FADE_START
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

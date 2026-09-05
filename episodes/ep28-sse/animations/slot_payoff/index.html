@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP28 payoff - first word right away (corner accent)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent; /* CORNER ACCENT: footage otherwise untouched */
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      /* Grid-measured on the PAYOFF frames (src 150.6 / 152.3 / 155.3): hair top
+         ~100, glasses/brow ~680, chin ~1180, face x 180-820. Upper-right corner of
+         the band, over hair + pink wall only: chip x 470-850, y 230-392. Bed glyph
+         below it at y 424-524, x 470-640. Nothing below y 524; brow at 680. */
+      #chip {
+        position: absolute;
+        left: 470px;
+        top: 230px;
+        width: 380px;
+        height: 162px;
+        border-radius: 22px;
+        background: linear-gradient(170deg, rgba(33, 33, 40, 0.90), rgba(22, 22, 28, 0.90));
+        border: 2px solid rgba(255, 255, 255, 0.16);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45); /* reach 20px -> 412, above the bed */
+        opacity: 0.55;
+        transform: scale(0.94);
+        transform-origin: 50% 50%; /* drift 1.01: x 468.1-851.9, y 229.2-392.8 */
+      }
+      #ava {
+        position: absolute;
+        left: 20px;
+        top: 20px;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        border: 2px solid rgba(255, 255, 255, 0.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #ava svg { width: 26px; height: 26px; }
+      #hdr {
+        position: absolute;
+        left: 76px;
+        top: 24px;
+        color: #9a9aa6;
+        font-size: 22px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+      }
+      /* the answer line: local 84-140 (abs 314-370) */
+      #line {
+        position: absolute;
+        left: 20px;
+        top: 84px;
+        height: 56px;
+        white-space: nowrap;
+        font-size: 35px;
+        line-height: 56px;
+        color: #f4f4f8;
+        letter-spacing: 0.2px;
+      }
+      #first { opacity: 0; font-weight: 800; color: #b6ff2b; text-shadow: 0 0 14px rgba(182, 255, 43, 0.55); }
+      #rest { opacity: 0.28; }
+      #caret {
+        position: absolute;
+        left: 20px;
+        top: 92px;
+        width: 5px;
+        height: 40px;
+        border-radius: 2px;
+        background: #f4f4f8;
+      }
+
+      /* bed-with-phone glyph, hidden at rest (enters on "bed rot" @1.985) */
+      #bed {
+        position: absolute;
+        left: 470px;
+        top: 424px;
+        width: 170px;
+        height: 100px;
+        opacity: 0;
+        transform-origin: 50% 100%;
+        filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+      }
+      #zz {
+        position: absolute;
+        left: 650px;
+        top: 424px;
+        width: 90px;
+        height: 90px;
+        opacity: 0;
+        color: #ff2bd6;
+        font-weight: 900;
+        font-size: 34px;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+      }
+      #zz span { position: absolute; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="4.8" data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="4.8" data-track-index="1">
+        <div id="chip">
+          <div id="ava">
+            <svg viewBox="0 0 40 40" fill="none">
+              <path d="M20 4 L33 11.5 V27.5 L20 35 L7 27.5 V11.5 Z" stroke="#ececf1" stroke-width="3" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div id="hdr">streaming</div>
+          <div id="line"><span id="first">chat</span><span id="rest"> is this real 6 7</span></div>
+          <div id="caret"></div>
+        </div>
+
+        <svg id="bed" viewBox="0 0 170 100" fill="none">
+          <!-- bed frame -->
+          <rect x="6" y="46" width="158" height="34" rx="8" fill="#5b3bd6"/>
+          <rect x="6" y="46" width="158" height="12" rx="6" fill="#7c5cff"/>
+          <rect x="6" y="80" width="14" height="16" rx="3" fill="#3a2591"/>
+          <rect x="150" y="80" width="14" height="16" rx="3" fill="#3a2591"/>
+          <!-- pillow + blanket -->
+          <rect x="14" y="30" width="44" height="22" rx="8" fill="#f4f4f8"/>
+          <path d="M56 40 h96 a10 10 0 0 1 10 10 v8 H56 z" fill="#ff2bd6"/>
+          <!-- head (round) -->
+          <circle cx="36" cy="26" r="13" fill="#ffd7b0"/>
+          <!-- phone held up, glowing -->
+          <rect x="78" y="8" width="20" height="34" rx="4" fill="#111" stroke="#29f0ff" stroke-width="3"/>
+          <rect x="82" y="13" width="12" height="22" rx="2" fill="#29f0ff" opacity="0.7"/>
+          <path d="M70 28 l-8 -10 M106 28 l8 -10" stroke="#29f0ff" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+        <div id="zz"><span style="left:0;top:50px">z</span><span style="left:24px;top:26px;font-size:40px">z</span><span style="left:52px;top:0;font-size:46px">z</span></div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // t=0 entrance, never from 0
+      tl.fromTo("#chip", { opacity: 0.55, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.3, ease: "power3.out" }, 0);
+      tl.fromTo("#chip", { scale: 1 }, { scale: 1.01, duration: 4.2, ease: "none", immediateRender: false }, 0.3);
+      // caret blink: 0.35s yoyo, repeat 11 -> ends 0.2 + 12*0.35 = 4.4 (< fade at 4.5)
+      tl.fromTo("#caret", { opacity: 1 }, { opacity: 0.15, duration: 0.35, ease: "sine.inOut", yoyo: true, repeat: 11, immediateRender: false }, 0.2);
+
+      // ACT 1 @0.305 "first word right away": the first word lands and the caret
+      // jumps to the end of the ghosted rest
+      const first = document.getElementById("first");
+      const rest = document.getElementById("rest");
+      const caretEnd = 20 + first.offsetWidth + rest.offsetWidth + 3;
+      tl.fromTo("#first", { opacity: 0, scale: 1.4 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.8)", immediateRender: false }, 0.3);
+      tl.set("#caret", { x: first.offsetWidth + 3 }, 0.3);
+      tl.fromTo("#caret", { x: first.offsetWidth + 3 }, { x: caretEnd - 20, duration: 0.5, ease: "power2.inOut", immediateRender: false }, 0.7);
+      tl.fromTo("#rest", { opacity: 0.28 }, { opacity: 0.45, duration: 0.7, ease: "sine.inOut", yoyo: true, repeat: 3, immediateRender: false }, 0.9);
+      // 0.9 + 4*0.7 = 3.7 < fade
+
+      // ACT 2 @1.985 "bed rot": the bed glyph pops below the chip, zzz drift up
+      tl.fromTo("#bed", { opacity: 0, scale: 0.5, y: 0 }, { opacity: 1, scale: 1, y: 0, duration: 0.4, ease: "back.out(1.6)", immediateRender: false }, 1.95);
+      tl.fromTo("#zz", { opacity: 0, y: 14 }, { opacity: 1, y: -10, duration: 0.7, ease: "power2.out", immediateRender: false }, 2.3);
+      tl.fromTo("#zz", { y: -10 }, { y: -22, duration: 0.75, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 3.0);
+
+      // fade lands EXACTLY at 4.8: 4.5 + 0.3
+      ["#chip", "#bed", "#zz"].forEach((s) =>
+        tl.fromTo(s, { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 4.5)
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

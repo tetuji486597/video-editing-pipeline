@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP20 HOOK — ChatGPT gets the R-count wrong (half-panel, lower band)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;   /* half-panel: live footage stays visible */
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      #fade-wrap { position: absolute; inset: 0; }
+
+      /* LOWER BAND, forced by variant B where the cold-open title sticker owns the top of
+         frame (sticker y 220-590). HOOK framing: brow ~710, mouth ~1040, chin ~1140 — this
+         shot has NO clear chest band (chin to caption-floor gap is ~140px), so per the
+         skill's option 4 this is an ARGUED overlap: the panel covers mouth/chin (y>=960),
+         never the eyes (750), and the fill is translucent (0.55) so the face reads through.
+         Stated in the build report, not silent. */
+      #chat-card {
+        position: absolute;
+        left: 70px;              /* x 70-850, inside x<=860 */
+        top: 960px;              /* y 960-1272; caption band top is >=1292 -> 20px+ gap */
+        width: 780px;
+        height: 312px;
+        border-radius: 24px;
+        background: rgba(10, 13, 22, 0.55);
+        border: 1.5px solid rgba(120, 160, 255, 0.35);
+        box-shadow: 0 10px 22px rgba(0, 0, 0, 0.40);  /* dark, background-grade */
+        overflow: hidden;
+        /* frame-0 state from CSS: primary entrance starts visible */
+        opacity: 0.55;
+        transform: translateY(30px);
+      }
+      #chat-header {
+        position: absolute;
+        left: 0; top: 0;
+        width: 780px; height: 48px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+        display: flex; align-items: center;
+        padding-left: 32px;
+        color: #e5e7eb;
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+      }
+      #chat-header .model-chip {
+        margin-left: 14px;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 17px;
+        font-weight: 500;
+        color: #94a3b8;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        border-radius: 8px;
+        padding: 2px 10px 3px 10px;
+      }
+
+      /* user bubble, right-aligned: canvas x ~276-830, y 1014-1076 */
+      #user-bubble {
+        position: absolute;
+        right: 20px;
+        top: 54px;
+        padding: 14px 22px 16px 22px;
+        border-radius: 20px 20px 6px 20px;
+        background: rgba(59, 91, 219, 0.50);
+        border: 1px solid rgba(120, 160, 255, 0.30);
+        color: #f3f6ff;
+        font-size: 30px;
+        line-height: 32px;
+        white-space: nowrap;
+        opacity: 0;
+        text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+      }
+      #user-bubble .ch { opacity: 0; }
+
+      /* typing dots: canvas x 102-190, y 1104-1148 */
+      #typing {
+        position: absolute;
+        left: 32px;
+        top: 144px;
+        width: 88px;
+        height: 44px;
+        border-radius: 18px 18px 18px 6px;
+        background: rgba(255, 255, 255, 0.12);
+        display: flex; align-items: center; justify-content: center;
+        gap: 9px;
+        opacity: 0;
+      }
+      #typing .dot {
+        width: 10px; height: 10px; border-radius: 50%;
+        background: #cbd5e1;
+        opacity: 0.35;
+      }
+
+      /* assistant bubble: canvas x 102-~680, y 1104-1168 */
+      #ai-bubble {
+        position: absolute;
+        left: 32px;
+        top: 144px;
+        padding: 14px 22px 18px 22px;
+        border-radius: 20px 20px 20px 6px;
+        background: rgba(236, 240, 248, 0.16);
+        border: 1px solid rgba(200, 210, 230, 0.25);
+        color: #f8fafc;
+        font-size: 32px;
+        line-height: 32px;
+        white-space: nowrap;
+        opacity: 0;
+        text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+      }
+      #ai-bubble .ch { opacity: 0; }
+      #wrong-2 {
+        display: inline-block;
+        position: relative;
+        color: #fecaca;
+        font-weight: 800;
+      }
+      #wrong-2 .ul {
+        position: absolute;
+        left: -3px; right: -3px; bottom: -6px;
+        height: 5px;
+        background: #ef4444;
+        border-radius: 3px;
+        transform: scaleX(0);
+        transform-origin: 0 50%;
+      }
+
+      /* red "the answer is wrong" inset vignette, confined to the panel */
+      #panel-alarm {
+        position: absolute;
+        inset: 0;
+        border-radius: 24px;
+        box-shadow: inset 0 0 60px 12px rgba(239, 68, 68, 0.55);
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      /* red X stamp, beside the wrong answer: canvas x 696-836, y 1080-1220
+         (glow 12px blur reaches 1.6*12=19px -> x<=855, y<=1239; both inside limits).
+         Sibling of the card, NOT a child: the card clips (overflow:hidden) and would
+         crop the slam entrance at scale 1.7. */
+      #stamp {
+        position: absolute;
+        left: 696px;
+        top: 1080px;
+        width: 140px;
+        height: 140px;
+        opacity: 0;
+        transform: rotate(-12deg) scale(1.7);
+        filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.65));
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="5.7"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="5.7"
+        data-track-index="1"
+      >
+        <div id="fade-wrap">
+          <div id="chat-card">
+            <div id="chat-header">ChatGPT<span class="model-chip">GPT-4</span></div>
+
+            <div id="user-bubble"></div>
+
+            <div id="typing">
+              <div class="dot"></div>
+              <div class="dot"></div>
+              <div class="dot"></div>
+            </div>
+
+            <div id="ai-bubble"></div>
+
+            <div id="panel-alarm"></div>
+          </div>
+
+          <svg id="stamp" viewBox="0 0 140 140">
+            <circle cx="70" cy="70" r="62" fill="rgba(239,68,68,0.10)"
+                    stroke="#ef4444" stroke-width="7" />
+            <path d="M46 46 L94 94 M94 46 L46 94"
+                  stroke="#ef4444" stroke-width="10" stroke-linecap="round" />
+          </svg>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+
+      // Build the two bubbles' text as per-char spans (deterministic typewriter — never
+      // tween innerText). The wrong "2" gets its own span + underline element.
+      const q = 'How many R’s are in “strawberry”?';
+      const ub = document.getElementById("user-bubble");
+      q.split("").forEach((c) => {
+        const s = document.createElement("span");
+        s.className = "ch";
+        s.textContent = c;
+        ub.appendChild(s);
+      });
+
+      const ab = document.getElementById("ai-bubble");
+      const a1 = "There are ";
+      const a2 = " R’s in “strawberry.”";
+      a1.split("").forEach((c) => {
+        const s = document.createElement("span");
+        s.className = "ch";
+        s.textContent = c;
+        ab.appendChild(s);
+      });
+      const two = document.createElement("span");
+      two.id = "wrong-2";
+      two.className = "ch";
+      two.innerHTML = '2<span class="ul"></span>';
+      ab.appendChild(two);
+      a2.split("").forEach((c) => {
+        const s = document.createElement("span");
+        s.className = "ch";
+        s.textContent = c;
+        ab.appendChild(s);
+      });
+
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ---------- ACT 1: the question ----------
+      // primary entrance at local t=0, never opacity 0 on frame 0 (CSS starts at 0.55)
+      tl.fromTo(
+        "#chat-card",
+        { opacity: 0.55, y: 30 },
+        { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" },
+        0
+      );
+      tl.fromTo(
+        "#user-bubble",
+        { opacity: 0, x: 18 },
+        { opacity: 1, x: 0, duration: 0.35, ease: "power3.out", immediateRender: false },
+        0.35
+      );
+      // typewriter: 33 chars * 0.033 ≈ 1.1s
+      tl.to("#user-bubble .ch", { opacity: 1, duration: 0.04, stagger: 0.033 }, 0.55);
+
+      tl.fromTo(
+        "#typing",
+        { opacity: 0, y: 8 },
+        { opacity: 1, y: 0, duration: 0.3, ease: "power3.out", immediateRender: false },
+        1.85
+      );
+      // dot pulse: last dot starts 1.95+2*0.08=2.11, runs (3+1)*0.22=0.88 -> ends 2.99,
+      // fully complete BEFORE the 3.0 swap (a pulse outliving the hide would re-show dots)
+      tl.fromTo(
+        ".dot",
+        { opacity: 0.35 },
+        { opacity: 1, duration: 0.22, ease: "sine.inOut", yoyo: true, repeat: 3,
+          stagger: 0.08, immediateRender: false },
+        1.95
+      );
+
+      // ---------- TURN @3.0 = "get it wrong" (A 9.000 / B 4.000) ----------
+      tl.fromTo(
+        "#typing",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.12, ease: "power2.out", immediateRender: false },
+        3.0
+      );
+      tl.fromTo(
+        "#ai-bubble",
+        { opacity: 0, scale: 0.85 },
+        { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.4)", immediateRender: false },
+        3.02
+      );
+      tl.to("#ai-bubble .ch", { opacity: 1, duration: 0.03, stagger: 0.015 }, 3.1);
+
+      // wrongness registers: red inset vignette + border hit, panel-confined
+      tl.fromTo("#panel-alarm", { opacity: 0 },
+        { opacity: 1, duration: 0.12, ease: "power3.out", immediateRender: false }, 3.3);
+      tl.to("#panel-alarm", { opacity: 0.35, duration: 0.5, ease: "power2.out" }, 3.5);
+      tl.to("#chat-card", { borderColor: "rgba(239,68,68,0.65)", duration: 0.15 }, 3.3);
+
+      // stamp slam (rotation on a real-bbox div, never an SVG line)
+      tl.fromTo(
+        "#stamp",
+        { opacity: 0, scale: 1.7, rotation: -12 },
+        { opacity: 1, scale: 1, rotation: -12, duration: 0.32, ease: "power4.out",
+          immediateRender: false },
+        3.45
+      );
+
+      // ---------- ACT 2: the wrong "2" holds ----------
+      // small red shake on the answer bubble
+      tl.to("#ai-bubble", { x: -8, duration: 0.05, ease: "power2.out" }, 3.5);
+      tl.to("#ai-bubble", { x: 7, duration: 0.05 }, 3.55);
+      tl.to("#ai-bubble", { x: -5, duration: 0.05 }, 3.6);
+      tl.to("#ai-bubble", { x: 3, duration: 0.05 }, 3.65);
+      tl.to("#ai-bubble", { x: 0, duration: 0.06 }, 3.7);
+
+      // underline draws under the 2
+      tl.fromTo("#wrong-2 .ul", { scaleX: 0 },
+        { scaleX: 1, duration: 0.3, ease: "power3.out", immediateRender: false }, 3.95);
+
+      // stamp glow breathe: 4.4 + 2*0.45 = 5.3, complete before the fade starts at 5.4
+      tl.to("#stamp", {
+        filter: "drop-shadow(0 0 20px rgba(239,68,68,0.95))",
+        duration: 0.45, ease: "sine.inOut", yoyo: true, repeat: 1,
+      }, 4.4);
+
+      // ---------- fade: finishes at EXACTLY 5.7, zero buffer ----------
+      tl.fromTo(
+        "#fade-wrap",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false },
+        5.4
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

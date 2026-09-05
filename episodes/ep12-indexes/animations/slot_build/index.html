@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP12 BUILD — An index is a separate sorted structure</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+
+      :root {
+        --violet: #8b5cf6;
+        --violet-lt: #a78bfa;
+        --violet-dk: #6d28d9;
+        --dim: #c4b5fd;
+        --paper: #e9dfcb;
+        --ink: #2e2418;
+        --ink-soft: #6d5f4a;
+      }
+
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .fill { position: absolute; inset: 0; }
+
+      /* ---------------- full-bleed photograph (exempt from the 180-1280 band) --------- */
+      #photo-wrap {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        transform-origin: 40% 40%;
+        /* phase-1 grade: dark + warm */
+        filter: saturate(0.55) brightness(0.92) contrast(1.12) sepia(0.24);
+      }
+      #photo {
+        position: absolute;
+        inset: 0;
+        width: 1080px;
+        height: 1920px;
+        object-fit: cover;
+        object-position: 24% 50%;
+        display: block;
+      }
+
+      /* ---------------- atmospheric full-bleed layers (exempt, like #vignette) -------- */
+      #scrim {
+        background: linear-gradient(
+          180deg,
+          rgba(6, 4, 12, 0.80) 0%,
+          rgba(6, 4, 12, 0.60) 26%,
+          rgba(6, 4, 12, 0.44) 56%,
+          rgba(6, 4, 12, 0.50) 78%,
+          rgba(6, 4, 12, 0.82) 100%
+        );
+      }
+      #vignette {
+        background: radial-gradient(
+          115% 76% at 50% 44%,
+          rgba(0, 0, 0, 0) 38%,
+          rgba(0, 0, 0, 0.52) 76%,
+          rgba(0, 0, 0, 0.9) 100%
+        );
+      }
+      #violet-cast {
+        background: radial-gradient(
+          78% 46% at 50% 62%,
+          rgba(139, 92, 246, 0.16) 0%,
+          rgba(139, 92, 246, 0) 70%
+        );
+        opacity: 0.55;
+      }
+      #grain { opacity: 1; pointer-events: none; }
+      #flash { background: #a78bfa; opacity: 0; pointer-events: none; }
+      #sweep {
+        position: absolute;
+        left: 0;
+        top: -160px;
+        width: 780px;
+        height: 2240px;
+        transform: translateX(-1050px) skewX(-14deg);
+        background: linear-gradient(
+          100deg,
+          rgba(139, 92, 246, 0) 0%,
+          rgba(139, 92, 246, 0.34) 34%,
+          rgba(216, 200, 255, 0.62) 52%,
+          rgba(139, 92, 246, 0.34) 68%,
+          rgba(139, 92, 246, 0) 100%
+        );
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      /* ---------------- content stage (camera push-in target) -------------------------
+         transform-origin is the DESIGN BAND CENTRE (540px, 730px), NOT the frame centre,
+         so the 1.05x push-in expands symmetrically about the band and cannot break the
+         180 / 1280 limits. See report arithmetic.                                      */
+      #stage {
+        position: absolute;
+        inset: 0;
+        transform-origin: 540px 730px;
+      }
+
+      /* ---------------- PHASE 1 ------------------------------------------------------ */
+      #kicker {
+        position: absolute;
+        left: 80px;
+        top: 250px;
+        width: 920px;
+        height: 42px;
+        font-size: 34px;
+        font-weight: 700;
+        letter-spacing: 8px;
+        line-height: 42px;
+        text-transform: uppercase;
+        color: var(--dim);
+        text-shadow: 0 0 8px rgba(0, 0, 0, 1), 0 2px 6px rgba(0, 0, 0, 1),
+          0 0 24px rgba(0, 0, 0, 0.92), 0 0 40px rgba(12, 6, 26, 0.78);
+      }
+
+      #hero1 {
+        position: absolute;
+        left: 80px;
+        top: 362px;
+        width: 920px;
+      }
+      .h1-line {
+        font-size: 114px;
+        line-height: 1.06;
+        font-weight: 800;
+        letter-spacing: 1px;
+        color: #ffffff;
+        white-space: nowrap;
+        /* multi-layer: tight opaque halo -> mid falloff -> wide soft pool.
+           Legibility must not depend on the photo happening to be dark here. */
+        /* Outermost radius capped at 58px so even the soft glow stays inside the
+           180-1280 band at max push-in (glyph top resolves to y=245). */
+        text-shadow: 0 0 10px rgba(0, 0, 0, 1), 0 3px 8px rgba(0, 0, 0, 1),
+          0 0 30px rgba(0, 0, 0, 0.95), 0 6px 26px rgba(0, 0, 0, 0.9),
+          0 0 58px rgba(0, 0, 0, 0.85);
+      }
+
+      #btree {
+        position: absolute;
+        left: 80px;
+        top: 805px;
+        width: 620px;
+        height: 340px;
+        opacity: 0;
+      }
+      #btree-glow {
+        position: absolute;
+        left: 60px;
+        top: 60px;
+        width: 500px;
+        height: 220px;
+        border-radius: 50%;
+        background: radial-gradient(
+          closest-side,
+          rgba(139, 92, 246, 0.5) 0%,
+          rgba(139, 92, 246, 0) 72%
+        );
+        opacity: 0.22;
+        filter: blur(6px);
+      }
+      #btree-svg { position: absolute; inset: 0; width: 620px; height: 340px; }
+      .bt-node rect.bt-box {
+        fill: rgba(139, 92, 246, 0.12);
+        stroke: rgba(167, 139, 250, 0.8);
+        stroke-width: 3;
+      }
+      .bt-node rect.bt-key { fill: rgba(196, 181, 253, 0.55); }
+      .bt-edge {
+        fill: none;
+        stroke: rgba(167, 139, 250, 0.62);
+        stroke-width: 3;
+        stroke-linecap: round;
+      }
+
+      /* ---------------- PHASE 2 ------------------------------------------------------ */
+      #hero2 {
+        position: absolute;
+        left: 80px;
+        top: 250px;
+        width: 920px;
+      }
+      .h2-line {
+        font-size: 110px;
+        line-height: 1.06;
+        font-weight: 800;
+        letter-spacing: 0px;
+        color: #ffffff;
+        white-space: nowrap;
+        /* multi-layer: tight opaque halo -> mid falloff -> wide soft pool.
+           Legibility must not depend on the photo happening to be dark here. */
+        /* Outermost radius capped at 58px so even the soft glow stays inside the
+           180-1280 band at max push-in (glyph top resolves to y=245). */
+        text-shadow: 0 0 10px rgba(0, 0, 0, 1), 0 3px 8px rgba(0, 0, 0, 1),
+          0 0 30px rgba(0, 0, 0, 0.95), 0 6px 26px rgba(0, 0, 0, 0.9),
+          0 0 58px rgba(0, 0, 0, 0.85);
+      }
+
+      #panel {
+        position: absolute;
+        left: 80px;
+        top: 690px;
+        width: 920px;
+        height: 460px;
+        border-radius: 10px;
+        background: linear-gradient(168deg, #f2eadb 0%, #e7dcc6 48%, #dbcdb2 100%);
+        box-shadow: 0 30px 70px rgba(0, 0, 0, 0.64),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.42),
+          inset 0 2px 0 rgba(255, 255, 255, 0.55);
+        opacity: 0;
+        /* `Georgia` is auto-resolved by the renderer to the bundled EB Garamond —
+           a real book serif, which is exactly what the index page wants. */
+        font-family: Georgia, serif;
+        transform-origin: 50% 50%;
+      }
+      #panel-head {
+        position: absolute;
+        left: 46px;
+        top: 36px;
+        height: 30px;
+        line-height: 30px;
+        font-size: 26px;
+        letter-spacing: 11px;
+        font-weight: 700;
+        color: var(--ink-soft);
+        text-transform: uppercase;
+      }
+      #panel-rule {
+        position: absolute;
+        left: 46px;
+        top: 88px;
+        width: 828px;
+        height: 2px;
+        background: rgba(90, 76, 56, 0.42);
+      }
+      .ix-col { position: absolute; top: 118px; width: 386px; }
+      #ix-col-l { left: 46px; }
+      #ix-col-r { left: 488px; }
+
+      .ix-row {
+        position: relative;
+        display: flex;
+        align-items: center;
+        height: 72px;
+        padding: 0 6px;
+        opacity: 0;
+      }
+      .ix-label {
+        position: relative;
+        z-index: 2;
+        font-size: 34px;
+        color: var(--ink);
+        white-space: nowrap;
+      }
+      .ix-dots {
+        position: relative;
+        z-index: 2;
+        flex: 1 1 auto;
+        margin: 0 12px;
+        border-bottom: 4px dotted rgba(90, 76, 56, 0.5);
+        transform: translateY(7px);
+      }
+      .ix-num {
+        position: relative;
+        z-index: 2;
+        font-size: 34px;
+        color: var(--ink);
+        font-variant-numeric: tabular-nums;
+      }
+
+      #hl-glow {
+        position: absolute;
+        left: -34px;
+        top: -26px;
+        right: -34px;
+        bottom: -26px;
+        z-index: 0;
+        border-radius: 22px;
+        background: radial-gradient(
+          closest-side,
+          rgba(139, 92, 246, 0.62) 0%,
+          rgba(139, 92, 246, 0) 74%
+        );
+        filter: blur(9px);
+        opacity: 0;
+      }
+      #hl-bg {
+        position: absolute;
+        left: -10px;
+        top: 2px;
+        right: -10px;
+        bottom: 2px;
+        z-index: 1;
+        border-radius: 8px;
+        background: rgba(139, 92, 246, 0.18);
+        box-shadow: inset 0 0 0 2px rgba(109, 40, 217, 0.42);
+        opacity: 0;
+      }
+      #row-idx .ix-label,
+      #row-idx .ix-num { font-weight: 700; }
+
+      #arrow-svg {
+        position: absolute;
+        inset: 0;
+        width: 920px;
+        height: 460px;
+        z-index: 5;
+        pointer-events: none;
+      }
+      #arrow-path {
+        fill: none;
+        stroke: #6d28d9;
+        stroke-width: 6;
+        stroke-linecap: round;
+      }
+      #arrow-head { fill: #6d28d9; opacity: 0; transform-origin: 357px 300px; }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="4.8"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="4.8"
+        data-track-index="1"
+      >
+        <div id="content-all" class="fill">
+          <!-- full-bleed real photograph -->
+          <div id="photo-wrap">
+            <img id="photo" src="assets/book.jpg" alt="" />
+          </div>
+
+          <!-- full-bleed atmospheric layers -->
+          <div id="scrim" class="fill"></div>
+          <div id="violet-cast" class="fill"></div>
+          <div id="vignette" class="fill"></div>
+
+          <!-- designed content, confined to the 250-1170 design band -->
+          <div id="stage">
+            <!-- ============ PHASE 1 — THE BOOK ============ -->
+            <div id="kicker">An index is&hellip;</div>
+
+            <div id="hero1">
+              <div class="h1-line">A SEPARATE</div>
+              <div class="h1-line">SORTED</div>
+              <div class="h1-line">STRUCTURE</div>
+            </div>
+
+            <div id="btree">
+              <div id="btree-glow"></div>
+              <svg id="btree-svg" viewBox="0 0 620 340">
+                <path class="bt-edge" d="M310,60 L150,143" />
+                <path class="bt-edge" d="M310,60 L470,143" />
+                <path class="bt-edge" d="M150,197 L58,280" />
+                <path class="bt-edge" d="M150,197 L226,280" />
+                <path class="bt-edge" d="M470,197 L394,280" />
+                <path class="bt-edge" d="M470,197 L562,280" />
+
+                <g class="bt-node">
+                  <rect class="bt-box" x="248" y="6" width="124" height="54" rx="8" />
+                  <rect class="bt-key" x="288" y="16" width="2" height="34" />
+                  <rect class="bt-key" x="330" y="16" width="2" height="34" />
+                </g>
+                <g class="bt-node">
+                  <rect class="bt-box" x="88" y="143" width="124" height="54" rx="8" />
+                  <rect class="bt-key" x="128" y="153" width="2" height="34" />
+                  <rect class="bt-key" x="170" y="153" width="2" height="34" />
+                </g>
+                <g class="bt-node">
+                  <rect class="bt-box" x="408" y="143" width="124" height="54" rx="8" />
+                  <rect class="bt-key" x="448" y="153" width="2" height="34" />
+                  <rect class="bt-key" x="490" y="153" width="2" height="34" />
+                </g>
+                <g class="bt-node">
+                  <rect class="bt-box" x="8" y="280" width="100" height="50" rx="7" />
+                  <rect class="bt-key" x="58" y="289" width="2" height="32" />
+                </g>
+                <g class="bt-node">
+                  <rect class="bt-box" x="176" y="280" width="100" height="50" rx="7" />
+                  <rect class="bt-key" x="226" y="289" width="2" height="32" />
+                </g>
+                <g class="bt-node">
+                  <rect class="bt-box" x="344" y="280" width="100" height="50" rx="7" />
+                  <rect class="bt-key" x="394" y="289" width="2" height="32" />
+                </g>
+                <g class="bt-node">
+                  <rect class="bt-box" x="512" y="280" width="100" height="50" rx="7" />
+                  <rect class="bt-key" x="562" y="289" width="2" height="32" />
+                </g>
+              </svg>
+            </div>
+
+            <!-- ============ PHASE 2 — BACK-OF-BOOK INDEX ============ -->
+            <div id="hero2">
+              <div class="h2-line">LIKE THE INDEX</div>
+              <div class="h2-line">AT THE BACK</div>
+              <div class="h2-line">OF A BOOK</div>
+            </div>
+
+            <div id="panel">
+              <div id="panel-head">Index</div>
+              <div id="panel-rule"></div>
+
+              <div class="ix-col" id="ix-col-l">
+                <div class="ix-row">
+                  <span class="ix-label">b-tree</span>
+                  <span class="ix-dots"></span>
+                  <span class="ix-num">87</span>
+                </div>
+                <div class="ix-row">
+                  <span class="ix-label">index scan</span>
+                  <span class="ix-dots"></span>
+                  <span class="ix-num">129</span>
+                </div>
+                <div class="ix-row" id="row-idx">
+                  <div id="hl-glow"></div>
+                  <div id="hl-bg"></div>
+                  <span class="ix-label">indexes</span>
+                  <span class="ix-dots" id="idx-dots"></span>
+                  <span class="ix-num" id="idx-num">142</span>
+                </div>
+                <div class="ix-row">
+                  <span class="ix-label">inverted index</span>
+                  <span class="ix-dots"></span>
+                  <span class="ix-num">151</span>
+                </div>
+              </div>
+
+              <div class="ix-col" id="ix-col-r">
+                <div class="ix-row">
+                  <span class="ix-label">primary key</span>
+                  <span class="ix-dots"></span>
+                  <span class="ix-num">176</span>
+                </div>
+                <div class="ix-row">
+                  <span class="ix-label">query plan</span>
+                  <span class="ix-dots"></span>
+                  <span class="ix-num">203</span>
+                </div>
+                <div class="ix-row">
+                  <span class="ix-label">seek time</span>
+                  <span class="ix-dots"></span>
+                  <span class="ix-num">219</span>
+                </div>
+                <div class="ix-row">
+                  <span class="ix-label">sequential scan</span>
+                  <span class="ix-dots"></span>
+                  <span class="ix-num">231</span>
+                </div>
+              </div>
+
+              <svg id="arrow-svg" viewBox="0 0 920 460">
+                <path id="arrow-path" d="M178,306 Q265,280 348,300" />
+                <path id="arrow-head" d="M368,300 L346,289 L346,311 Z" />
+              </svg>
+            </div>
+          </div>
+
+          <!-- transition washes: full-bleed atmospheric, same class as #scrim/#vignette -->
+          <div id="sweep" data-layout-allow-overflow="true"></div>
+          <div id="flash" class="fill"></div>
+          <div id="grain" class="fill"></div>
+        </div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter">
+        <feTurbulence
+          type="fractalNoise"
+          baseFrequency="0.82"
+          numOctaves="2"
+          stitchTiles="stitch"
+          result="noise"
+        />
+        <feColorMatrix
+          in="noise"
+          type="matrix"
+          values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.042 0"
+        />
+      </filter>
+    </svg>
+
+    <script>
+      document.getElementById("grain").style.filter = "url(#grain-filter)";
+
+      // Deterministic stroke-draw setup: measured at load, no randomness.
+      document.querySelectorAll(".bt-edge").forEach(function (el) {
+        var len = el.getTotalLength();
+        el.style.strokeDasharray = String(len);
+        el.style.strokeDashoffset = String(len);
+      });
+      (function () {
+        var a = document.getElementById("arrow-path");
+        var len = a.getTotalLength();
+        a.style.strokeDasharray = String(len);
+        a.style.strokeDashoffset = String(len);
+      })();
+
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      const GRADE_1 = "saturate(0.55) brightness(0.92) contrast(1.12) sepia(0.24)";
+      const GRADE_2 = "saturate(1.05) brightness(1.20) contrast(1.02) sepia(0.10)";
+
+      /* ---------- continuous camera ----------
+         Photo (exempt from the band) pushes in hard; the content #stage pushes in only
+         1.00 -> 1.05 about its own band centre (540, 730). */
+      gsap.set("#photo-wrap", { scale: 1.03, x: 0, filter: GRADE_1 });
+      tl.to("#photo-wrap", { scale: 1.1, duration: 1.9, ease: "sine.inOut" }, 0);
+      tl.fromTo("#stage", { scale: 1 }, { scale: 1.05, duration: 4.8, ease: "sine.inOut" }, 0);
+
+      /* ================= PHASE 1 — THE BOOK ================= */
+      // Primary entrance at local t = 0. Photo/scrim are opaque from frame 0 (no fade).
+      tl.fromTo("#kicker", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.42, ease: "power3.out" }, 0);
+      tl.fromTo(
+        ".h1-line",
+        { opacity: 0, y: 34 },
+        { opacity: 1, y: 0, duration: 0.52, ease: "power4.out", stagger: 0.09 },
+        0.1
+      ); // ends 0.10 + 0.18 + 0.52 = 0.80
+
+      tl.to("#btree", { opacity: 1, duration: 0.3, ease: "power2.out" }, 0.55);
+      tl.fromTo(
+        ".bt-node",
+        { opacity: 0, scale: 0.72, transformOrigin: "50% 50%" },
+        { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(1.6)", stagger: 0.07 },
+        0.62
+      ); // ends 0.62 + 0.42 + 0.40 = 1.44
+      tl.to(
+        ".bt-edge",
+        { strokeDashoffset: 0, duration: 0.42, ease: "power3.out", stagger: 0.06 },
+        0.72
+      ); // ends 0.72 + 0.30 + 0.42 = 1.44
+
+      // Repeating ambient breathe — COMPLETES at 1.70, before the phase-1 fade at 1.75.
+      tl.fromTo(
+        "#btree-glow",
+        { opacity: 0.22 },
+        { opacity: 0.62, duration: 0.2, ease: "sine.inOut", repeat: 1, yoyo: true },
+        1.3
+      ); // 1.30 + 2*0.20 = 1.70
+
+      /* ================= TRANSITION @ ~1.9s ================= */
+      // Phase 1 fully clears at 1.97 — before any phase-2 type appears at 2.00.
+      tl.to(
+        ["#kicker", ".h1-line", "#btree"],
+        { opacity: 0, y: -22, duration: 0.22, ease: "power2.in" },
+        1.75
+      );
+
+      // violet sweep across the frame
+      tl.to("#sweep", { opacity: 1, duration: 0.05, ease: "power2.out" }, 1.86);
+      tl.fromTo(
+        "#sweep",
+        { x: -1050 },
+        { x: 1180, duration: 0.55, ease: "power2.inOut" },
+        1.86
+      );
+      tl.to("#sweep", { opacity: 0, duration: 0.12, ease: "power2.in" }, 2.3);
+
+      // violet flash + photo grade lift (dark/warm -> brighter/warmer)
+      tl.to("#flash", { opacity: 0.26, duration: 0.07, ease: "power2.out" }, 1.92);
+      tl.to("#flash", { opacity: 0, duration: 0.26, ease: "power2.in" }, 1.99);
+      tl.to("#photo-wrap", { filter: GRADE_2, duration: 0.42, ease: "power2.out" }, 1.9);
+
+      // page-flip suggestion: the photo lurches/scales as if flipping to the back
+      tl.to("#photo-wrap", { scale: 1.22, x: -70, duration: 0.45, ease: "power4.out" }, 1.9);
+      tl.to("#photo-wrap", { scale: 1.3, x: -95, duration: 2.45, ease: "sine.inOut" }, 2.35);
+
+      /* ================= PHASE 2 — BACK-OF-BOOK INDEX ================= */
+      tl.fromTo(
+        ".h2-line",
+        { opacity: 0, y: 36 },
+        { opacity: 1, y: 0, duration: 0.52, ease: "power4.out", stagger: 0.085 },
+        2.0
+      ); // ends 2.00 + 0.17 + 0.52 = 2.69
+
+      tl.fromTo(
+        "#panel",
+        { opacity: 0, y: -34, scale: 0.97 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.6, ease: "power4.out" },
+        2.18
+      );
+
+      tl.fromTo(
+        ".ix-row",
+        { opacity: 0, x: -18 },
+        { opacity: 1, x: 0, duration: 0.34, ease: "power3.out", stagger: 0.048 },
+        2.38
+      ); // ends 2.38 + 0.336 + 0.34 = 3.056
+
+      // the highlighted entry
+      tl.to("#hl-bg", { opacity: 1, duration: 0.3, ease: "power4.out" }, 3.06);
+      tl.to(["#row-idx .ix-label", "#idx-num"], { color: "#6d28d9", duration: 0.3, ease: "power2.out" }, 3.06);
+      tl.to("#idx-dots", { opacity: 0.16, duration: 0.25, ease: "power2.out" }, 3.1);
+
+      // arrow jumps from the entry to its page number
+      tl.to("#arrow-path", { strokeDashoffset: 0, duration: 0.4, ease: "power3.out" }, 3.2);
+      tl.fromTo(
+        "#arrow-head",
+        { opacity: 0, scale: 0.4 },
+        { opacity: 1, scale: 1, duration: 0.26, ease: "back.out(2)" },
+        3.56
+      );
+      tl.to("#idx-num", { scale: 1.14, transformOrigin: "50% 50%", duration: 0.16, ease: "power3.out" }, 3.6);
+      tl.to("#idx-num", { scale: 1, duration: 0.22, ease: "power4.out", overwrite: "auto" }, 3.78);
+
+      // steady violet glow breathe — repeating tween COMPLETES at 4.42, clear of the fade.
+      tl.fromTo(
+        "#hl-glow",
+        { opacity: 0.3 },
+        { opacity: 0.9, duration: 0.42, ease: "sine.inOut", repeat: 1, yoyo: true },
+        3.58
+      ); // 3.58 + 2*0.42 = 4.42
+
+      /* ================= TAIL — fade FINISHES at exactly 4.800 ================= */
+      tl.to("#content-all", { opacity: 0, duration: 0.3, ease: "power2.in" }, 4.5);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

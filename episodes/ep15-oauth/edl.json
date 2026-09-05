@@ -1,0 +1,168 @@
+{
+  "version": 1,
+  "sources": {
+    "ep15": "C:/Users/gordo/Downloads/drive-download-20260819T201857Z-1-002/ep15.mp4"
+  },
+  "ranges": [
+    {
+      "source": "ep15",
+      "start": 45.85,
+      "end": 52.37,
+      "beat": "HOOK",
+      "quote": "So you clicked sign in with Google and got into an app you've never given a password to. That's called OAuth.",
+      "reason": "Take 4 of 4 and the only one that delivers the hook and the 'That's called OAuth' tag as one unbroken line -- takes 1 (6.14) and 3 (27.18) both break for ~0.6s before the tag, take 2 (21.60) aborts.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.045,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep15",
+      "start": 67.73,
+      "end": 75.83,
+      "beat": "PROBLEM",
+      "quote": "This is the bad old way. Give every app your Google password. Now they can do anything forever and a breach exposes everything.",
+      "reason": "Take 2 of 2. Take 1 (59.60) aborts at 64.64 on 'Now they can do every...'.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.045,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep15",
+      "start": 76.79,
+      "end": 83.3,
+      "beat": "BUILD",
+      "quote": "OAuth replaces that with a valet key. The app redirects you to Google. You log in with Google and not the app.",
+      "reason": "Single clean take, only delivery.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.045,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep15",
+      "start": 84.23,
+      "end": 92.6,
+      "beat": "NEW_COMPONENT",
+      "quote": "Google asks, \"Allow this app to see your email and name?\" You approve and Google hands the app a limited access token, not your password.",
+      "reason": "Single clean take. The 0.64s beat after 'name?' is the consent pause and is kept -- it is where the overlay's approve action lands.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.045,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep15",
+      "start": 93.12,
+      "end": 101.22,
+      "beat": "SCOPE",
+      "quote": "The app uses that token, which is scoped to only what you allowed and can be revoked anytime. The app never sees your credentials.",
+      "reason": "Contiguous with NEW_COMPONENT in the source but kept as its own range so scope/revocation gets its own overlay.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.045,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep15",
+      "start": 102.43,
+      "end": 111.03,
+      "beat": "PAYOFF",
+      "quote": "So OAuth is a valet key, access without the master key. Next episode, we'll talk about how a link becomes six characters.",
+      "reason": "Only complete take.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.045,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    }
+  ],
+  "grade": "eq=contrast=1.15:saturation=1.05,colorbalance=rs=-0.04:gs=0.02:bs=0.05:rm=0.01:gm=0.0:bm=-0.01:rh=0.06:gh=0.02:bh=-0.06,vignette=angle=0.7,unsharp=5:5",
+  "overlays": [
+    {
+      "file": "animations/slot_title/render.webm",
+      "start_in_output": 0.0,
+      "duration": 2.766
+    },
+    {
+      "file": "animations/slot_hook/render.webm",
+      "start_in_output": 0.0,
+      "duration": 5.9
+    },
+    {
+      "file": "animations/slot_problem/render.webm",
+      "start_in_output": 7.4,
+      "duration": 6.4
+    },
+    {
+      "file": "animations/slot_build/render.webm",
+      "start_in_output": 15.4,
+      "duration": 5.6
+    },
+    {
+      "file": "animations/slot_new_component/render.webm",
+      "start_in_output": 22.0,
+      "duration": 7.3
+    },
+    {
+      "file": "animations/slot_scope/render.webm",
+      "start_in_output": 30.3,
+      "duration": 6.8
+    },
+    {
+      "file": "animations/slot_payoff/render.webm",
+      "start_in_output": 38.1,
+      "duration": 6.4
+    }
+  ],
+  "_beat_windows_output_timeline": {
+    "HOOK": [
+      0.0,
+      6.5417
+    ],
+    "PROBLEM": [
+      6.5417,
+      14.6667
+    ],
+    "BUILD": [
+      14.6667,
+      21.2083
+    ],
+    "NEW_COMPONENT": [
+      21.2083,
+      29.5833
+    ],
+    "SCOPE": [
+      29.5833,
+      37.7083
+    ],
+    "PAYOFF": [
+      37.7083,
+      46.3333
+    ]
+  },
+  "_windows_note": "Output-timeline windows on render.py's real 24fps extract grid: each segment's rendered duration is ceil((end-start)*24)/24, not the raw source span. Verified against rendered clips where measurable. Overlay start_in_output values are derived from THESE numbers.",
+  "subtitles": "master.ass",
+  "total_duration_s": 46.3333,
+  "_overlay_gap_audit": "Gaps >= 0.5s are deliberate returns to the talking head (ep13 shipped 1.0-6.7s gaps at 49-54% coverage). Anything shorter is closed to exactly zero, per rule 12 -- a sub-half-second hole reads as a bare-footage flash, not a breath. EP19 tradeoff->payoff is contiguous for exactly this reason: its beats butt up against each other and a 0.3s gap would have landed on the punchline.",
+  "_hook_lead_note": "slot_hook starts at 0.000 on purpose. Its beat also starts at 0.000, so the usual >=0.25s lead would mean waiting on the title card. This slot is a transparent/right-side format specifically so it can run SIMULTANEOUSLY with the title (rule 10) -- making it opaque would delay its content until 2.766 and the beat's idea would land late, which is the EP7 hook mistake. The content is ambient (a scrolling column / a streaming URL), not a claim that needs the narration to establish it first.",
+  "_zoom_note": "Gradual CENTERED zoom on the talking head. focal (540,960) = exact frame centre, not render.py's eye-line default. Direction alternates per segment so each range starts at the scale the previous one ended on -- the drift is continuous across every cut instead of snapping back to 1.0 at each edit. Magnitude capped at 4.5%: the overlays were placed against measured face positions with clearances as tight as 40px, and a centered zoom displaces a point by distance_from_centre*(Z-1), so 4.5% costs the tightest one ~13px while 12% would cost it ~35px and push graphics into the face."
+}

@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP25 AI angle — review + generated tests (transparent band)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* TRANSPARENT BAND, upper band over live footage. Shot measured: hair top ~200,
+         brow ~700, chin ~1240; face x 220-850. Everything sits in y 210-660 (>=40px
+         above the brow), x 60-860. Translucent fills <=0.30, linework + glow only. */
+
+      #band { position: absolute; inset: 0; opacity: 0.55; }   /* frame-0 from CSS */
+
+      /* ---------- the diff column ---------- */
+      #diff {
+        position: absolute; left: 80px; top: 210px; width: 320px; height: 350px;
+        border-radius: 16px;
+        background: rgba(8, 14, 20, 0.28);
+        border: 1.5px solid rgba(148, 163, 184, 0.5);
+        box-shadow: 0 0 10px rgba(148, 163, 184, 0.2);
+        padding: 26px 22px;
+      }
+      .drow { position: relative; height: 30px; margin-bottom: 10px; opacity: 0; }
+      .dmark {
+        position: absolute; left: 0; top: 6px; width: 18px; height: 18px; border-radius: 4px;
+      }
+      .dbar { position: absolute; left: 30px; top: 8px; height: 14px; border-radius: 7px; }
+      .add .dmark { background: rgba(74, 222, 128, 0.8); }
+      .add .dbar  { background: rgba(74, 222, 128, 0.45); }
+      .del .dmark { background: rgba(248, 113, 113, 0.8); }
+      .del .dbar  { background: rgba(248, 113, 113, 0.4); }
+      .rev-chip {
+        position: absolute; left: 244px; width: 30px; height: 30px; border-radius: 50%;
+        background: rgba(34, 211, 238, 0.25); border: 2px solid rgba(34, 211, 238, 0.9);
+        box-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+        display: flex; align-items: center; justify-content: center;
+        color: #a5f3fc; font-size: 18px; font-weight: 800;
+        opacity: 0;
+      }
+      #rev1 { top: 82px; }  #rev2 { top: 202px; }
+
+      /* AI cursor: hand-drawn 4-point spark, sweeps the diff */
+      #cursor { position: absolute; left: 0; top: 0; width: 40px; height: 40px; opacity: 0; }
+
+      /* ---------- the mini pipeline ---------- */
+      #pipe-svg { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: visible; }
+      #pipe-line { fill: none; stroke: rgba(34, 211, 238, 0.6); stroke-width: 4; stroke-dasharray: 10 12; }
+      #slot-rect {
+        position: absolute; left: 560px; top: 388px; width: 150px; height: 54px;
+        border-radius: 10px; border: 2.5px dashed rgba(148, 163, 184, 0.7);
+        opacity: 0;
+      }
+      #prod-chip {
+        position: absolute; left: 760px; top: 380px; width: 90px; height: 70px;
+        border-radius: 12px;
+        background: rgba(10, 18, 24, 0.30);
+        border: 1.5px solid rgba(74, 222, 128, 0.7);
+        display: flex; align-items: center; justify-content: center;
+        color: #86efac; font-size: 26px; font-weight: 800; letter-spacing: 2px;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85);
+        opacity: 0;
+      }
+      #test-chip {
+        position: absolute; left: 240px; top: 480px; width: 150px; height: 54px;
+        border-radius: 10px;
+        background: rgba(34, 211, 238, 0.22);
+        border: 2px solid rgba(34, 211, 238, 0.85);
+        display: flex; align-items: center; justify-content: center;
+        color: #cffafe; font-size: 21px; font-weight: 700;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85);
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="4.50" data-width="1080" data-height="1920">
+      <section id="main-clip" class="clip" data-start="0" data-duration="4.50" data-track-index="1">
+        <div id="band">
+          <!-- ACT 1: a diff column draws; the AI cursor sweeps it, dropping review chips.
+               TURN: the generated-test chip materialises. ACT 2: it slots into the
+               pipeline AHEAD of PROD. -->
+          <div id="diff">
+            <div class="drow add" id="dr1"><div class="dmark"></div><div class="dbar" style="width:180px"></div></div>
+            <div class="drow add" id="dr2"><div class="dmark"></div><div class="dbar" style="width:230px"></div></div>
+            <div class="drow del" id="dr3"><div class="dmark"></div><div class="dbar" style="width:140px"></div></div>
+            <div class="drow add" id="dr4"><div class="dmark"></div><div class="dbar" style="width:205px"></div></div>
+            <div class="drow del" id="dr5"><div class="dmark"></div><div class="dbar" style="width:120px"></div></div>
+            <div class="drow add" id="dr6"><div class="dmark"></div><div class="dbar" style="width:245px"></div></div>
+            <div class="drow add" id="dr7"><div class="dmark"></div><div class="dbar" style="width:165px"></div></div>
+            <div class="rev-chip" id="rev1">&#10003;</div>
+            <div class="rev-chip" id="rev2">&#10003;</div>
+          </div>
+
+          <div id="cursor">
+            <svg viewBox="0 0 40 40" width="40" height="40">
+              <path d="M20 2 L24.5 15.5 L38 20 L24.5 24.5 L20 38 L15.5 24.5 L2 20 L15.5 15.5 Z"
+                    fill="rgba(34,211,238,0.9)" stroke="#e0f2fe" stroke-width="1.5" />
+            </svg>
+          </div>
+
+          <svg id="pipe-svg" viewBox="0 0 1080 1920">
+            <line id="pipe-line" x1="460" y1="415" x2="760" y2="415" />
+          </svg>
+          <div id="slot-rect"></div>
+          <div id="prod-chip">PROD</div>
+          <div id="test-chip" class="mono">new_test.py</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ---------- entrance at t=0; the diff assembles (one system) ----------
+      tl.fromTo("#band", { opacity: 0.55 }, { opacity: 1, duration: 0.3, ease: "power3.out" }, 0);
+      for (let i = 1; i <= 7; i++) {
+        tl.fromTo("#dr" + i, { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: 0.3, ease: "power2.out", immediateRender: i === 1 ? true : false }, 0.05 + (i - 1) * 0.1);
+      }
+      tl.fromTo("#pipe-line", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out", immediateRender: false }, 0.55);
+      tl.fromTo("#prod-chip", { opacity: 0, y: -10 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 0.7);
+      tl.fromTo("#slot-rect", { opacity: 0 }, { opacity: 0.9, duration: 0.4, ease: "power2.out", immediateRender: false }, 0.9);
+      // ambient: dashed pipe drift (constant flow; single non-repeating tween, ends 4.1)
+      tl.fromTo("#pipe-line", { strokeDashoffset: 0 }, { strokeDashoffset: -110, duration: 3.2, ease: "none", immediateRender: false }, 0.9);
+
+      // ---------- ACT 1: AI cursor sweeps the diff — "auto-reviewing code"
+      // (abs 41.14-42.14 = local 1.14-2.14); drops two review chips 0.6s apart
+      tl.fromTo("#cursor", { x: 120, y: 230, opacity: 0 }, {x: 120, y: 230, opacity: 1, duration: 0.2, ease: "power2.out", immediateRender: false }, 1.0);
+      tl.to("#cursor", { x: 340, y: 530, duration: 0.95, ease: "sine.inOut" }, 1.05);
+      tl.to("#cursor", { opacity: 0, duration: 0.2, ease: "power2.out" }, 2.05);
+      tl.fromTo("#rev1", { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.6)", immediateRender: false }, 1.35);
+      tl.fromTo("#rev2", { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.6)", immediateRender: false }, 1.95);
+
+      // ---------- TURN + ACT 2: the generated test slots in AHEAD of PROD
+      // ("generating tests" abs 42.36-43.20 = local 2.36-3.20)
+      tl.fromTo("#test-chip", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.25, ease: "back.out(1.5)", immediateRender: false }, 2.35);
+      // x/y transform from the CSS base (left 240, top 480) to the slot (560, 388)
+      tl.to("#test-chip", { x: 320, y: -92, duration: 0.5, ease: "power2.inOut" }, 2.6);
+      tl.to("#slot-rect", { borderColor: "rgba(74,222,128,0.9)", borderStyle: "solid", duration: 0.2, ease: "power2.out" }, 3.1);
+      tl.fromTo("#test-chip", { scale: 1 }, { scale: 1.08, duration: 0.12, ease: "power2.out", immediateRender: false }, 3.1);
+      tl.to("#test-chip", { scale: 1, duration: 0.2, ease: "power2.out" }, 3.22);
+      // settle pulse on PROD (yoyo, ODD repeat, ends 3.5 + 2*0.3 = 4.1 < fade 4.2)
+      tl.fromTo("#prod-chip", { boxShadow: "0 0 0px rgba(74,222,128,0)" },
+        { boxShadow: "0 0 14px rgba(74,222,128,0.55)", duration: 0.3, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 3.5);
+
+      // ---------- fade: FINISHES at exactly 4.500 (4.20 + 0.30) ----------
+      ["#band", "#cursor", "#test-chip", "#prod-chip"].forEach((sel) => {
+        tl.fromTo(sel, { opacity: sel === "#cursor" ? 0 : 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 4.2);
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

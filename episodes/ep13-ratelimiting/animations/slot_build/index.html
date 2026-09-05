@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP13 Build — Token Bucket</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      /* TRANSPARENT OVERLAY over live talking-head footage.
+         No #bg-fill, no full-frame #vignette, no opaque panel anywhere — the
+         presenter stays fully visible underneath. This slot is the episode's
+         format-variance beat (skill rule 7); do not convert it to a takeover. */
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      /* ---------------------------------------------------------------
+         HARD BAND: all content lives in canvas y = 180 .. 560.
+         Measured on this shot: hair tips y~100, hairline y~580, eyes y~830,
+         mouth y~1180-1240, chin y~1300, burned-in captions y=1330-1570.
+         The band is the clear area above the hairline / over the upper hair.
+         Layout is HORIZONTAL: bucket left (x 80-440), text stack right (x 510+).
+         --------------------------------------------------------------- */
+      #content-all { position: absolute; inset: 0; }
+
+      /* ---- LEFT: token bucket, translucent outlined linework ----
+         SVG box: left 80, top 210, 360x320  ->  canvas y 210..530, x 80..440.
+         Drawn ink stays within local y 12..312 (canvas 222..522). */
+      #bucket-svg {
+        position: absolute;
+        left: 80px;
+        top: 210px;
+        width: 360px;
+        height: 320px;
+        overflow: visible;
+        /* glow only — no backing panel. Max blur 22px keeps the visual
+           extent at canvas 200..544, still inside the 180..560 band. */
+        filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.42));
+      }
+
+      /* soft wide understroke = the "glow" half of border+glow, no fill */
+      .b-glow { fill: none; stroke: #f59e0b; stroke-width: 11; opacity: 0.26;
+                stroke-linecap: round; stroke-linejoin: round; }
+      /* crisp outline. .warm strokes get the transition-beat colour warm-up. */
+      .b-line { fill: none; stroke-width: 4; stroke-linecap: round;
+                stroke-linejoin: round; }
+      .warm { stroke: #d97706; }
+      #rim-line { stroke-width: 6; }
+
+      /* rising fill: translucent amber band, 0.30 alpha (<= 0.32 rule) */
+      #fill-rect { fill: rgba(245, 158, 11, 0.30); }
+
+      /* tokens: translucent coins defined by stroke + glow, not by a solid fill */
+      .tk-body { fill: rgba(245, 158, 11, 0.30); stroke: #fbbf24; stroke-width: 3; }
+      .tk-core { fill: none; stroke: rgba(253, 230, 138, 0.85); stroke-width: 2.5; }
+      .ripple  { fill: none; stroke: #fbbf24; stroke-width: 3; }
+
+      /* ---- RIGHT: text stack, all left-aligned on x = 510 ---- */
+      #label {
+        position: absolute;
+        left: 510px;
+        top: 214px;            /* -> 214..244 */
+        font-size: 30px;
+        line-height: 30px;
+        font-weight: 700;
+        letter-spacing: 6px;
+        color: #fcd34d;
+        text-transform: uppercase;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.92), 0 0 26px rgba(0, 0, 0, 0.7);
+      }
+
+      #hero {
+        position: absolute;
+        left: 510px;
+        top: 296px;            /* -> 296..426 (52px below #label) */
+        display: flex;
+        align-items: flex-start;
+        font-size: 130px;
+        line-height: 130px;
+        font-weight: 800;
+        color: #ffffff;
+        font-variant-numeric: tabular-nums;
+        text-shadow: 0 4px 16px rgba(0, 0, 0, 0.95), 0 0 44px rgba(0, 0, 0, 0.75);
+      }
+      /* seven stacked digits, mutually exclusive visibility (only one opaque
+         at a time) — avoids tl.call/tl.set text swaps, which a seek-based
+         renderer suppresses (seek defaults to suppressEvents: true). */
+      #digit-stack { position: relative; width: 84px; height: 130px; }
+      .dg { position: absolute; left: 0; top: 0; line-height: 130px; opacity: 0; }
+      #hero-rest { margin-left: 14px; }
+
+      #rate-chip {
+        position: absolute;
+        left: 510px;
+        /* -> 468..528 (42px below #hero). Pulled up from 480: the chip's 22px
+           box-shadow tail measured out to y=557 on the encoded alpha plane,
+           only 3px inside the y<=560 band limit. */
+        top: 468px;
+        height: 60px;
+        padding: 0 26px;
+        display: flex;
+        align-items: center;
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        color: #fde68a;
+        /* translucent chip: 0.18 alpha fill + border + glow, no solid card */
+        background: rgba(245, 158, 11, 0.18);
+        border: 2px solid rgba(251, 191, 36, 0.75);
+        border-radius: 30px;
+        box-shadow: 0 0 22px rgba(245, 158, 11, 0.45),
+                    inset 0 0 18px rgba(245, 158, 11, 0.18);
+        text-shadow: 0 2px 9px rgba(0, 0, 0, 0.9);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="4.3"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="4.3"
+        data-track-index="1"
+      >
+        <div id="content-all">
+          <!-- ============ BUCKET ============
+               local coords, canvas = local + (80, 210)
+               rim y=160 (canvas 370), floor y=300 (canvas 510)
+               top edge x 20..340, floor edge x 60..300 -->
+          <svg id="bucket-svg" viewBox="0 0 360 320">
+            <defs>
+              <clipPath id="bucket-interior">
+                <polygon points="20,160 340,160 300,300 60,300" />
+              </clipPath>
+            </defs>
+
+            <!-- rising fill, clipped to the vessel interior -->
+            <g clip-path="url(#bucket-interior)">
+              <rect id="fill-rect" x="0" y="300" width="360" height="0" />
+            </g>
+
+            <!-- vessel: glow understroke + crisp outline, transparent fill -->
+            <g id="bucket-group">
+              <path class="b-glow" d="M20,160 L60,300 L300,300 L340,160" />
+              <path class="b-line warm" d="M20,160 L60,300 L300,300 L340,160" />
+              <path class="b-glow" id="rim-glow" d="M14,160 L346,160" />
+              <path class="b-line warm" id="rim-line" d="M14,160 L346,160" />
+            </g>
+
+            <!-- ripple rings, one per landing site -->
+            <circle class="ripple" id="rp0" cx="130" cy="272" r="8" opacity="0" />
+            <circle class="ripple" id="rp1" cx="180" cy="272" r="8" opacity="0" />
+            <circle class="ripple" id="rp2" cx="230" cy="272" r="8" opacity="0" />
+            <circle class="ripple" id="rp3" cx="155" cy="232" r="8" opacity="0" />
+            <circle class="ripple" id="rp4" cx="205" cy="232" r="8" opacity="0" />
+            <circle class="ripple" id="rp5" cx="180" cy="192" r="8" opacity="0" />
+
+            <!-- tokens, drawn at their RESTING coords; the fall is a GSAP
+                 y-translate from a hard-coded offset back to 0. -->
+            <g class="token" id="tk0">
+              <circle class="tk-body" cx="130" cy="272" r="22" />
+              <circle class="tk-core" cx="130" cy="272" r="10" />
+            </g>
+            <g class="token" id="tk1">
+              <circle class="tk-body" cx="180" cy="272" r="22" />
+              <circle class="tk-core" cx="180" cy="272" r="10" />
+            </g>
+            <g class="token" id="tk2">
+              <circle class="tk-body" cx="230" cy="272" r="22" />
+              <circle class="tk-core" cx="230" cy="272" r="10" />
+            </g>
+            <g class="token" id="tk3">
+              <circle class="tk-body" cx="155" cy="232" r="22" />
+              <circle class="tk-core" cx="155" cy="232" r="10" />
+            </g>
+            <g class="token" id="tk4">
+              <circle class="tk-body" cx="205" cy="232" r="22" />
+              <circle class="tk-core" cx="205" cy="232" r="10" />
+            </g>
+            <g class="token" id="tk5">
+              <circle class="tk-body" cx="180" cy="192" r="22" />
+              <circle class="tk-core" cx="180" cy="192" r="10" />
+            </g>
+          </svg>
+
+          <!-- ============ TEXT STACK ============ -->
+          <div id="label">Token Bucket</div>
+
+          <div id="hero">
+            <div id="digit-stack">
+              <div class="dg" id="dg0">0</div>
+              <div class="dg" id="dg1">1</div>
+              <div class="dg" id="dg2">2</div>
+              <div class="dg" id="dg3">3</div>
+              <div class="dg" id="dg4">4</div>
+              <div class="dg" id="dg5">5</div>
+              <div class="dg" id="dg6">6</div>
+            </div>
+            <div id="hero-rest">/ 10</div>
+          </div>
+
+          <div id="rate-chip">+1 / SEC</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      /* ---- hard-coded, deterministic layout data (no Math.random/Date.now) ---- */
+      // fall offsets: spawnY(34) - restingY, per token
+      const FALL_FROM = [-238, -238, -238, -198, -198, -158];
+      // drip starts: EXACTLY 0.30s apart — the "steady rate" is the beat's point
+      const DRIP = [1.95, 2.25, 2.55, 2.85, 3.15, 3.45];
+      const FALL_DUR = 0.26;
+      // fill-rect top after each token lands (floor stays at y=300)
+      const FILL_TOP = [284, 270, 256, 242, 228, 214];
+
+      /* ---- baseline hidden state ---- */
+      gsap.set("#bucket-svg", { opacity: 0, x: -60 });
+      gsap.set(["#label", "#hero", "#rate-chip"], { opacity: 0, y: 22 });
+      gsap.set(".token", { opacity: 0, transformOrigin: "50% 50%" });
+      // Baseline for the ripples MUST be set here, and every fromTo below MUST
+      // pass immediateRender:false: GSAP's fromTo defaults to immediateRender
+      // TRUE, which applies the "from" vars at build time — that made all six
+      // ripple rings sit visible at opacity 0.85 inside the "empty" bucket for
+      // the whole of phase 1. Confirmed on a real extracted frame, not math.
+      gsap.set(".ripple", { opacity: 0 });
+      gsap.set(".dg", { opacity: 0, transformOrigin: "0% 50%" });
+      gsap.set("#dg0", { opacity: 1 });
+      for (let i = 0; i < 6; i++) {
+        gsap.set("#tk" + i, { y: FALL_FROM[i] });
+      }
+
+      /* =========================================================
+         PHASE 1 (0 - 1.90s) — the empty vessel is introduced.
+         Primary entrance starts at local t=0, not 0.05-0.15s.
+         ========================================================= */
+      tl.to("#bucket-svg", { opacity: 1, x: 0, duration: 0.55, ease: "power3.out" }, 0);
+      tl.to("#label", { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 0.10);
+      tl.to("#hero", { opacity: 1, y: 0, duration: 0.50, ease: "back.out(1.4)" }, 0.26);
+      tl.to("#rate-chip", { opacity: 1, y: 0, duration: 0.40, ease: "power3.out" }, 0.50);
+      // ambient rim breathe so the phase-1 hold is never static
+      tl.to("#rim-glow", { opacity: 0.52, duration: 0.50, yoyo: true, repeat: 1,
+                           ease: "sine.inOut" }, 0.90);
+
+      /* =========================================================
+         TRANSITION BEAT (1.70 - 1.95s) — colour warm-up + outline
+         pulse, and the first token forms above the bucket.
+         ========================================================= */
+      tl.to(".warm", { stroke: "#fbbf24", duration: 0.28, ease: "power2.out" }, 1.70);
+      tl.to("#bucket-group", { scale: 1.045, duration: 0.14, yoyo: true, repeat: 1,
+                               ease: "power2.out", transformOrigin: "50% 85%" }, 1.70);
+
+      /* =========================================================
+         PHASE 2 (1.95 - 4.30s) — tokens drip in at a steady rate.
+         Identical 0.30s intervals; easing lives inside each drop,
+         never in the spacing between drops.
+         ========================================================= */
+      for (let i = 0; i < 6; i++) {
+        const t = DRIP[i];
+        const land = t + FALL_DUR;
+
+        // token forms above the bucket (for i=0 this is the transition beat)
+        tl.fromTo(
+          "#tk" + i,
+          { opacity: 0, scale: 0.4, y: FALL_FROM[i] },
+          { opacity: 1, scale: 1, duration: 0.16, ease: "back.out(2)",
+            immediateRender: false },
+          t - 0.17
+        );
+        // the fall
+        tl.to("#tk" + i, { y: 0, duration: FALL_DUR, ease: "power2.in" }, t);
+        // squash on impact, then settle
+        tl.to("#tk" + i, { scaleY: 0.70, scaleX: 1.18, duration: 0.07,
+                           ease: "power2.out" }, land);
+        tl.to("#tk" + i, { scaleY: 1, scaleX: 1, duration: 0.26,
+                           ease: "back.out(3)" }, land + 0.07);
+        // ripple ring
+        tl.fromTo(
+          "#rp" + i,
+          { attr: { r: 8 }, opacity: 0.85 },
+          { attr: { r: 40 }, opacity: 0, duration: 0.42, ease: "power2.out",
+            immediateRender: false },
+          land
+        );
+        // fill level rises one notch
+        tl.to("#fill-rect", { attr: { y: FILL_TOP[i], height: 300 - FILL_TOP[i] },
+                              duration: 0.26, ease: "power2.out" }, land);
+        // hero readout steps. HARD swap (zero-duration set), not a crossfade:
+        // at 30fps any opacity crossfade leaves one frame showing both digits
+        // superimposed, which reads as a glitch rather than a count-up
+        // (confirmed on a real frame — "1" ghosting behind "2"). The reveal
+        // easing lives on the scale pop instead, so nothing is linear.
+        tl.set("#dg" + i, { opacity: 0 }, land);
+        tl.set("#dg" + (i + 1), { opacity: 1 }, land);
+        tl.fromTo(
+          "#dg" + (i + 1),
+          { scale: 0.6 },
+          { scale: 1, duration: 0.22, ease: "back.out(2.2)",
+            immediateRender: false },
+          land
+        );
+        // rate chip pulses with each drip (grows rightward, left edge pinned)
+        tl.to("#rate-chip", { scale: 1.13, duration: 0.10, yoyo: true, repeat: 1,
+                              ease: "power2.out", transformOrigin: "0% 50%" }, land);
+      }
+
+      /* ---- ambient: continuous motion through to the last frame ----
+         glow breathe 2.22 + 4 * 0.52 = 4.30 exactly
+         fill breathe  3.64 + 2 * 0.33 = 4.30 exactly */
+      tl.to("#bucket-svg", {
+        filter: "drop-shadow(0 0 22px rgba(251, 191, 36, 0.72))",
+        duration: 0.52, yoyo: true, repeat: 3, ease: "sine.inOut"
+      }, 2.22);
+      tl.to("#fill-rect", { opacity: 0.66, duration: 0.33, yoyo: true, repeat: 1,
+                            ease: "sine.inOut" }, 3.64);
+
+      /* ---- fade-out FINISHES at exactly 4.300, zero buffer ----
+         4.00 + 0.30 = 4.30. Any buffer here is just a relocated
+         bare-live-footage flash (skill rule 12). */
+      tl.to("#content-all", { opacity: 0, duration: 0.30, ease: "power1.in" }, 4.00);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

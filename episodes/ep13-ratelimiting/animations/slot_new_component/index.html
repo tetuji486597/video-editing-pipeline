@@ -1,0 +1,840 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP13 New Component — Token Bucket / 429</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+
+      :root {
+        --amber: #f59e0b;
+        --amber-lt: #fbbf24;
+        --green: #22c55e;
+        --red: #ef4444;
+        --red-lt: #f87171;
+        --ink: #f3f4f6;
+        --dim: #949daa;
+      }
+
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .fill { position: absolute; inset: 0; }
+
+      .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+
+      /* ============ BACKGROUND (exempt from the 180-1280 band) ============ */
+      #bg-fill {
+        background: radial-gradient(125% 88% at 50% 30%, #131824 0%, #0a0e16 44%, #070a11 76%, #060305 100%);
+      }
+      #glow-green {
+        position: absolute;
+        left: 540px; top: 700px;
+        width: 1500px; height: 1500px;
+        transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(34, 197, 94, 0.14) 0%, rgba(34, 197, 94, 0) 60%);
+      }
+      #glow-red {
+        position: absolute;
+        left: 540px; top: 620px;
+        width: 1600px; height: 1600px;
+        transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0) 62%);
+        opacity: 0;
+      }
+      #glow-amber {
+        position: absolute;
+        left: 216px; top: 930px;
+        width: 900px; height: 900px;
+        transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0) 62%);
+      }
+      #vignette {
+        background: linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0.62) 0%,
+          rgba(0, 0, 0, 0) 15%,
+          rgba(0, 0, 0, 0) 74%,
+          rgba(0, 0, 0, 0.72) 100%
+        );
+      }
+
+      /* ============ SCENE / camera push-in ============
+         scale 1 -> 1.09 about (540, 730) = the centre of the 230-1230 design band.
+         Design band 230..1230 resolves at full scale to 185..1275 — inside 180..1280. */
+      #scene { transform-origin: 540px 730px; }
+
+      /* ---------- A. topbar status strip : abs y 230-276, abs x 90-990 ---------- */
+      #topbar {
+        position: absolute;
+        left: 90px; top: 230px;
+        width: 900px; height: 46px;
+        border-radius: 10px;
+        background: rgba(11, 16, 25, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        display: flex;
+        align-items: center;
+        padding: 0 20px;
+        font-size: 22px;
+        letter-spacing: 2.4px;
+        opacity: 0;
+      }
+      #live-dot {
+        width: 12px; height: 12px; border-radius: 50%;
+        background: #22c55e;
+        box-shadow: 0 0 12px 3px rgba(34, 197, 94, 0.8);
+        margin-right: 14px;
+        flex-shrink: 0;
+      }
+      #topbar-label { color: #c3ccd6; }
+      #topbar-spacer { flex: 1; }
+      #topbar-state {
+        position: relative;
+        width: 210px; height: 30px;
+        flex-shrink: 0;
+      }
+      .st {
+        position: absolute;
+        right: 0; top: 0;
+        height: 30px; line-height: 30px;
+        white-space: nowrap;
+        font-weight: 700;
+        opacity: 0;
+      }
+      #st-serving { color: #4ade80; }
+      #st-throttled { color: #f87171; }
+      #st-refilled { color: #fbbf24; }
+
+      /* ---------- B. response-headers panel (PHASE 1) : abs y 330-498 ----------
+         Shares the upper zone with #hero429 but is STRICTLY time-disjoint:
+         #headers reaches opacity 0 at t=4.06; #hero429 first appears at t=4.80. */
+      #headers {
+        position: absolute;
+        left: 230px; top: 330px;
+        width: 620px; height: 168px;
+        opacity: 0;
+      }
+      #headers-title {
+        height: 30px;
+        font-size: 20px;
+        letter-spacing: 4px;
+        color: #949daa;
+      }
+      .hrow {
+        height: 44px;
+        display: flex;
+        align-items: center;
+        font-size: 27px;
+        color: #a2acb8;
+      }
+      .hkey { width: 400px; flex-shrink: 0; }
+      .hval { color: var(--ink); font-weight: 700; width: 46px; flex-shrink: 0; }
+      #hval-remaining {
+        position: relative;
+        width: 46px; height: 40px;
+        flex-shrink: 0;
+      }
+      .hv {
+        position: absolute;
+        left: 0; top: 0;
+        height: 40px; line-height: 40px;
+        font-size: 32px; font-weight: 700;
+        color: var(--amber-lt);
+        opacity: 0;
+      }
+      #seg-bar { display: flex; gap: 8px; margin-left: 14px; }
+      .seg {
+        width: 26px; height: 18px;
+        border-radius: 3px;
+        background: var(--amber);
+        box-shadow: 0 0 10px 1px rgba(245, 158, 11, 0.6);
+      }
+
+      /* ---------- C. hero 429 (PHASE 2) : abs y 320-516 ---------- */
+      #hero429 {
+        position: absolute;
+        left: 90px; top: 320px;
+        width: 900px; height: 196px;
+        text-align: center;
+        font-size: 176px;
+        line-height: 196px;
+        font-weight: 900;
+        letter-spacing: 4px;
+        color: var(--red-lt);
+        text-shadow: 0 0 40px rgba(239, 68, 68, 0.65);
+        opacity: 0;
+      }
+
+      /* ---------- D. phase headline : abs y 560-618 ---------- */
+      #phase-head {
+        position: absolute;
+        left: 90px; top: 560px;
+        width: 900px; height: 58px;
+      }
+      .ph {
+        position: absolute;
+        left: 0; top: 0;
+        width: 900px; height: 58px;
+        line-height: 58px;
+        text-align: center;
+        font-size: 40px;
+        font-weight: 800;
+        letter-spacing: 3px;
+        opacity: 0;
+      }
+      #ph1 { color: #4ade80; text-shadow: 0 0 26px rgba(34, 197, 94, 0.45); }
+      #ph2 { color: var(--red-lt); text-shadow: 0 0 26px rgba(239, 68, 68, 0.5); }
+      #ph3 { color: var(--amber-lt); text-shadow: 0 0 26px rgba(245, 158, 11, 0.5); }
+
+      /* ---------- E. console card : abs y 660-1214, abs x 90-990 ---------- */
+      #card {
+        position: absolute;
+        left: 90px; top: 660px;
+        width: 900px; height: 554px;
+        border-radius: 24px;
+        background: linear-gradient(180deg, rgba(15, 21, 31, 0.96) 0%, rgba(10, 14, 22, 0.97) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 34px 80px rgba(0, 0, 0, 0.62), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+        overflow: hidden;
+        opacity: 0;
+      }
+      #card-header {
+        position: absolute;
+        left: 0; top: 0;
+        width: 900px; height: 70px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.025);
+        display: flex;
+        align-items: center;
+        padding: 0 24px;
+        opacity: 0;
+      }
+      .dot { width: 13px; height: 13px; border-radius: 50%; margin-right: 9px; flex-shrink: 0; }
+      .dot.d1 { background: #ff5f57; }
+      .dot.d2 { background: #febc2e; }
+      .dot.d3 { background: #28c840; margin-right: 26px; }
+      #card-title { font-size: 23px; color: #b3bdc8; letter-spacing: 0.5px; white-space: nowrap; }
+      #cursor {
+        display: inline-block;
+        width: 11px; height: 24px;
+        background: var(--amber-lt);
+        margin-left: 8px;
+        vertical-align: -4px;
+      }
+      #card-header-spacer { flex: 1; }
+      #http-tag {
+        font-size: 19px;
+        letter-spacing: 2px;
+        color: #949daa;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 6px;
+        padding: 4px 10px;
+        flex-shrink: 0;
+      }
+
+      /* body content area : abs y 756-1188, abs x 116-964 */
+      #card-body {
+        position: absolute;
+        left: 26px; top: 96px;
+        width: 848px; height: 432px;
+      }
+
+      /* --- bucket column : abs x 116-316 --- */
+      #bucket-col {
+        position: absolute;
+        left: 0; top: 0;
+        width: 200px; height: 432px;
+        opacity: 0;
+      }
+      #bucket-label {
+        height: 26px;
+        text-align: center;
+        font-size: 18px;
+        letter-spacing: 3px;
+        color: #949daa;
+      }
+      #bucket-glow {
+        position: absolute;
+        left: 100px; top: 170px;
+        width: 420px; height: 420px;
+        transform: translate(-50%, -50%);
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(245, 158, 11, 0.34) 0%, rgba(245, 158, 11, 0) 66%);
+        opacity: 0;
+      }
+      #bucket-svg {
+        position: absolute;
+        left: 0; top: 40px;
+        width: 200px; height: 260px;
+      }
+      #bucket-outline {
+        fill: rgba(245, 158, 11, 0.07);
+        stroke: #f59e0b;
+        stroke-width: 5;
+      }
+      #bucket-rim { stroke: #fbbf24; stroke-width: 7; }
+      .tok { fill: #fbbf24; }
+
+      #bucket-count {
+        position: absolute;
+        left: 0; top: 312px;
+        width: 200px; height: 44px;
+      }
+      .cnt {
+        position: absolute;
+        left: 0; top: 0;
+        width: 200px; height: 44px;
+        line-height: 44px;
+        text-align: center;
+        white-space: nowrap;
+        font-size: 34px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        color: var(--amber-lt);
+        opacity: 0;
+      }
+      #refill-label {
+        position: absolute;
+        left: 0; top: 372px;
+        width: 200px; height: 22px;
+      }
+      .rl {
+        position: absolute;
+        left: 0; top: 0;
+        width: 200px; height: 22px;
+        line-height: 22px;
+        text-align: center;
+        white-space: nowrap;
+        font-size: 17px;
+        letter-spacing: 3px;
+        color: var(--amber-lt);
+        opacity: 0;
+      }
+      #refill-track {
+        position: absolute;
+        left: 0; top: 406px;
+        width: 200px; height: 14px;
+        border-radius: 7px;
+        background: rgba(255, 255, 255, 0.07);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        overflow: hidden;
+        opacity: 0;
+      }
+      #refill-fill {
+        position: absolute;
+        left: 0; top: 0;
+        width: 198px; height: 12px;
+        border-radius: 6px;
+        background: linear-gradient(90deg, #b45309 0%, #fbbf24 100%);
+        transform-origin: 0% 50%;
+        transform: scaleX(0);
+      }
+
+      /* --- log column : abs x 360-964 --- */
+      #log-col {
+        position: absolute;
+        left: 244px; top: 0;
+        width: 604px; height: 432px;
+      }
+      .row {
+        position: absolute;
+        left: 0;
+        width: 604px; height: 76px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.032);
+        border: 1px solid rgba(255, 255, 255, 0.075);
+        padding: 0 18px;
+        display: flex;
+        align-items: center;
+        opacity: 0;
+      }
+      #r1 { top: 0; }
+      #r2 { top: 89px; }
+      #r3 { top: 178px; }
+      #r4 { top: 267px; }
+      #r5 { top: 356px; }
+      .req { flex-shrink: 0; font-size: 21px; white-space: nowrap; }
+      .req .m { color: var(--amber-lt); font-weight: 700; }
+      .req .p { color: var(--ink); }
+      .rsp { flex: 1; }
+      .lat {
+        flex-shrink: 0;
+        font-size: 18px;
+        color: #949daa;
+        margin-right: 18px;
+        white-space: nowrap;
+        opacity: 0;
+      }
+      /* fixed-width reserved lane — a chip can never spill onto .req or .lat */
+      .chipwrap {
+        position: relative;
+        width: 270px; height: 44px;
+        flex-shrink: 0;
+      }
+      .chip {
+        position: absolute;
+        right: 0; top: 0;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border-radius: 9px;
+        font-weight: 700;
+        letter-spacing: 1.6px;
+        white-space: nowrap;
+        opacity: 0;
+      }
+      .chip-pend {
+        width: 118px;
+        font-size: 18px;
+        color: #c8d2dc;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+      }
+      .chip-ok {
+        width: 118px;
+        font-size: 18px;
+        color: #052e16;
+        background: var(--green);
+        border: 1px solid #4ade80;
+        box-shadow: 0 0 22px 2px rgba(34, 197, 94, 0.45);
+      }
+      .chip-429 {
+        width: 268px;
+        font-size: 17px;
+        color: #ffffff;
+        background: #991b1b;
+        border: 1px solid var(--red);
+        box-shadow: 0 0 26px 3px rgba(239, 68, 68, 0.55);
+      }
+      .chip-retry {
+        width: 175px;
+        font-size: 18px;
+        color: #451a03;
+        background: var(--amber);
+        border: 1px solid var(--amber-lt);
+        box-shadow: 0 0 20px 2px rgba(245, 158, 11, 0.45);
+      }
+
+      /* --- travelling tokens (outer frame coords, siblings of #card) --- */
+      .fly {
+        position: absolute;
+        left: -13px; top: -13px;
+        width: 26px; height: 26px;
+        border-radius: 50%;
+        background: var(--amber-lt);
+        box-shadow: 0 0 22px 7px rgba(251, 191, 36, 0.85);
+        opacity: 0;
+      }
+
+      /* ---------- overlays ---------- */
+      #flash { background: #ffffff; opacity: 0; pointer-events: none; }
+      #grain { opacity: 1; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="8.2"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene-clip"
+        class="clip"
+        data-start="0"
+        data-duration="8.2"
+        data-track-index="1"
+      >
+        <div id="content-all" class="fill">
+          <!-- opaque background lives on a CHILD div, never on #root / .clip -->
+          <div id="bg-fill" class="fill">
+            <div id="glow-green"></div>
+            <div id="glow-amber"></div>
+            <div id="glow-red"></div>
+            <div id="vignette" class="fill"></div>
+          </div>
+
+          <div id="scene" class="fill">
+            <!-- A. status strip -->
+            <div id="topbar" class="mono">
+              <div id="live-dot"></div>
+              <span id="topbar-label">RATE LIMITER &middot; TOKEN BUCKET</span>
+              <span id="topbar-spacer"></span>
+              <span id="topbar-state">
+                <span class="st" id="st-serving" data-layout-allow-overlap="true">SERVING</span>
+                <span class="st" id="st-throttled" data-layout-allow-overlap="true">THROTTLED</span>
+                <span class="st" id="st-refilled" data-layout-allow-overlap="true">REFILLED</span>
+              </span>
+            </div>
+
+            <!-- B. PHASE 1 upper zone: the real rate-limit response headers -->
+            <div id="headers" class="mono">
+              <div id="headers-title">RESPONSE HEADERS</div>
+              <div class="hrow">
+                <span class="hkey">X-RateLimit-Limit:</span>
+                <span class="hval">4</span>
+              </div>
+              <div class="hrow">
+                <span class="hkey">X-RateLimit-Remaining:</span>
+                <span id="hval-remaining">
+                  <span class="hv" id="hv4" data-layout-allow-overlap="true">4</span>
+                  <span class="hv" id="hv3" data-layout-allow-overlap="true">3</span>
+                  <span class="hv" id="hv2" data-layout-allow-overlap="true">2</span>
+                  <span class="hv" id="hv1" data-layout-allow-overlap="true">1</span>
+                  <span class="hv" id="hv0" data-layout-allow-overlap="true">0</span>
+                  <span class="hv" id="hvR" data-layout-allow-overlap="true">1</span>
+                </span>
+                <span id="seg-bar">
+                  <span class="seg" id="seg1"></span>
+                  <span class="seg" id="seg2"></span>
+                  <span class="seg" id="seg3"></span>
+                  <span class="seg" id="seg4"></span>
+                </span>
+              </div>
+              <div class="hrow">
+                <span class="hkey">X-RateLimit-Reset:</span>
+                <span class="hval">60s</span>
+              </div>
+            </div>
+
+            <!-- C. PHASE 2 hero numeral -->
+            <div id="hero429" class="mono">429</div>
+
+            <!-- D. phase headline -->
+            <div id="phase-head">
+              <div class="ph" id="ph1" data-layout-allow-overlap="true">SPEND A TOKEN &rarr; GET SERVED</div>
+              <div class="ph" id="ph2" data-layout-allow-overlap="true">BUCKET EMPTY &rarr; THROTTLED</div>
+              <div class="ph" id="ph3" data-layout-allow-overlap="true">BUCKET REFILLS &rarr; RETRY OK</div>
+            </div>
+
+            <!-- E. the API console card -->
+            <div id="card">
+              <div id="card-header">
+                <span class="dot d1"></span>
+                <span class="dot d2"></span>
+                <span class="dot d3"></span>
+                <span id="card-title" class="mono">api.example.com &mdash; POST /api/login<span id="cursor"></span></span>
+                <span id="card-header-spacer"></span>
+                <span id="http-tag" class="mono">HTTP/1.1</span>
+              </div>
+
+              <div id="card-body">
+                <!-- bucket column -->
+                <div id="bucket-col">
+                  <div id="bucket-label" class="mono">TOKEN BUCKET</div>
+                  <div id="bucket-glow"></div>
+                  <svg id="bucket-svg" viewBox="0 0 200 260">
+                    <path id="bucket-outline" d="M30 30 L170 30 L145 230 L55 230 Z" stroke-linejoin="round" />
+                    <path id="bucket-rim" d="M18 30 L182 30" stroke-linecap="round" fill="none" />
+                    <circle class="tok" id="tokA" cx="73" cy="126" r="22" />
+                    <circle class="tok" id="tokB" cx="127" cy="126" r="22" />
+                    <circle class="tok" id="tokC" cx="75" cy="182" r="22" />
+                    <circle class="tok" id="tokD" cx="125" cy="182" r="22" />
+                    <circle class="tok" id="tokR" cx="100" cy="182" r="0" opacity="0" />
+                  </svg>
+                  <div id="bucket-count" class="mono">
+                    <span class="cnt" id="cnt4" data-layout-allow-overlap="true">4 / 4</span>
+                    <span class="cnt" id="cnt3" data-layout-allow-overlap="true">3 / 4</span>
+                    <span class="cnt" id="cnt2" data-layout-allow-overlap="true">2 / 4</span>
+                    <span class="cnt" id="cnt1" data-layout-allow-overlap="true">1 / 4</span>
+                    <span class="cnt" id="cnt0" data-layout-allow-overlap="true">0 / 4</span>
+                    <span class="cnt" id="cntR" data-layout-allow-overlap="true">1 / 4</span>
+                  </div>
+                  <div id="refill-label" class="mono">
+                    <span class="rl" id="rl1" data-layout-allow-overlap="true">REFILLING</span>
+                    <span class="rl" id="rl2" data-layout-allow-overlap="true">REFILLED</span>
+                  </div>
+                  <div id="refill-track"><div id="refill-fill"></div></div>
+                </div>
+
+                <!-- request log -->
+                <div id="log-col">
+                  <div class="row" id="r1">
+                    <span class="req mono"><span class="m">POST</span><span class="p">&nbsp;/api/login</span></span>
+                    <span class="rsp"></span>
+                    <span class="lat mono" id="lat1">41ms</span>
+                    <span class="chipwrap">
+                      <span class="chip chip-pend mono" id="pend1" data-layout-allow-overlap="true">PENDING</span>
+                      <span class="chip chip-ok mono" id="ok1" data-layout-allow-overlap="true">200 OK</span>
+                    </span>
+                  </div>
+                  <div class="row" id="r2">
+                    <span class="req mono"><span class="m">POST</span><span class="p">&nbsp;/api/login</span></span>
+                    <span class="rsp"></span>
+                    <span class="lat mono" id="lat2">38ms</span>
+                    <span class="chipwrap">
+                      <span class="chip chip-pend mono" id="pend2" data-layout-allow-overlap="true">PENDING</span>
+                      <span class="chip chip-ok mono" id="ok2" data-layout-allow-overlap="true">200 OK</span>
+                    </span>
+                  </div>
+                  <div class="row" id="r3">
+                    <span class="req mono"><span class="m">POST</span><span class="p">&nbsp;/api/login</span></span>
+                    <span class="rsp"></span>
+                    <span class="lat mono" id="lat3">44ms</span>
+                    <span class="chipwrap">
+                      <span class="chip chip-pend mono" id="pend3" data-layout-allow-overlap="true">PENDING</span>
+                      <span class="chip chip-ok mono" id="ok3" data-layout-allow-overlap="true">200 OK</span>
+                    </span>
+                  </div>
+                  <div class="row" id="r4">
+                    <span class="req mono"><span class="m">POST</span><span class="p">&nbsp;/api/login</span></span>
+                    <span class="rsp"></span>
+                    <span class="lat mono" id="lat4">40ms</span>
+                    <span class="chipwrap">
+                      <span class="chip chip-pend mono" id="pend4" data-layout-allow-overlap="true">PENDING</span>
+                      <span class="chip chip-ok mono" id="ok4" data-layout-allow-overlap="true">200 OK</span>
+                    </span>
+                  </div>
+                  <div class="row" id="r5">
+                    <span class="req mono"><span class="m">POST</span><span class="p">&nbsp;/api/login</span></span>
+                    <span class="rsp"></span>
+                    <span class="chipwrap">
+                      <span class="chip chip-pend mono" id="pend5" data-layout-allow-overlap="true">PENDING</span>
+                      <span class="chip chip-429 mono" id="blk5" data-layout-allow-overlap="true">429 TOO MANY REQUESTS</span>
+                      <span class="chip chip-retry mono" id="rty5" data-layout-allow-overlap="true">RETRY QUEUED</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- travelling tokens: outer-frame absolute coords, hard-coded literals -->
+            <div class="fly" id="f1"></div>
+            <div class="fly" id="f2"></div>
+            <div class="fly" id="f3"></div>
+            <div class="fly" id="f4"></div>
+          </div>
+
+          <div id="flash" class="fill"></div>
+          <div id="grain" class="fill"></div>
+        </div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter">
+        <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" stitchTiles="stitch" result="noise" />
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.04 0" />
+      </filter>
+    </svg>
+
+    <script>
+      document.getElementById("grain").style.filter = "url(#grain-filter)";
+
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      /* ---------------------------------------------------------------
+         GEOMETRY — every value a hard-coded literal.
+         No Math.random, no Date.now, no network fetch.
+
+         Token launch point = bucket mouth centre, in OUTER frame coords:
+           #card abs x 90..990, #card-body abs x 116..964
+           #bucket-col abs x 116..316 -> #bucket-svg abs x 116..316, centre x = 216
+           #bucket-svg abs y 796..1056 (viewBox 200x260, 1:1)
+           rim at viewBox y=30 -> abs y = 796 + 30 = 826
+         Destination = the 200 OK chip centre of each row:
+           #log-col abs x 360..964, row padding 18 -> chipwrap abs x 676..946
+           .chip-ok width 118 right-aligned -> abs x 828..946, centre x = 887
+           row centres abs y: 794 / 883 / 972 / 1061
+         --------------------------------------------------------------- */
+      const LAUNCH = [216, 826];
+      const DESTS = [
+        [887, 794],
+        [887, 883],
+        [887, 972],
+        [887, 1061]
+      ];
+
+      /* ---------- initial state ---------- */
+      gsap.set("#bg-fill", { opacity: 1 });
+      gsap.set(".fly", { x: LAUNCH[0], y: LAUNCH[1], opacity: 0 });
+      gsap.set(["#cnt4", "#hv4", "#st-serving"], { opacity: 1 });
+
+      /* ---------- slow camera push-in under everything (full 8.2s) ---------- */
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.09, duration: 8.2, ease: "sine.inOut" }, 0);
+
+      /* =====================================================================
+         PHASE 1 — "SPEND A TOKEN, GET SERVED"   (0 - 4.00s)
+         ===================================================================== */
+
+      // primary entrance at local t=0
+      tl.fromTo("#card", { opacity: 0, scale: 0.94, y: 18 },
+        { opacity: 1, scale: 1, y: 0, duration: 0.52, ease: "power3.out" }, 0);
+      tl.fromTo("#topbar", { opacity: 0, y: -16 },
+        { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 0.24);
+      tl.fromTo("#card-header", { opacity: 0 },
+        { opacity: 1, duration: 0.34, ease: "power3.out" }, 0.46);
+      tl.fromTo("#bucket-col", { opacity: 0, x: -18 },
+        { opacity: 1, x: 0, duration: 0.42, ease: "power3.out" }, 0.70);
+      tl.fromTo("#bucket-glow", { opacity: 0 },
+        { opacity: 1, duration: 0.30, ease: "power3.out" }, 0.82);
+      tl.fromTo("#headers", { opacity: 0, y: 14 },
+        { opacity: 1, y: 0, duration: 0.42, ease: "power3.out" }, 0.94);
+      tl.fromTo("#ph1", { opacity: 0, y: 16 },
+        { opacity: 1, y: 0, duration: 0.42, ease: "power3.out" }, 1.14);
+
+      // ambient: terminal cursor blink (steps(1) — never "linear")
+      tl.to("#cursor", { opacity: 0, duration: 0.44, repeat: 17, yoyo: true, ease: "steps(1)" }, 0.75);
+      // ambient: LIVE indicator
+      // (repeat:3 + yoyo = 4 iterations = 2.80s, so it lands back on base at t=3.70,
+      //  clear of the 4.02s transition tween that also touches this element)
+      tl.to("#live-dot", { opacity: 0.35, duration: 0.7, repeat: 3, yoyo: true, ease: "sine.inOut" }, 0.9);
+      // ambient: breathing glow on the remaining tokens
+      // (entrance ends 1.12; 4 iterations x 0.68 = 2.72s, ending 3.87 — clear of the
+      //  3.88s anticipation beat, so no two tweens ever fight over this opacity)
+      tl.fromTo("#bucket-glow", { opacity: 1 },
+        { opacity: 0.42, duration: 0.68, repeat: 3, yoyo: true, ease: "sine.inOut" }, 1.15);
+
+      /* ---- four served requests, staggered 0.55s apart ---- */
+      const BASES = [1.45, 2.00, 2.55, 3.10];
+      const TOKS = ["#tokA", "#tokB", "#tokC", "#tokD"];
+      const CNT_OUT = ["#cnt4", "#cnt3", "#cnt2", "#cnt1"];
+      const CNT_IN = ["#cnt3", "#cnt2", "#cnt1", "#cnt0"];
+      const HV_OUT = ["#hv4", "#hv3", "#hv2", "#hv1"];
+      const HV_IN = ["#hv3", "#hv2", "#hv1", "#hv0"];
+
+      BASES.forEach(function (b, i) {
+        const n = i + 1;
+
+        // 1. the row lands, pending
+        tl.fromTo("#r" + n, { opacity: 0, x: 26 },
+          { opacity: 1, x: 0, duration: 0.34, ease: "power3.out" }, b);
+        tl.fromTo("#pend" + n, { opacity: 0 },
+          { opacity: 1, duration: 0.22, ease: "power3.out" }, b + 0.10);
+
+        // 2. one token visibly leaves the bucket, counters step down
+        tl.to(TOKS[i], { attr: { r: 0 }, opacity: 0, duration: 0.16, ease: "power3.in" }, b + 0.18);
+        tl.to(CNT_OUT[i], { opacity: 0, duration: 0.12, ease: "power2.out" }, b + 0.20);
+        tl.to(CNT_IN[i], { opacity: 1, duration: 0.12, ease: "power2.out" }, b + 0.22);
+        tl.to(HV_OUT[i], { opacity: 0, duration: 0.12, ease: "power2.out" }, b + 0.20);
+        tl.to(HV_IN[i], { opacity: 1, duration: 0.12, ease: "power2.out" }, b + 0.22);
+        tl.to("#seg" + n, { opacity: 0.12, boxShadow: "0 0 0 0 rgba(245,158,11,0)", duration: 0.22, ease: "power3.out" }, b + 0.22);
+
+        // 3. it flies into the row — x and y on separate eases, which arcs the path
+        tl.to("#f" + n, { opacity: 1, duration: 0.10, ease: "power2.out" }, b + 0.18);
+        tl.fromTo("#f" + n, { x: LAUNCH[0] }, { x: DESTS[i][0], duration: 0.42, ease: "power1.inOut" }, b + 0.18);
+        tl.fromTo("#f" + n, { y: LAUNCH[1] }, { y: DESTS[i][1], duration: 0.42, ease: "power2.inOut" }, b + 0.18);
+        tl.to("#f" + n, { opacity: 0, duration: 0.10, ease: "power2.in" }, b + 0.54);
+
+        // 4. the row resolves green
+        tl.to("#pend" + n, { opacity: 0, duration: 0.12, ease: "power3.out" }, b + 0.58);
+        tl.fromTo("#ok" + n, { opacity: 0, scale: 1.22 },
+          { opacity: 1, scale: 1, duration: 0.34, ease: "power4.out", transformOrigin: "100% 50%" }, b + 0.60);
+        tl.fromTo("#lat" + n, { opacity: 0 },
+          { opacity: 1, duration: 0.26, ease: "power3.out" }, b + 0.70);
+      });
+
+      // anticipation: the empty bucket tightens right before it breaks
+      tl.to("#bucket-glow", { opacity: 0.92, duration: 0.12, ease: "power3.out" }, 3.88);
+      tl.to("#bucket-glow", { opacity: 0.5, duration: 0.14, ease: "power3.out" }, 4.00);
+
+      /* =====================================================================
+         TRANSITION — THE BUCKET HITS EMPTY   (4.00s)
+         Flash is fully clear by t=4.09 so it never washes a later frame.
+         ===================================================================== */
+      tl.fromTo("#flash", { opacity: 0 }, { opacity: 0.5, duration: 0.045, ease: "power3.out" }, 4.00);
+      tl.to("#flash", { opacity: 0, duration: 0.045, ease: "power3.in" }, 4.045);
+
+      // hard colour shift green -> red, under cover of the flash
+      tl.to("#glow-green", { opacity: 0, duration: 0.34, ease: "power3.out" }, 4.02);
+      tl.to("#glow-red", { opacity: 1, duration: 0.34, ease: "power3.out" }, 4.02);
+      tl.to("#glow-amber", { opacity: 0.25, duration: 0.34, ease: "power3.out" }, 4.02);
+      // the bucket outline goes hollow / red
+      tl.to("#bucket-outline", { stroke: "#ef4444", fill: "rgba(239,68,68,0.02)", duration: 0.28, ease: "power3.out" }, 4.02);
+      tl.to("#bucket-rim", { stroke: "#ef4444", duration: 0.28, ease: "power3.out" }, 4.02);
+      tl.to("#cnt0", { color: "#f87171", duration: 0.28, ease: "power3.out" }, 4.02);
+      tl.to("#hv0", { color: "#f87171", duration: 0.28, ease: "power3.out" }, 4.02);
+      tl.to("#bucket-glow", { background: "radial-gradient(circle, rgba(239,68,68,0.34) 0%, rgba(239,68,68,0) 66%)", duration: 0.28, ease: "power3.out" }, 4.02);
+      // the topbar flips state
+      tl.to("#live-dot", { backgroundColor: "#ef4444", boxShadow: "0 0 12px 3px rgba(239,68,68,0.85)", opacity: 1, duration: 0.28, ease: "power3.out" }, 4.02);
+      tl.to("#st-serving", { opacity: 0, duration: 0.1, ease: "power2.out" }, 4.00);
+      tl.to("#st-throttled", { opacity: 1, duration: 0.16, ease: "power3.out" }, 4.10);
+      // phase-1 upper-zone content clears BEFORE the hero numeral occupies that zone
+      tl.to("#headers", { opacity: 0, duration: 0.06, ease: "power3.out" }, 4.00);
+      tl.to("#ph1", { opacity: 0, duration: 0.06, ease: "power3.out" }, 4.00);
+      tl.fromTo("#ph2", { opacity: 0, y: 12 },
+        { opacity: 1, y: 0, duration: 0.24, ease: "power3.out" }, 4.10);
+
+      /* =====================================================================
+         PHASE 2 — "BUCKET EMPTY -> 429"   (4.05 - 8.20s)
+         ===================================================================== */
+
+      // the next request arrives and is refused
+      tl.fromTo("#r5", { opacity: 0, x: 26 },
+        { opacity: 1, x: 0, duration: 0.34, ease: "power3.out" }, 4.24);
+      tl.fromTo("#pend5", { opacity: 0 },
+        { opacity: 1, duration: 0.22, ease: "power3.out" }, 4.34);
+      tl.to("#pend5", { opacity: 0, duration: 0.12, ease: "power3.out" }, 4.58);
+      tl.fromTo("#blk5", { opacity: 0, scale: 1.22 },
+        { opacity: 1, scale: 1, duration: 0.34, ease: "power4.out", transformOrigin: "100% 50%" }, 4.60);
+      tl.to("#r5", { borderColor: "rgba(239,68,68,0.55)", backgroundColor: "rgba(239,68,68,0.09)", duration: 0.3, ease: "power3.out" }, 4.60);
+
+      // the hero numeral SLAMS in (overshoot 1.15 -> 1.0)
+      tl.fromTo("#hero429", { opacity: 0, scale: 1.15 },
+        { opacity: 1, scale: 1, duration: 0.46, ease: "power4.out" }, 4.80);
+      tl.to("#hero429", { textShadow: "0 0 84px rgba(239,68,68,0.95)", duration: 0.55, repeat: 3, yoyo: true, ease: "sine.inOut" }, 5.15);
+
+      /* ---- the payoff: it refills ---- */
+      tl.fromTo("#rl1", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power3.out" }, 5.30);
+      tl.fromTo("#refill-track", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power3.out" }, 5.36);
+      tl.fromTo("#refill-fill", { scaleX: 0 },
+        { scaleX: 1, duration: 1.15, ease: "power1.inOut" }, 5.45);
+
+      // one token drips back in
+      tl.fromTo("#tokR", { attr: { r: 0 }, opacity: 0 },
+        { attr: { r: 22 }, opacity: 1, duration: 0.42, ease: "back.out(2.2)" }, 6.60);
+      tl.to("#cnt0", { opacity: 0, duration: 0.16, ease: "power2.out" }, 6.64);
+      tl.to("#cntR", { opacity: 1, duration: 0.16, ease: "power2.out" }, 6.68);
+      tl.to("#hv0", { opacity: 0, duration: 0.16, ease: "power2.out" }, 6.64);
+      tl.to("#hvR", { opacity: 1, duration: 0.16, ease: "power2.out" }, 6.68);
+
+      // the bucket outline returns to amber
+      tl.to("#bucket-outline", { stroke: "#f59e0b", fill: "rgba(245,158,11,0.07)", duration: 0.36, ease: "power3.out" }, 6.72);
+      tl.to("#bucket-rim", { stroke: "#fbbf24", duration: 0.36, ease: "power3.out" }, 6.72);
+      tl.to("#bucket-glow", { background: "radial-gradient(circle, rgba(245,158,11,0.34) 0%, rgba(245,158,11,0) 66%)", duration: 0.36, ease: "power3.out" }, 6.72);
+      tl.to("#glow-red", { opacity: 0.26, duration: 0.5, ease: "power3.out" }, 6.72);
+      tl.to("#glow-amber", { opacity: 1, duration: 0.5, ease: "power3.out" }, 6.72);
+      tl.to("#rl1", { opacity: 0, duration: 0.14, ease: "power2.out" }, 6.72);
+      tl.to("#rl2", { opacity: 1, duration: 0.18, ease: "power3.out" }, 6.78);
+
+      // let the amber payoff lead — the 429 recedes but stays legible
+      tl.to("#hero429", { opacity: 0.24, scale: 0.9, duration: 0.5, ease: "power3.out" }, 6.90);
+
+      // the blocked row flips back to a pending state
+      tl.to("#blk5", { opacity: 0, duration: 0.18, ease: "power3.out" }, 6.98);
+      tl.fromTo("#rty5", { opacity: 0, scale: 1.18 },
+        { opacity: 1, scale: 1, duration: 0.34, ease: "power4.out", transformOrigin: "100% 50%" }, 7.04);
+      tl.to("#r5", { borderColor: "rgba(245,158,11,0.5)", backgroundColor: "rgba(245,158,11,0.08)", duration: 0.34, ease: "power3.out" }, 7.02);
+      tl.to("#st-throttled", { opacity: 0, duration: 0.14, ease: "power2.out" }, 7.00);
+      tl.to("#st-refilled", { opacity: 1, duration: 0.18, ease: "power3.out" }, 7.06);
+      // the headline resolves too — otherwise the final beat holds a red
+      // "BUCKET EMPTY -> THROTTLED" over an amber, visibly refilled console.
+      // #ph2 -> 0 at 7.14, #ph3 starts 7.16: same box, never both visible.
+      tl.to("#ph2", { opacity: 0, duration: 0.14, ease: "power2.out" }, 7.00);
+      tl.fromTo("#ph3", { opacity: 0, y: 10 },
+        { opacity: 1, y: 0, duration: 0.24, ease: "power3.out" }, 7.16);
+      tl.to("#live-dot", { backgroundColor: "#f59e0b", boxShadow: "0 0 12px 3px rgba(245,158,11,0.85)", duration: 0.3, ease: "power3.out" }, 7.02);
+
+      // end on a steady amber glow breathe
+      tl.to("#bucket-glow", { opacity: 1, duration: 0.5, repeat: 3, yoyo: true, ease: "sine.inOut" }, 7.20);
+
+      /* ---- clean tail: the fade FINISHES at exactly 8.200 (7.90 + 0.30) ---- */
+      tl.to("#content-all", { opacity: 0, duration: 0.3, ease: "power3.out" }, 7.90);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

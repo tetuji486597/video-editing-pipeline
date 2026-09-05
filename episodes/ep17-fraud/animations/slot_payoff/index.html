@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body {
+        font-family: Inter, sans-serif;
+      }
+
+      /* ------------------------------------------------------------------
+         BACKGROUND STACK  -- full-frame layers only (spec-exempt from the
+         y=180/1280 band). Deliberately TRANSLUCENT: this is a photo card,
+         not a takeover, so live footage must read through the open areas.
+         ------------------------------------------------------------------ */
+      #bg-layer {
+        position: absolute;
+        inset: 0;
+        opacity: 1;
+      }
+
+      #bg-wash {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 980px 1150px at 50% 38%,
+          rgba(9, 20, 17, 0.58) 0%,
+          rgba(6, 13, 11, 0.4) 58%,
+          rgba(4, 9, 8, 0.22) 100%
+        );
+      }
+
+      #glow-teal {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 520px 420px at 46% 30%,
+          rgba(26, 150, 112, 0.22) 0%,
+          rgba(18, 110, 84, 0.08) 55%,
+          rgba(0, 0, 0, 0) 100%
+        );
+      }
+
+      #glow-amber {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 560px 400px at 60% 48%,
+          rgba(214, 150, 58, 0.18) 0%,
+          rgba(160, 110, 40, 0.07) 58%,
+          rgba(0, 0, 0, 0) 100%
+        );
+      }
+
+      #vignette {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 760px 900px at 50% 40%,
+          rgba(2, 6, 5, 0) 0%,
+          rgba(2, 6, 5, 0) 48%,
+          rgba(2, 6, 5, 0.15) 74%,
+          rgba(2, 6, 5, 0.26) 100%
+        );
+      }
+
+      /* Legibility scrim for the headline. LOAD-BEARING TYPE SUPPORT --
+         this is not, and never was, a tease-pill backing. It also keeps the
+         burned-in caption band dark rather than bright. */
+      #scrim {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          to bottom,
+          rgba(3, 8, 6, 0) 0px,
+          rgba(3, 8, 6, 0) 860px,
+          rgba(3, 8, 6, 0.5) 990px,
+          rgba(3, 8, 6, 0.74) 1120px,
+          rgba(3, 8, 6, 0.68) 1280px,
+          rgba(3, 8, 6, 0.44) 1420px,
+          rgba(3, 8, 6, 0.34) 1920px
+        );
+      }
+
+      /* ------------------------------------------------------------------
+         CAPTION-BAND GUARD. Structural belt-and-braces: no photo pixel may
+         survive below y=1180->1300. (The card itself already ends at
+         y<=926, so this resolves to a no-op -- see report arithmetic.)
+         ------------------------------------------------------------------ */
+      #photo-mask-wrap {
+        position: absolute;
+        inset: 0;
+        -webkit-mask-image: linear-gradient(
+          to bottom,
+          #000 0 1180px,
+          transparent 1300px
+        );
+        mask-image: linear-gradient(
+          to bottom,
+          #000 0 1180px,
+          transparent 1300px
+        );
+      }
+
+      /* ------------------------------------------------------------------
+         THE CARD  -- left 130, top 250, 820 x 660  =>  x 130-950, y 250-910
+         ------------------------------------------------------------------ */
+      #card {
+        position: absolute;
+        left: 130px;
+        top: 250px;
+        width: 820px;
+        height: 660px;
+        border-radius: 26px;
+        overflow: hidden;
+        border: 2px solid rgba(255, 214, 150, 0.22);
+        box-shadow: 0 0 18px 2px rgba(255, 190, 110, 0.13);
+        background: #06100d;
+        /* frame-0 opacity comes from CSS; the frame-0 transform comes from
+           the build-time gsap.set below (a tl.set at position 0 would never
+           fire, but a build-time gsap.set runs before the first screenshot). */
+        opacity: 0.62;
+        transform-origin: 50% 50%;
+      }
+
+      #card-photo {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        /* 820x660 cover of a 1200x2133 source == original crop y 450..1416,
+           which is the framing verified against the source file. */
+        object-position: 50% 38.6%;
+        transform-origin: 50% 50%;
+        filter: brightness(0.66) saturate(0.92) contrast(1.05);
+      }
+
+      #photo-tint {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+            to bottom,
+            rgba(3, 10, 8, 0.3) 0%,
+            rgba(3, 10, 8, 0.06) 26%,
+            rgba(3, 10, 8, 0.12) 58%,
+            rgba(3, 10, 8, 0.58) 86%,
+            rgba(3, 10, 8, 0.86) 100%
+          ),
+          linear-gradient(
+            105deg,
+            rgba(3, 10, 8, 0.34) 0%,
+            rgba(3, 10, 8, 0) 42%
+          );
+      }
+
+      /* Contact pads. Soft light pools, not drawn rectangles: the photograph
+         is a perspective macro, so a hard-edged overlay cannot register
+         exactly and a near-miss reads as a mistake. Each pool is centred on
+         a gold pad cell of the real chip and rotated to the chip's own
+         -39deg axis (measured off the silver edge in the 820x660 crop:
+         (100,530) -> (560,160), atan2(-370,460) = -38.8deg).
+         Gold-containment: the chip edge in card-local px is y = 620 - 0.8x;
+         every pool centre clears it by more than its own 65px semi-minor
+         axis (perpendicular distances 97.6 / 103.9 / 107.8 / 140.6 / 270). */
+      .pad {
+        position: absolute;
+        border-radius: 50%;
+        opacity: 0;
+        background: radial-gradient(
+          ellipse at 50% 50%,
+          rgba(255, 244, 214, 0.52) 0%,
+          rgba(255, 214, 140, 0.34) 38%,
+          rgba(255, 196, 100, 0.14) 68%,
+          rgba(255, 190, 90, 0) 100%
+        );
+        filter: blur(8px);
+        transform: rotate(-39deg);
+        pointer-events: none;
+      }
+      /* 190 x 130 pools; left/top = centre - half */
+      #pad1 {
+        left: 315px;
+        top: 365px;
+        width: 190px;
+        height: 130px;
+      } /* centre 410,430 */
+      #pad2 {
+        left: 480px;
+        top: 220px;
+        width: 190px;
+        height: 130px;
+      } /* centre 575,285 */
+      #pad3 {
+        left: 640px;
+        top: 100px;
+        width: 190px;
+        height: 130px;
+      } /* centre 735,165 */
+      #pad4 {
+        left: 525px;
+        top: 405px;
+        width: 190px;
+        height: 130px;
+      } /* centre 620,470 */
+      #pad5 {
+        left: 205px;
+        top: 495px;
+        width: 190px;
+        height: 130px;
+      } /* centre 300,560 */
+
+      /* the scan head. rotation lives on the WRAPPER so the tweened y
+         travels along the chip's own axis, not the parent's. */
+      #scan-rot {
+        position: absolute;
+        left: -330px;
+        top: -400px;
+        width: 1480px;
+        height: 1460px;
+        transform: rotate(-39deg);
+        pointer-events: none;
+      }
+      #scan-band {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        /* frame-0 y comes from the build-time gsap.set below */
+        background: linear-gradient(
+          to bottom,
+          rgba(255, 224, 160, 0) 0%,
+          rgba(255, 224, 160, 0) 44%,
+          rgba(255, 238, 196, 0.5) 49.4%,
+          rgba(255, 247, 216, 0.72) 50%,
+          rgba(255, 238, 196, 0.5) 50.6%,
+          rgba(255, 224, 160, 0) 56%,
+          rgba(255, 224, 160, 0) 100%
+        );
+        filter: blur(9px);
+      }
+
+      #card-edge {
+        position: absolute;
+        inset: 0;
+        border-radius: 24px;
+        box-shadow: inset 0 0 0 1px rgba(255, 236, 200, 0.16),
+          inset 0 1px 0 0 rgba(255, 248, 230, 0.1);
+        pointer-events: none;
+      }
+
+      /* ------------------------------------------------------------------
+         HEADLINE -- block top 994, two nowrap lines at 110/116
+         ------------------------------------------------------------------ */
+      #headline {
+        position: absolute;
+        left: 30px;
+        top: 994px;
+        width: 1020px;
+        text-align: center;
+        font-family: Inter, sans-serif;
+        font-weight: 800;
+        font-size: 110px;
+        line-height: 116px;
+        letter-spacing: 0.5px;
+        color: #f7f3ea;
+        opacity: 0;
+        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.94),
+          0 4px 18px rgba(0, 0, 0, 0.82), 0 0 26px rgba(0, 0, 0, 0.6);
+      }
+      .hl {
+        white-space: nowrap;
+      }
+
+      #grain {
+        position: absolute;
+        inset: 0;
+        opacity: 1;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="5.4"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="5.4"
+        data-track-index="1"
+      >
+        <div id="bg-layer">
+          <div id="bg-wash"></div>
+          <div id="glow-teal"></div>
+          <div id="glow-amber"></div>
+          <div id="vignette"></div>
+          <div id="scrim"></div>
+        </div>
+
+        <div id="photo-mask-wrap">
+          <div id="card">
+            <img
+              id="card-photo"
+              src="assets/card_chip.jpg"
+              alt=""
+              data-layout-allow-overflow="true"
+            />
+            <div id="photo-tint"></div>
+
+            <div class="pad" id="pad1" data-layout-allow-overflow="true"></div>
+            <div class="pad" id="pad2" data-layout-allow-overflow="true"></div>
+            <div class="pad" id="pad3" data-layout-allow-overflow="true"></div>
+            <div class="pad" id="pad4" data-layout-allow-overflow="true"></div>
+            <div class="pad" id="pad5" data-layout-allow-overflow="true"></div>
+
+            <div id="scan-rot" data-layout-allow-overflow="true">
+              <div id="scan-band" data-layout-allow-overflow="true"></div>
+            </div>
+
+            <div id="card-edge"></div>
+          </div>
+        </div>
+
+        <div id="headline" data-layout-allow-occlusion="true">
+          <div class="hl">AT THE SPEED</div>
+          <div class="hl">OF A SWIPE</div>
+        </div>
+
+        <div id="grain">
+          <svg
+            width="1080"
+            height="1920"
+            viewBox="0 0 1080 1920"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <filter id="grainf" x="0" y="0" width="100%" height="100%">
+              <feTurbulence
+                type="fractalNoise"
+                baseFrequency="0.85"
+                numOctaves="3"
+                seed="7"
+                stitchTiles="stitch"
+              />
+              <feColorMatrix type="saturate" values="0" />
+            </filter>
+            <rect
+              width="1080"
+              height="1920"
+              filter="url(#grainf)"
+              opacity="0.05"
+            />
+          </svg>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ---------- build-time state (mirrors the CSS frame-0 state) ----------
+      gsap.set("#bg-layer", { opacity: 1 });
+      gsap.set("#grain", { opacity: 1 });
+      gsap.set("#card", { opacity: 0.62, y: 16, scale: 1 });
+      gsap.set("#card-photo", { scale: 1, x: 0 });
+      gsap.set(".pad", { rotation: -39, opacity: 0 });
+      gsap.set("#scan-band", { y: -620, opacity: 0 });
+      gsap.set("#headline", { opacity: 0, y: 22 });
+
+      // ==================================================================
+      // ACT 1 -- the card lands at t=0 and holds with a slow drift.
+      // Primary entrance BEGINS at t=0 and is already 0.62 opacity on
+      // frame 0 (CSS), never 0.
+      // ==================================================================
+      tl.to("#card", { opacity: 1, duration: 0.85, ease: "power3.out" }, 0);
+      tl.to("#card", { y: 0, duration: 0.9, ease: "power3.out" }, 0);
+
+      // slow drift: modest 1.022 push on the card, plus an internal
+      // ken-burns on the photo inside the card's overflow:hidden clip.
+      tl.to("#card", { scale: 1.022, duration: 5.4, ease: "sine.inOut" }, 0);
+      tl.to(
+        "#card-photo",
+        { scale: 1.05, x: -10, duration: 5.4, ease: "sine.inOut" },
+        0
+      );
+
+      // headline settles (0.90 stagger after the card -- >= 0.6s rule)
+      tl.fromTo(
+        "#headline",
+        { opacity: 0, y: 22 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.7,
+          ease: "power3.out",
+          immediateRender: false,
+        },
+        0.9
+      );
+
+      // ==================================================================
+      // THE TURN -- the chip is READ. A scan head crosses the contact
+      // pads along the chip's own -47deg axis and each pad lights in a
+      // hard-coded, deterministic order, then they settle.
+      // Lands on "at the speed of a swipe" (output 58.5 == LOCAL 1.80).
+      // ==================================================================
+      const SCAN_START = 1.53;
+      const SCAN_DUR = 0.8;
+
+      // scan head travel: -620 -> +620 along the rotated wrapper's axis.
+      // ease "none" is deliberate and spec-permitted: a scan head that
+      // decelerates reads as stalling, not scanning.
+      tl.to(
+        "#scan-band",
+        { y: 620, duration: SCAN_DUR, ease: "none" },
+        SCAN_START
+      );
+      tl.fromTo(
+        "#scan-band",
+        { opacity: 0 },
+        {
+          opacity: 1,
+          duration: 0.22,
+          ease: "power2.out",
+          immediateRender: false,
+        },
+        SCAN_START
+      );
+      tl.to(
+        "#scan-band",
+        { opacity: 0, duration: 0.28, ease: "power2.in" },
+        2.05
+      ); // ends 2.33
+
+      // Hard-coded literal pad order + times. Derived ONCE, offline, by
+      // projecting each pad centre onto the scan normal n = (sin39, cos39)
+      // = (0.629, 0.777):  pad2 583.1 < pad3 590.5 < pad1 592.0 <
+      // pad5 623.8 < pad4 755.2.  NOT computed at runtime, NOT randomised.
+      const PAD_SCAN = [
+        { sel: "#pad2", t: 1.8 },
+        { sel: "#pad3", t: 1.89 },
+        { sel: "#pad1", t: 1.98 },
+        { sel: "#pad5", t: 2.07 },
+        { sel: "#pad4", t: 2.16 },
+      ];
+
+      PAD_SCAN.forEach(function (p) {
+        tl.fromTo(
+          p.sel,
+          { opacity: 0 },
+          {
+            opacity: 1,
+            duration: 0.16,
+            ease: "power2.out",
+            immediateRender: false,
+          },
+          p.t
+        );
+        tl.to(
+          p.sel,
+          { opacity: 0.16, duration: 0.42, ease: "power2.inOut" },
+          p.t + 0.18
+        );
+      });
+      // last pad settles at 2.16 + 0.18 + 0.42 = 2.76
+
+      // settle: one gentle breath on the residual pad glow.
+      // repeat:1 (ODD) + yoyo -> lands back on the 0.16 base.
+      // true end = 3.20 + (1+1)*0.55 = 4.30, comfortably before the fade.
+      tl.to(
+        ".pad",
+        {
+          opacity: 0.3,
+          duration: 0.55,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 1,
+        },
+        3.2
+      );
+
+      // ==================================================================
+      // FADE -- 4.98 + 0.42 = 5.400 exactly, zero buffer.
+      // One fade per visible layer, applied to sibling layers directly:
+      // no nested fading ancestors, so no multiplied opacity.
+      // ease power2.inOut, NOT power3.out: an .out ease on a fade asymptotes
+      // and quantises to 8-bit zero ~2 frames early, which just relocates
+      // the bare-frame flash. inOut keeps non-zero alpha to the last frame.
+      // ==================================================================
+      tl.fromTo(
+        ["#bg-layer", "#card", "#headline", "#grain"],
+        { opacity: 1 },
+        {
+          opacity: 0,
+          duration: 0.42,
+          ease: "power2.inOut",
+          immediateRender: false,
+        },
+        4.98
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+
+      :root {
+        --cyan: #22d3ee;
+        --cyan-b: #67e8f9;
+        --amber: #f59e0b;
+        --amber-b: #fbbf24;
+        --red: #ef4444;
+        --slate: #cbd5e1;
+        --slate-d: #9aa7b8;
+      }
+
+      #root { position: relative; }
+      .fill { position: absolute; inset: 0; }
+
+      /* ---------------- background (opaque, on a CHILD div) ---------------- */
+      #bg-fill {
+        background: radial-gradient(125% 88% at 50% 30%, #131a22 0%, #0b1016 44%, #06090d 76%, #030507 100%);
+      }
+      #bg-glow-cyan {
+        position: absolute;
+        left: 50%;
+        top: 40%;
+        width: 1500px;
+        height: 1500px;
+        transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(34, 211, 238, 0.15) 0%, rgba(34, 211, 238, 0) 62%);
+      }
+      #bg-glow-amber {
+        position: absolute;
+        left: 50%;
+        top: 62%;
+        width: 1500px;
+        height: 1500px;
+        transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(245, 158, 11, 0.17) 0%, rgba(245, 158, 11, 0) 62%);
+        opacity: 0;
+      }
+      #vignette {
+        background: radial-gradient(
+          ellipse 760px 940px at 50% 44%,
+          rgba(0, 0, 0, 0) 0%,
+          rgba(0, 0, 0, 0) 44%,
+          rgba(2, 4, 6, 0.55) 78%,
+          rgba(1, 2, 4, 0.94) 100%
+        );
+      }
+      #grain { opacity: 1; pointer-events: none; }
+      #flash { background: #ffffff; opacity: 0; pointer-events: none; }
+
+      /* ---------------- camera push-in wrapper ---------------- */
+      /* content band 248..1220 -> centre 734px; origin set to that centre */
+      #scene {
+        transform-origin: 50% 734px;
+      }
+
+      /* ---------------- headline ---------------- */
+      #head {
+        position: absolute;
+        left: 110px;
+        top: 248px;
+        width: 860px;
+        text-align: center;
+        font-size: 112px;
+        line-height: 116px;
+        font-weight: 800;
+        letter-spacing: -1px;
+        color: #eef3f9;
+        opacity: 0.55;
+        transform: translateY(-18px);
+        text-shadow: 0 6px 30px rgba(0, 0, 0, 0.65);
+      }
+      #head .dim { color: #94a3b8; }
+
+      /* ---------------- console (request bar + feed) ---------------- */
+      #console { opacity: 0; }
+
+      #req-bar {
+        position: absolute;
+        left: 110px;
+        top: 532px;
+        width: 860px;
+        height: 112px;
+        border-radius: 18px;
+        background: linear-gradient(160deg, rgba(11, 20, 28, 0.94), rgba(6, 10, 15, 0.97));
+        border: 1px solid rgba(34, 211, 238, 0.38);
+        box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5), 0 0 26px 0 rgba(34, 211, 238, 0.12);
+        overflow: hidden;
+      }
+      #req-rail {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 6px;
+        height: 112px;
+        background: var(--cyan);
+      }
+      .q {
+        position: absolute;
+        left: 34px;
+        top: 0;
+        height: 112px;
+        display: flex;
+        align-items: center;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 44px;
+        letter-spacing: 0;
+        white-space: pre;
+      }
+      #q-page { opacity: 0; }
+      .qc { opacity: 0; }
+      .c-dim { color: var(--slate-d); }
+      .c-mid { color: var(--slate); }
+      .c-acc { color: var(--cyan); }
+      .c-acc-a { color: var(--amber); }
+      #tok-wrap { position: relative; }
+      #tok-hl {
+        position: absolute;
+        left: -7px;
+        right: -7px;
+        top: -5px;
+        bottom: -5px;
+        border-radius: 7px;
+        background: rgba(34, 211, 238, 0.16);
+        border: 1px solid rgba(34, 211, 238, 0.45);
+        transform: scaleX(0);
+        transform-origin: 0% 50%;
+      }
+      #tok {
+        position: relative;
+        color: var(--cyan-b);
+        font-weight: 700;
+        opacity: 0;
+      }
+      #pg-val { color: var(--amber-b); font-weight: 700; }
+      .caret {
+        width: 15px;
+        height: 46px;
+        margin-left: 8px;
+        background: var(--cyan-b);
+        border-radius: 2px;
+      }
+      #caret-p { background: var(--amber-b); }
+      #req-dot {
+        position: absolute;
+        right: 30px;
+        top: 50px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--cyan);
+        box-shadow: 0 0 14px 3px rgba(34, 211, 238, 0.6);
+      }
+
+      /* ---------------- feed ---------------- */
+      #feed {
+        position: absolute;
+        left: 110px;
+        top: 704px;
+        width: 860px;
+        height: 516px;
+        border-radius: 22px;
+        border: 1px solid rgba(34, 211, 238, 0.28);
+        background: rgba(6, 11, 16, 0.72);
+        box-shadow: 0 26px 60px rgba(0, 0, 0, 0.55);
+      }
+      #feed-clip {
+        position: absolute;
+        inset: 0;
+        border-radius: 22px;
+        overflow: hidden;
+      }
+
+      .row {
+        position: absolute;
+        left: 12px;
+        width: 836px;
+        height: 112px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.038);
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        overflow: hidden;
+      }
+      .row .rail {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 6px;
+        height: 112px;
+        background: var(--cyan);
+        opacity: 0;
+        transform: scaleY(0);
+        transform-origin: 50% 50%;
+      }
+      .thumb {
+        position: absolute;
+        left: 12px;
+        top: 10px;
+        width: 140px;
+        height: 92px;
+        border-radius: 11px;
+        overflow: hidden;
+        background: #0a0e13;
+      }
+      .thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: 50% 40%;
+      }
+      .bar1 {
+        position: absolute;
+        left: 194px;
+        top: 32px;
+        height: 18px;
+        border-radius: 9px;
+        background: rgba(203, 213, 225, 0.30);
+      }
+      .bar2 {
+        position: absolute;
+        left: 194px;
+        top: 62px;
+        height: 14px;
+        border-radius: 7px;
+        background: rgba(148, 163, 184, 0.18);
+      }
+      .pill {
+        position: absolute;
+        right: 16px;
+        top: 39px;
+        height: 34px;
+        display: flex;
+        align-items: center;
+        padding: 0 14px;
+        border-radius: 8px;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: 3px;
+        opacity: 0;
+      }
+      #anchor-pill {
+        color: var(--cyan-b);
+        background: rgba(34, 211, 238, 0.14);
+        border: 1px solid rgba(34, 211, 238, 0.55);
+      }
+      #dup-pill {
+        color: #fecaca;
+        background: rgba(239, 68, 68, 0.20);
+        border: 1px solid rgba(239, 68, 68, 0.7);
+      }
+
+      .skel {
+        position: absolute;
+        left: 12px;
+        width: 836px;
+        height: 112px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.018);
+        border: 1px dashed rgba(148, 163, 184, 0.20);
+        opacity: 0;
+      }
+      .skel .sk-thumb {
+        position: absolute;
+        left: 12px;
+        top: 10px;
+        width: 140px;
+        height: 92px;
+        border-radius: 11px;
+        background: rgba(148, 163, 184, 0.10);
+      }
+      .skel .sk-b1 {
+        position: absolute;
+        left: 194px;
+        top: 32px;
+        width: 380px;
+        height: 18px;
+        border-radius: 9px;
+        background: rgba(148, 163, 184, 0.10);
+      }
+      .skel .sk-b2 {
+        position: absolute;
+        left: 194px;
+        top: 62px;
+        width: 250px;
+        height: 14px;
+        border-radius: 7px;
+        background: rgba(148, 163, 184, 0.07);
+      }
+
+      #sheen {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 860px;
+        height: 170px;
+        transform: translateY(-170px);
+        background: linear-gradient(
+          to bottom,
+          rgba(103, 232, 249, 0) 0%,
+          rgba(103, 232, 249, 0.09) 50%,
+          rgba(103, 232, 249, 0) 100%
+        );
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="9.20"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="stage" class="clip" data-start="0" data-duration="9.20" data-track-index="1">
+        <div id="content-all" class="fill">
+          <div id="bg-fill" class="fill">
+            <div id="bg-glow-cyan"></div>
+            <div id="bg-glow-amber"></div>
+          </div>
+          <div id="vignette" class="fill"></div>
+
+          <div id="scene" class="fill">
+            <div id="head">PAGES MOVE<br />ITEMS DON'T</div>
+
+            <div id="console">
+              <!-- ---------- request bar ---------- -->
+              <div id="req-bar" class="p-border">
+                <div id="req-rail"></div>
+
+                <!-- ACT 1 request line (cyan) -->
+                <div class="q" id="q-after"><span
+                    ><span class="qc c-dim">G</span><span class="qc c-dim">E</span><span class="qc c-dim">T</span><span class="qc c-dim"> </span><span class="qc c-mid">/</span><span class="qc c-mid">f</span><span class="qc c-mid">e</span><span class="qc c-mid">e</span><span class="qc c-mid">d</span><span class="qc c-mid">?</span><span class="qc c-acc">a</span><span class="qc c-acc">f</span><span class="qc c-acc">t</span><span class="qc c-acc">e</span><span class="qc c-acc">r</span><span class="qc c-acc">=</span></span
+                  ><span id="tok-wrap"><span id="tok-hl"></span><span id="tok">post_8f2c</span></span
+                  ><span class="caret" id="caret-a"></span></div>
+
+                <!-- ACT 2 request line (amber) -->
+                <div class="q" id="q-page"><span class="c-dim">GET </span><span class="c-mid">/feed?</span><span class="c-acc-a">page=</span><span id="pg-val">2</span><span class="caret" id="caret-p"></span></div>
+
+                <div id="req-dot"></div>
+              </div>
+
+              <!-- ---------- feed ---------- -->
+              <div id="feed" class="p-border">
+                <div id="feed-clip">
+                  <div class="skel" id="skel-2" style="top: 264px">
+                    <div class="sk-thumb"></div><div class="sk-b1"></div><div class="sk-b2"></div>
+                  </div>
+                  <div class="skel" id="skel-3" style="top: 390px">
+                    <div class="sk-thumb"></div><div class="sk-b1"></div><div class="sk-b2"></div>
+                  </div>
+
+                  <!-- slot 0 -->
+                  <div class="row row-init row-shift" id="row-a" style="top: 12px; opacity: 0">
+                    <div class="rail"></div>
+                    <div class="thumb"><img src="assets/item_a_puppy.jpg" alt="" /></div>
+                    <div class="bar1" style="width: 420px"></div>
+                    <div class="bar2" style="width: 286px"></div>
+                  </div>
+
+                  <!-- slot 1 : the anchored item (post_8f2c) -->
+                  <div class="row row-init row-shift dup" id="row-b" style="top: 138px; opacity: 0">
+                    <div class="rail" id="rail-b"></div>
+                    <div class="thumb"><img src="assets/item_b_pasta.jpg" alt="" /></div>
+                    <div class="bar1" style="width: 352px"></div>
+                    <div class="bar2" style="width: 244px"></div>
+                    <div class="pill" id="anchor-pill">ANCHOR</div>
+                  </div>
+
+                  <!-- slot 2 : arrives with the batch -->
+                  <div class="row row-batch row-shift" id="row-c" style="top: 264px; opacity: 0">
+                    <div class="rail"></div>
+                    <div class="thumb"><img src="assets/item_c_lake.jpg" alt="" /></div>
+                    <div class="bar1" style="width: 396px"></div>
+                    <div class="bar2" style="width: 270px"></div>
+                  </div>
+
+                  <!-- slot 3 : arrives with the batch -->
+                  <div class="row row-batch row-shift" id="row-d" data-layout-allow-overflow="true" style="top: 390px; opacity: 0">
+                    <div class="rail"></div>
+                    <div class="thumb"><img src="assets/item_d_sunset.jpg" alt="" /></div>
+                    <div class="bar1" style="width: 330px"></div>
+                    <div class="bar2" style="width: 228px"></div>
+                  </div>
+
+                  <!-- ACT 2 : the new post that arrives at the top -->
+                  <div
+                    class="row"
+                    id="row-f"
+                    data-layout-allow-overflow="true"
+                    style="top: 12px; opacity: 0; transform: translateY(-138px)"
+                  >
+                    <div class="rail"></div>
+                    <div class="thumb"><img src="assets/item_f_falls.jpg" alt="" /></div>
+                    <div class="bar1" style="width: 372px"></div>
+                    <div class="bar2" style="width: 252px"></div>
+                  </div>
+
+                  <!-- ACT 2 : the SAME item, served a second time -->
+                  <div
+                    class="row dup"
+                    id="row-dup"
+                    data-layout-allow-overflow="true"
+                    style="top: 390px; opacity: 0; transform: translateY(126px)"
+                  >
+                    <div class="rail" id="rail-dup"></div>
+                    <div class="thumb"><img src="assets/item_b_pasta_dup.jpg" alt="" /></div>
+                    <div class="bar1" style="width: 352px"></div>
+                    <div class="bar2" style="width: 244px"></div>
+                    <div class="pill" id="dup-pill">DUPLICATE</div>
+                  </div>
+
+                  <div id="sheen" data-layout-allow-overflow="true"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="flash" class="fill"></div>
+          <div id="grain" class="fill"></div>
+        </div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter">
+        <feTurbulence type="fractalNoise" baseFrequency="0.82" numOctaves="2" stitchTiles="stitch" result="noise" />
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.042 0" />
+      </filter>
+    </svg>
+
+    <script>
+      document.getElementById("grain").style.filter = "url(#grain-filter)";
+
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      const ROW_BASE_BORDER = "rgba(148,163,184,0.16)";
+      const ROW_BASE_BG = "rgba(255,255,255,0.038)";
+
+      /* ============ continuous camera push-in (whole beat) ============ */
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.06, duration: 9.2, ease: "sine.inOut" }, 0);
+
+      /* ============ ACT 1 (cyan) ============ */
+
+      // t=0 primary entrance — headline starts at 0.55 opacity in CSS, never 0 on frame 0
+      tl.fromTo("#head", { opacity: 0.55, y: -18 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 0);
+
+      // 0.58 — the console (request-bar shell + feed frame) arrives as one UI unit
+      tl.fromTo(
+        "#console",
+        { opacity: 0, y: 22 },
+        { opacity: 1, y: 0, duration: 0.55, ease: "power3.out", immediateRender: false },
+        0.58
+      );
+      tl.to(".row-init", { opacity: 1, duration: 0.42, ease: "power3.out", stagger: 0.1 }, 0.66);
+      tl.to(".skel", { opacity: 1, duration: 0.5, ease: "power3.out", stagger: 0.1 }, 0.7);
+
+      // ambient: soft light sweep down the feed (act 1 only) — ends 5.10
+      tl.fromTo(
+        "#sheen",
+        { y: -170 },
+        { y: 520, duration: 2.1, ease: "sine.inOut", repeat: 1, immediateRender: false },
+        0.9
+      );
+
+      // 1.20 — the request line assembles, character by character
+      tl.to(".qc", { opacity: 1, duration: 0.1, ease: "power3.out", stagger: 0.014 }, 1.2);
+
+      // 1.48 — the cursor token slams in.  ~90% settled at 1.56 = "cursor pagination"
+      tl.fromTo(
+        "#tok",
+        { opacity: 0, scale: 1.55 },
+        { opacity: 1, scale: 1, duration: 0.22, ease: "power4.out", immediateRender: false },
+        1.48
+      );
+      tl.fromTo(
+        "#tok-hl",
+        { scaleX: 0 },
+        { scaleX: 1, duration: 0.24, ease: "power3.out", immediateRender: false },
+        1.52
+      );
+
+      // ambient: blinking caret, 1.70 -> 7.58 (repeat 13, odd, lands back on base)
+      tl.to(".caret", { opacity: 0.12, duration: 0.42, ease: "sine.inOut", yoyo: true, repeat: 13 }, 1.7);
+      // ambient: request status dot, 0.95 -> 8.65 (repeat 13, odd)
+      tl.to("#req-dot", { opacity: 0.28, duration: 0.55, ease: "sine.inOut", yoyo: true, repeat: 13 }, 0.95);
+
+      // 2.25 — the returned batch anchors to that item
+      tl.set("#rail-b", { backgroundColor: "#22d3ee" }, 2.2);
+      tl.fromTo(
+        "#rail-b",
+        { opacity: 0, scaleY: 0 },
+        { opacity: 1, scaleY: 1, duration: 0.35, ease: "power3.out", immediateRender: false },
+        2.25
+      );
+      tl.to(
+        "#row-b",
+        {
+          borderColor: "rgba(34,211,238,0.62)",
+          backgroundColor: "rgba(34,211,238,0.09)",
+          duration: 0.4,
+          ease: "power3.out",
+        },
+        2.25
+      );
+      tl.fromTo(
+        "#anchor-pill",
+        { opacity: 0, x: 14 },
+        { opacity: 1, x: 0, duration: 0.35, ease: "power3.out", immediateRender: false },
+        2.34
+      );
+      // the token in the request bar flashes in sync with the anchor (links them by timing, no connector)
+      tl.to(
+        "#tok-hl",
+        { backgroundColor: "rgba(34,211,238,0.36)", duration: 0.18, ease: "sine.inOut", yoyo: true, repeat: 1 },
+        2.3
+      );
+      // ambient: anchor rail breathes, 2.75 -> 5.23 (repeat 3, odd)
+      tl.to(
+        "#rail-b",
+        { boxShadow: "0 0 22px 5px rgba(34,211,238,0.85)", duration: 0.62, ease: "sine.inOut", yoyo: true, repeat: 3 },
+        2.75
+      );
+
+      // 3.10 / 3.45 — the batch returns, two rows, crossfading the skeletons out
+      tl.fromTo(
+        "#row-c",
+        { opacity: 0, y: 26 },
+        { opacity: 1, y: 0, duration: 0.5, ease: "power3.out", immediateRender: false },
+        3.1
+      );
+      tl.to("#skel-2", { opacity: 0, duration: 0.35, ease: "power3.out" }, 3.1);
+      tl.fromTo(
+        "#row-d",
+        { opacity: 0, y: 26 },
+        { opacity: 1, y: 0, duration: 0.5, ease: "power3.out", immediateRender: false },
+        3.45
+      );
+      tl.to("#skel-3", { opacity: 0, duration: 0.35, ease: "power3.out" }, 3.45);
+      // fresh-batch cyan tint decays back to base
+      tl.fromTo(
+        "#row-c",
+        { borderColor: "rgba(34,211,238,0.55)" },
+        { borderColor: ROW_BASE_BORDER, duration: 1.0, ease: "power3.out", immediateRender: false },
+        3.6
+      );
+      tl.fromTo(
+        "#row-d",
+        { borderColor: "rgba(34,211,238,0.55)" },
+        { borderColor: ROW_BASE_BORDER, duration: 1.0, ease: "power3.out", immediateRender: false },
+        3.95
+      );
+
+      /* ============ THE TURN @ 5.30 — shutter flash + cyan -> amber ============ */
+      tl.to("#req-bar", { borderColor: "rgba(34,211,238,0.14)", duration: 0.06, ease: "power3.out" }, 5.24);
+
+      tl.fromTo(
+        "#flash",
+        { opacity: 0 },
+        { opacity: 0.92, duration: 0.06, ease: "power4.out", immediateRender: false },
+        5.3
+      );
+      tl.to("#flash", { opacity: 0, duration: 0.28, ease: "power3.out" }, 5.36);
+
+      tl.to("#anchor-pill", { opacity: 0, duration: 0.2, ease: "power3.out" }, 5.3);
+      tl.to("#rail-b", { opacity: 0, duration: 0.2, ease: "power3.out" }, 5.3);
+
+      // the act-1 request line leaves; the act-2 one takes its place (they never co-exist)
+      tl.set("#q-after", { opacity: 0 }, 5.32);
+
+      tl.to("#req-bar", { borderColor: "rgba(245,158,11,0.5)", boxShadow: "0 18px 44px rgba(0,0,0,0.5), 0 0 26px 0 rgba(245,158,11,0.16)", duration: 0.4, ease: "power3.out" }, 5.32);
+      tl.to("#feed", { borderColor: "rgba(245,158,11,0.32)", duration: 0.4, ease: "power3.out" }, 5.32);
+      tl.to("#req-rail", { backgroundColor: "#f59e0b", duration: 0.4, ease: "power3.out" }, 5.32);
+      tl.to("#req-dot", { backgroundColor: "#f59e0b", boxShadow: "0 0 14px 3px rgba(245,158,11,0.6)", duration: 0.4, ease: "power3.out" }, 5.32);
+      tl.to("#row-b", { borderColor: ROW_BASE_BORDER, backgroundColor: ROW_BASE_BG, duration: 0.32, ease: "power3.out" }, 5.32);
+      tl.to("#bg-glow-cyan", { opacity: 0, duration: 0.55, ease: "sine.inOut" }, 5.32);
+      tl.fromTo(
+        "#bg-glow-amber",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.55, ease: "sine.inOut", immediateRender: false },
+        5.32
+      );
+
+      tl.fromTo(
+        "#q-page",
+        { opacity: 0, x: -14 },
+        { opacity: 1, x: 0, duration: 0.3, ease: "power3.out", immediateRender: false },
+        5.4
+      );
+
+      /* ============ ACT 2 (amber) ============ */
+
+      // 6.05 — a new post arrives at the top; every row shifts down by one
+      tl.fromTo(
+        "#row-f",
+        { opacity: 0, y: -138 },
+        { opacity: 1, y: 0, duration: 0.65, ease: "power3.out", immediateRender: false },
+        6.05
+      );
+      tl.to(".row-shift", { y: 126, duration: 0.65, ease: "power3.out" }, 6.05);
+      tl.fromTo(
+        "#row-f",
+        { borderColor: "rgba(245,158,11,0.65)" },
+        { borderColor: ROW_BASE_BORDER, duration: 0.9, ease: "power3.out", immediateRender: false },
+        6.7
+      );
+      // ambient: amber breathe on the request bar, 6.40 -> 8.60 (repeat 3, odd)
+      tl.to(
+        "#req-bar",
+        { boxShadow: "0 18px 44px rgba(0,0,0,0.5), 0 0 40px 6px rgba(245,158,11,0.4)", duration: 0.55, ease: "sine.inOut", yoyo: true, repeat: 3 },
+        6.4
+      );
+
+      // 6.95 — page 2 is re-fetched from a position that moved; the row it returns is one we already have
+      tl.to("#row-c", { y: 252, opacity: 0, duration: 0.55, ease: "power3.out" }, 6.95);
+      tl.fromTo(
+        "#row-dup",
+        { opacity: 0, y: 126 },
+        { opacity: 1, y: 0, duration: 0.55, ease: "power3.out", immediateRender: false },
+        6.95
+      );
+
+      // 7.60 — the duplicate flags red (inside 6.92-9.32)
+      tl.set("#rail-b", { backgroundColor: "#ef4444", boxShadow: "0 0 0 0 rgba(0,0,0,0)" }, 7.58);
+      tl.set("#rail-dup", { backgroundColor: "#ef4444" }, 7.58);
+      tl.to(
+        ".dup",
+        {
+          borderColor: "rgba(239,68,68,0.85)",
+          backgroundColor: "rgba(239,68,68,0.12)",
+          duration: 0.35,
+          ease: "power4.out",
+        },
+        7.6
+      );
+      tl.fromTo(
+        ".dup .rail",
+        { opacity: 0, scaleY: 0 },
+        { opacity: 1, scaleY: 1, duration: 0.3, ease: "power4.out", immediateRender: false },
+        7.6
+      );
+      tl.fromTo(
+        "#dup-pill",
+        { opacity: 0, x: 14 },
+        { opacity: 1, x: 0, duration: 0.3, ease: "power3.out", immediateRender: false },
+        7.72
+      );
+      // ambient: one red pulse on the pair, 8.05 -> 8.81 (repeat 1, odd)
+      tl.to(
+        ".dup",
+        { boxShadow: "0 0 34px 4px rgba(239,68,68,0.55)", duration: 0.38, ease: "sine.inOut", yoyo: true, repeat: 1 },
+        8.05
+      );
+
+      /* ============ fade — finishes at exactly 9.200 ============ */
+      tl.fromTo(
+        ["#bg-fill", "#bg-glow-amber", "#vignette", "#scene", "#grain", "#content-all"],
+        { opacity: 1 },
+        { opacity: 0, duration: 0.3, ease: "power3.out", immediateRender: false },
+        8.9
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

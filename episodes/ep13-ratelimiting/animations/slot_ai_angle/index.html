@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<!-- slot_ai_angle — AI_ANGLE beat, ep13 rate limiting.
+     FORMAT: split-screen before/after comparison (two stacked panels + divider).
+     Canvas 1080x1920, exactly 6.000s. Fully deterministic: no Math.random, no Date.now. -->
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+
+<style>
+  html, body {
+    width: 1080px;
+    height: 1920px;
+    overflow: hidden;
+    background: transparent;
+    margin: 0;
+    padding: 0;
+  }
+  * { box-sizing: border-box; }
+
+  #root { position: relative; width: 1080px; height: 1920px; }
+  #scene { position: absolute; inset: 0; }
+
+  /* ---- camera stage: push-in 1 -> 1.06 about (540, 725) ---- */
+  #stage {
+    position: absolute; inset: 0;
+    transform-origin: 540px 725px;
+  }
+  #content-all { position: absolute; inset: 0; }
+
+  /* ---- background layers (full-frame, exempt from the 180-1280 band) ---- */
+  #bg-fill {
+    position: absolute; left: -60px; top: -60px;
+    width: 1200px; height: 2040px;
+    background:
+      radial-gradient(720px 640px at 52% 26%, rgba(239, 68, 68, 0.16) 0%, rgba(239, 68, 68, 0) 68%),
+      radial-gradient(900px 900px at 50% 46%, #101725 0%, #0a0e16 58%, #060305 100%),
+      #060305;
+    opacity: 1;
+  }
+  #bg-fill-ai {
+    position: absolute; left: -60px; top: -60px;
+    width: 1200px; height: 2040px;
+    background:
+      radial-gradient(760px 660px at 48% 72%, rgba(34, 211, 238, 0.20) 0%, rgba(34, 211, 238, 0) 66%),
+      radial-gradient(620px 560px at 74% 84%, rgba(167, 139, 250, 0.16) 0%, rgba(167, 139, 250, 0) 70%);
+    opacity: 0;
+  }
+  #vignette {
+    position: absolute; left: -60px; top: -60px;
+    width: 1200px; height: 2040px;
+    background: radial-gradient(760px 1100px at 50% 50%, rgba(0,0,0,0) 34%, rgba(0,0,0,0.52) 74%, rgba(0,0,0,0.86) 100%);
+    pointer-events: none;
+  }
+  #grain {
+    position: absolute; left: -60px; top: -60px;
+    width: 1200px; height: 2040px;
+    opacity: 0.042;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+  }
+
+  /* ---- typography ---- */
+  body { font-family: Inter, sans-serif; }
+  .mono { font-family: "JetBrains Mono", monospace; }
+
+  /* ---- panels ---- */
+  .panel {
+    position: absolute;
+    left: 100px;
+    width: 880px;
+    height: 460px;
+    border-radius: 26px;
+    overflow: hidden;
+  }
+  #panel-top {
+    top: 215px;
+    background: linear-gradient(160deg, rgba(148,163,184,0.09) 0%, rgba(15,20,30,0.62) 62%, rgba(239,68,68,0.07) 100%);
+    border: 2px solid rgba(148, 163, 184, 0.26);
+    box-shadow: inset 0 0 90px rgba(239, 68, 68, 0.07);
+  }
+  #panel-bot {
+    top: 775px;
+    background: linear-gradient(160deg, rgba(34,211,238,0.10) 0%, rgba(12,18,28,0.66) 60%, rgba(167,139,250,0.10) 100%);
+    border: 2px solid rgba(34, 211, 238, 0.30);
+    box-shadow: inset 0 0 90px rgba(34, 211, 238, 0.09);
+  }
+
+  /* panel title row: local y 20..74 */
+  .p-title {
+    position: absolute; left: 36px; top: 20px; height: 54px;
+    font-size: 46px; line-height: 54px; font-weight: 800;
+    letter-spacing: 5px; text-transform: uppercase;
+    white-space: nowrap;
+  }
+  #t-title { color: #cbd5e1; }
+  #b-title { color: #f3f4f6; }
+
+  /* phase badge: local x 768..844, y 28..66 */
+  .p-badge {
+    position: absolute; left: 768px; top: 28px;
+    width: 76px; height: 38px;
+    font-size: 24px; line-height: 34px; font-weight: 700; letter-spacing: 3px;
+    text-align: center; border-radius: 10px;
+  }
+  #t-badge { color: #ef4444; border: 2px solid rgba(239,68,68,0.55); background: rgba(239,68,68,0.10); }
+  #b-badge { color: #22d3ee; border: 2px solid rgba(34,211,238,0.55); background: rgba(34,211,238,0.10); }
+
+  /* flow area: local x 36..844, y 114..274 */
+  .flow { position: absolute; left: 36px; top: 114px; width: 808px; height: 160px; }
+
+  /* counter block: local x 36.., y 314..444 */
+  .counter { position: absolute; left: 36px; top: 314px; width: 808px; height: 130px; }
+  .c-eyebrow {
+    position: absolute; left: 0; top: 0; height: 26px;
+    font-size: 22px; line-height: 26px; font-weight: 700; letter-spacing: 6px;
+    color: #7d8590;
+  }
+  .c-stats { position: absolute; left: 0; top: 34px; width: 808px; height: 96px; }
+  .dgbox {
+    position: absolute; top: 0; width: 60px; height: 96px;
+    font-size: 92px; line-height: 96px; font-weight: 700;
+  }
+  .dgbox .dg { position: absolute; left: 0; top: 0; width: 60px; text-align: center; }
+  .c-lbl {
+    position: absolute; top: 47px; height: 36px;
+    font-size: 30px; line-height: 36px; font-weight: 600; letter-spacing: 3px;
+    color: #7d8590;
+  }
+  .dg-bots { left: 0; }
+  .lbl-bots { left: 116px; }
+  .dg-hum  { left: 300px; }
+  .lbl-hum { left: 380px; }
+
+  #t-bots .dg, #t-hum .dg { color: #ef4444; }
+  #b-bots .dg { color: #22d3ee; }
+  #b-hum  .dg { color: #22d3ee; }
+
+  /* transition wipe bar, clipped inside #panel-bot */
+  #wipe-bar {
+    position: absolute; left: 0; top: -14px; width: 880px; height: 14px;
+    background: linear-gradient(90deg, rgba(34,211,238,0) 0%, rgba(34,211,238,0.95) 22%, rgba(167,139,250,0.95) 74%, rgba(167,139,250,0) 100%);
+    box-shadow: 0 0 42px 10px rgba(34, 211, 238, 0.55);
+    opacity: 0;
+  }
+
+  /* ---- divider: y 715..735 ---- */
+  #divider { position: absolute; left: 100px; top: 715px; width: 880px; height: 20px; }
+  #div-line {
+    position: absolute; left: 0; top: 8px; width: 880px; height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, rgba(148,163,184,0) 0%, rgba(148,163,184,0.75) 26%, rgba(148,163,184,0.75) 74%, rgba(148,163,184,0) 100%);
+    transform-origin: 50% 50%;
+  }
+  #div-line-ai {
+    position: absolute; left: 0; top: 7px; width: 880px; height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(90deg, rgba(34,211,238,0) 0%, rgba(34,211,238,0.95) 30%, rgba(167,139,250,0.95) 70%, rgba(167,139,250,0) 100%);
+    box-shadow: 0 0 30px 6px rgba(34, 211, 238, 0.40);
+    opacity: 0;
+  }
+  #div-pulse {
+    position: absolute; left: 0; top: 4px; width: 200px; height: 12px;
+    border-radius: 6px;
+    background: radial-gradient(closest-side, rgba(226,254,255,0.95) 0%, rgba(34,211,238,0.0) 100%);
+    opacity: 0;
+  }
+</style>
+</head>
+<body>
+
+<div id="root" data-composition-id="main" data-start="0" data-duration="6"
+     data-width="1080" data-height="1920">
+  <section id="scene" class="clip" data-start="0" data-duration="6" data-track-index="1">
+    <div id="stage">
+      <div id="content-all">
+
+        <div id="bg-fill"></div>
+        <div id="bg-fill-ai"></div>
+
+        <div id="vignette"></div>
+
+        <svg id="grain" viewBox="0 0 1200 2040" preserveAspectRatio="none">
+          <filter id="grainF" x="0" y="0" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch" seed="7" />
+            <feColorMatrix type="saturate" values="0" />
+          </filter>
+          <rect width="1200" height="2040" filter="url(#grainF)" />
+        </svg>
+
+        <!-- ============ TOP PANEL : FIXED LIMIT (phase 1) ============ -->
+        <div id="panel-top" class="panel">
+          <div id="t-title" class="p-title">Fixed limit</div>
+          <div id="t-badge" class="p-badge mono">01</div>
+
+          <svg id="t-flow" class="flow" viewBox="0 0 808 160" width="808" height="160">
+            <defs>
+              <filter id="softT" x="-60%" y="-60%" width="220%" height="220%">
+                <feGaussianBlur stdDeviation="6" />
+              </filter>
+            </defs>
+            <path id="t-gate" d="M624 4 L624 156" fill="none" stroke="#ef4444" stroke-width="9"
+                  stroke-linecap="round" stroke-dasharray="16 11" opacity="0" />
+            <path id="t-gate-glow" d="M624 4 L624 156" fill="none" stroke="#ef4444" stroke-width="20"
+                  stroke-linecap="round" opacity="0" filter="url(#softT)" />
+            <g id="t-dots"></g>
+          </svg>
+
+          <div class="counter" id="t-counter">
+            <div class="c-eyebrow">Blocked</div>
+            <div class="c-stats">
+              <div id="t-bots" class="dgbox dg-bots mono"></div>
+              <div class="c-lbl lbl-bots mono">Bots</div>
+              <div id="t-hum" class="dgbox dg-hum mono"></div>
+              <div class="c-lbl lbl-hum mono">Humans</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ DIVIDER ============ -->
+        <div id="divider">
+          <div id="div-line"></div>
+          <div id="div-line-ai"></div>
+          <div id="div-pulse"></div>
+        </div>
+
+        <!-- ============ BOTTOM PANEL : AI-DRIVEN (phase 2) ============ -->
+        <div id="panel-bot" class="panel">
+          <div id="wipe-bar"></div>
+          <div id="b-title" class="p-title">AI-driven</div>
+          <div id="b-badge" class="p-badge mono">02</div>
+
+          <svg id="b-flow" class="flow" viewBox="0 0 808 160" width="808" height="160">
+            <defs>
+              <linearGradient id="bandGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"   stop-color="#22d3ee" stop-opacity="0" />
+                <stop offset="50%"  stop-color="#22d3ee" stop-opacity="0.55" />
+                <stop offset="100%" stop-color="#a78bfa" stop-opacity="0" />
+              </linearGradient>
+              <filter id="softB" x="-60%" y="-60%" width="220%" height="220%">
+                <feGaussianBlur stdDeviation="6" />
+              </filter>
+            </defs>
+            <rect id="band-glow" x="0" y="34" width="808" height="96" rx="48" fill="url(#bandGrad)" opacity="0" />
+            <path id="band-wave" fill="none" stroke="#22d3ee" stroke-width="3" opacity="0"
+                  d="M0,86 C30,58 60,58 90,86 C120,114 150,114 180,86 C210,58 240,58 270,86 C300,114 330,114 360,86 C390,58 420,58 450,86 C480,114 510,114 540,86 C570,58 600,58 630,86 C660,114 690,114 720,86 C750,58 778,58 808,86" />
+            <path id="b-gate" d="M624 4 L624 156" fill="none" stroke="#22d3ee" stroke-width="9"
+                  stroke-linecap="round" stroke-dasharray="16 11" opacity="0" />
+            <path id="b-gate-glow" d="M624 4 L624 156" fill="none" stroke="#22d3ee" stroke-width="20"
+                  stroke-linecap="round" opacity="0" filter="url(#softB)" />
+            <g id="b-reticles"></g>
+            <g id="b-dots"></g>
+          </svg>
+
+          <div class="counter" id="b-counter">
+            <div class="c-eyebrow">Blocked</div>
+            <div class="c-stats">
+              <div id="b-bots" class="dgbox dg-bots mono"></div>
+              <div class="c-lbl lbl-bots mono">Bots</div>
+              <div id="b-hum" class="dgbox dg-hum mono"></div>
+              <div class="c-lbl lbl-hum mono">Humans</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+  window.__timelines = window.__timelines || {};
+  const tl = gsap.timeline({ paused: true });
+  window.__timelines["main"] = tl;
+
+  const SVGNS = "http://www.w3.org/2000/svg";
+
+  /* =====================================================================
+     DETERMINISTIC TRAFFIC TABLE — every dot's lane, type, launch offset,
+     queue index and AI lock-on x are hard-coded literals. No RNG anywhere.
+     6 bots (ids 0,2,4,6,8,10) + 5 humans (ids 1,3,5,7,9) = 11 dots.
+     ===================================================================== */
+  const LANES   = [26, 53, 80, 107, 134];   // svg-local y, flow box is 160 tall
+  const START_X = 14;
+  const GATE_X  = 624;
+  const EXIT_X  = 794;
+
+  const TRAFFIC = [
+    { id: 0,  lane: 0, kind: "bot",   off: 0.00, k: 0, lock: 400 },
+    { id: 1,  lane: 2, kind: "human", off: 0.09, k: 0, lock: 0   },
+    { id: 2,  lane: 4, kind: "bot",   off: 0.18, k: 0, lock: 470 },
+    { id: 3,  lane: 1, kind: "human", off: 0.27, k: 0, lock: 0   },
+    { id: 4,  lane: 3, kind: "bot",   off: 0.37, k: 0, lock: 360 },
+    { id: 5,  lane: 0, kind: "human", off: 0.47, k: 1, lock: 0   },
+    { id: 6,  lane: 2, kind: "bot",   off: 0.58, k: 1, lock: 520 },
+    { id: 7,  lane: 4, kind: "human", off: 0.68, k: 1, lock: 0   },
+    { id: 8,  lane: 1, kind: "bot",   off: 0.79, k: 1, lock: 430 },
+    { id: 9,  lane: 3, kind: "human", off: 0.89, k: 1, lock: 0   },
+    { id: 10, lane: 0, kind: "bot",   off: 1.00, k: 2, lock: 490 }
+  ];
+
+  const C_HUMAN = "#60a5fa";
+  const C_HUMAN_HOT = "#bfdbfe";
+  const C_BOT = "#ef4444";
+  const C_DEAD = "#6b7280";
+  const C_CYAN = "#22d3ee";
+
+  /* ---------- dot factory ---------- */
+  function makeDot(d, phase) {
+    const g = document.createElementNS(SVGNS, "g");
+    g.setAttribute("class", "dot");
+    let shape;
+    if (d.kind === "human") {
+      shape = document.createElementNS(SVGNS, "circle");
+      shape.setAttribute("r", "10");
+      shape.setAttribute("fill", C_HUMAN);
+    } else {
+      shape = document.createElementNS(SVGNS, "rect");
+      shape.setAttribute("x", "-9");
+      shape.setAttribute("y", "-9");
+      shape.setAttribute("width", "18");
+      shape.setAttribute("height", "18");
+      shape.setAttribute("rx", "2");
+      shape.setAttribute("fill", C_BOT);
+      shape.setAttribute("transform", "rotate(45)"); // static, never animated
+    }
+    g.appendChild(shape);
+    g.__shape = shape;
+    g.__d = d;
+    g.__phase = phase;
+    return g;
+  }
+
+  /* ---------- reticle factory (paths + circle only; no rotation tweens) ---------- */
+  function makeReticle(d) {
+    const g = document.createElementNS(SVGNS, "g");
+    g.setAttribute("transform", "translate(" + d.lock + "," + LANES[d.lane] + ")");
+    g.setAttribute("opacity", "0");
+
+    const ring = document.createElementNS(SVGNS, "circle");
+    ring.setAttribute("r", "26");
+    ring.setAttribute("fill", "none");
+    ring.setAttribute("stroke", C_CYAN);
+    ring.setAttribute("stroke-width", "2");
+    ring.setAttribute("opacity", "0.9");
+    g.appendChild(ring);
+
+    const corners = [
+      "M-25,-14 L-25,-25 L-14,-25",
+      "M14,-25 L25,-25 L25,-14",
+      "M25,14 L25,25 L14,25",
+      "M-14,25 L-25,25 L-25,14"
+    ];
+    for (let i = 0; i < corners.length; i++) {
+      const p = document.createElementNS(SVGNS, "path");
+      p.setAttribute("d", corners[i]);
+      p.setAttribute("fill", "none");
+      p.setAttribute("stroke", C_CYAN);
+      p.setAttribute("stroke-width", "3");
+      p.setAttribute("stroke-linecap", "round");
+      g.appendChild(p);
+    }
+    g.__ring = ring;
+    return g;
+  }
+
+  /* ---------- counter digit stacks (opacity-swapped; seek-safe) ---------- */
+  function buildDigits(el, max) {
+    for (let v = 0; v <= max; v++) {
+      const s = document.createElement("span");
+      s.className = "dg";
+      s.textContent = String(v);
+      s.style.opacity = (v === 0) ? "1" : "0";
+      el.appendChild(s);
+    }
+  }
+  function stepTo(el, n, t) {
+    tl.set(el.children[n - 1], { opacity: 0 }, t);
+    tl.set(el.children[n],     { opacity: 1 }, t);
+  }
+
+  const tBots = document.getElementById("t-bots");
+  const tHum  = document.getElementById("t-hum");
+  const bBots = document.getElementById("b-bots");
+  const bHum  = document.getElementById("b-hum");
+  buildDigits(tBots, 6);
+  buildDigits(tHum, 5);
+  buildDigits(bBots, 6);
+  buildDigits(bHum, 0);   // AI panel blocks 0 humans — static payoff figure
+
+  /* ---------- build phase-1 + phase-2 dots ---------- */
+  const tDotsG = document.getElementById("t-dots");
+  const bDotsG = document.getElementById("b-dots");
+  const bRetG  = document.getElementById("b-reticles");
+  const p1 = [], p2 = [], rets = {};
+
+  for (let i = 0; i < TRAFFIC.length; i++) {
+    const d = TRAFFIC[i];
+    const a = makeDot(d, 1); tDotsG.appendChild(a); p1.push(a);
+    const b = makeDot(d, 2); bDotsG.appendChild(b); p2.push(b);
+    if (d.kind === "bot") {
+      const r = makeReticle(d);
+      bRetG.appendChild(r);
+      rets[d.id] = r;
+    }
+  }
+
+  gsap.set(p1.concat(p2), { opacity: 0, scale: 0.55 });
+  for (let i = 0; i < TRAFFIC.length; i++) {
+    gsap.set(p1[i], { x: START_X, y: LANES[TRAFFIC[i].lane] });
+    gsap.set(p2[i], { x: START_X, y: LANES[TRAFFIC[i].lane] });
+  }
+  gsap.set(["#t-counter", "#b-counter", "#b-title", "#b-badge"], { opacity: 0 });
+  gsap.set("#panel-bot", { opacity: 0 });
+  gsap.set("#panel-top", { opacity: 0, y: 18 });
+  gsap.set("#div-line", { scaleX: 0, opacity: 0 });
+
+  /* =====================================================================
+     TIMELINE — total 6.000s
+     ===================================================================== */
+
+  // Camera push-in under everything, full duration.
+  tl.fromTo("#stage", { scale: 1 }, { scale: 1.06, duration: 6, ease: "sine.inOut" }, 0);
+
+  /* ---------- PHASE 1: FIXED LIMIT (0 -> 2.60) ---------- */
+  // primary entrance at local t = 0
+  tl.to("#panel-top", { opacity: 1, y: 0, duration: 0.50, ease: "power3.out" }, 0);
+  tl.to("#div-line",  { opacity: 1, scaleX: 1, duration: 0.60, ease: "power3.out" }, 0.14);
+  tl.to("#panel-bot", { opacity: 0.13, duration: 0.50, ease: "power2.out" }, 0.30);
+  tl.to("#t-gate",      { opacity: 0.92, duration: 0.34, ease: "power3.out" }, 0.46);
+  tl.to("#t-gate-glow", { opacity: 0.34, duration: 0.40, ease: "sine.inOut" }, 0.56);
+  tl.to("#t-counter",   { opacity: 1, duration: 0.40, ease: "power3.out" }, 0.66);
+
+  const P1_BASE = 0.40, P1_TRAVEL = 0.75;
+  let p1b = 0, p1h = 0;
+
+  for (let i = 0; i < TRAFFIC.length; i++) {
+    const d = TRAFFIC[i], el = p1[i];
+    const s = P1_BASE + d.off;
+    const impactX = 606 - 24 * d.k;      // queues up behind earlier blocked dots
+    const restX   = impactX - 28;
+    const hit     = s + P1_TRAVEL;
+
+    tl.to(el, { opacity: 1, scale: 1, duration: 0.26, ease: "power3.out" }, s);
+    tl.to(el, { x: impactX, duration: P1_TRAVEL, ease: "power1.inOut" }, s);
+    // blunt gate: humans AND bots alike bounce and go grey
+    tl.to(el, { x: restX, duration: 0.20, ease: "power4.out" }, hit);
+    tl.to(el.__shape, { fill: C_DEAD, duration: 0.24, ease: "power2.out" }, hit);
+    tl.to(el, { opacity: 0.34, scale: 0.86, duration: 0.30, ease: "power2.out" }, hit + 0.06);
+
+    if (d.kind === "bot") { p1b++; stepTo(tBots, p1b, hit); }
+    else                  { p1h++; stepTo(tHum,  p1h, hit); }
+  }
+  // -> counter reads 6 bots / 5 humans at t = 2.15
+
+  /* ---------- TRANSITION (2.55 -> 3.10): divider wipes down, colour shifts ---------- */
+  tl.fromTo("#div-pulse", { x: 0, opacity: 0 },
+    { x: 680, opacity: 0.95, duration: 0.34, ease: "power3.out" }, 2.52);
+  tl.to("#div-pulse", { opacity: 0, duration: 0.22, ease: "power2.out" }, 2.86);
+  tl.to("#div-line-ai", { opacity: 1, duration: 0.34, ease: "power3.out" }, 2.58);
+  tl.to("#div-line",    { opacity: 0.18, duration: 0.34, ease: "power2.out" }, 2.58);
+  tl.to("#bg-fill-ai",  { opacity: 1, duration: 0.80, ease: "sine.inOut" }, 2.60);
+  tl.to("#panel-bot",   { opacity: 1, duration: 0.46, ease: "power3.out" }, 2.64);
+  tl.to("#panel-top",   { opacity: 0.30, duration: 0.55, ease: "power2.out" }, 2.70);
+  // wipe bar sweeps downward through the bottom panel (clipped by panel overflow)
+  tl.fromTo("#wipe-bar", { y: 0, opacity: 0 },
+    { y: 240, opacity: 1, duration: 0.20, ease: "power3.out" }, 2.66);
+  tl.to("#wipe-bar", { y: 480, opacity: 0, duration: 0.40, ease: "power3.out", overwrite: "auto" }, 2.90);
+
+  /* ---------- PHASE 2: AI-DRIVEN (2.65 -> 6.00) ---------- */
+  tl.to("#b-title",     { opacity: 1, duration: 0.36, ease: "power3.out" }, 2.80);
+  tl.to("#b-badge",     { opacity: 1, duration: 0.30, ease: "power3.out" }, 2.92);
+  tl.to("#b-gate",      { opacity: 0.92, duration: 0.34, ease: "power3.out" }, 3.02);
+  tl.to("#b-gate-glow", { opacity: 0.30, duration: 0.36, ease: "sine.inOut" }, 3.12);
+  // learned-pattern signature band
+  tl.to("#band-wave",   { opacity: 0.85, duration: 0.44, ease: "power3.out" }, 2.98);
+  tl.to("#band-glow",   { opacity: 0.22, duration: 0.44, ease: "power3.out" }, 3.16);
+  tl.to("#band-glow",   { opacity: 0.46, duration: 0.80, ease: "sine.inOut", repeat: 2, yoyo: true, overwrite: "auto" }, 3.60);
+  tl.to("#b-counter",   { opacity: 1, duration: 0.40, ease: "power3.out" }, 3.22);
+
+  const P2_BASE = 3.10, P2_SC = 0.85;
+  let p2b = 0;
+
+  for (let i = 0; i < TRAFFIC.length; i++) {
+    const d = TRAFFIC[i], el = p2[i];
+    const s = P2_BASE + d.off * P2_SC;
+
+    tl.to(el, { opacity: 1, scale: 1, duration: 0.26, ease: "power3.out" }, s);
+
+    if (d.kind === "human") {
+      // untouched: straight through the gate, brightening on the way out
+      tl.to(el, { x: EXIT_X, duration: 1.12, ease: "power1.inOut" }, s);
+      tl.to(el.__shape, { fill: C_HUMAN_HOT, duration: 0.44, ease: "power2.out" }, s + 0.52);
+      tl.to(el, { scale: 1.16, duration: 0.40, ease: "power3.out" }, s + 0.58);
+      tl.to(el, { opacity: 0, duration: 0.22, ease: "power2.in" }, s + 0.98);
+    } else {
+      // classified, tagged, throttled, dropped
+      const r = rets[d.id];
+      tl.to(el, { x: d.lock, duration: 0.62, ease: "power2.out" }, s);
+      tl.to(r, { opacity: 1, duration: 0.22, ease: "power3.out" }, s + 0.50);
+      tl.to(r.__ring, { attr: { r: 17 }, duration: 0.28, ease: "power4.out" }, s + 0.50);
+      tl.to(el.__shape, { fill: C_DEAD, duration: 0.30, ease: "power2.out" }, s + 0.76);
+      tl.to(el, { y: LANES[d.lane] + 22, scale: 0.38, opacity: 0, duration: 0.34, ease: "power2.in" }, s + 0.80);
+      tl.to(r, { opacity: 0, duration: 0.26, ease: "power2.out" }, s + 0.94);
+      p2b++;
+      stepTo(bBots, p2b, s + 0.95);
+    }
+  }
+  // -> bottom counter reads 6 bots / 0 humans by t = 4.90
+
+  /* ---------- FINAL FADE: finishes at exactly 6.000 ---------- */
+  tl.to("#content-all", { opacity: 0, duration: 0.30, ease: "power2.in" }, 5.70);
+</script>
+</body>
+</html>

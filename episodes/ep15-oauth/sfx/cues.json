@@ -1,0 +1,62 @@
+{
+  "video": "final_nosfx.mp4",
+  "out": "final.mp4",
+  "cues": [
+    {
+      "at": 2.3,
+      "sfx": "tt_click_trim",
+      "vol": 0.95,
+      "why": "HOOK: the Continue-with-Google button pressed"
+    },
+    {
+      "at": 6.15,
+      "sfx": "tt_vine_boom",
+      "vol": 0.3,
+      "why": "HOOK: 'That's called OAuth' -- the term lands"
+    },
+    {
+      "at": 10.8,
+      "sfx": "tt_oh_no_no_no",
+      "vol": 0.76,
+      "why": "PROBLEM: the same password handed to app after app -- this is going badly"
+    },
+    {
+      "at": 12.91,
+      "sfx": "tt_metal_pipe",
+      "vol": 0.42,
+      "why": "PROBLEM: the breach chain reaching every card"
+    },
+    {
+      "at": 18.36,
+      "sfx": "tt_swoosh",
+      "vol": 0.503,
+      "why": "BUILD: the redirect path reversing, Google -> app"
+    },
+    {
+      "at": 25.27,
+      "sfx": "tt_camera_shutter",
+      "vol": 0.577,
+      "why": "NEW_COMPONENT: Allow pressed, consent sheet dismissing"
+    },
+    {
+      "at": 27.0,
+      "sfx": "tt_sparkle_trim",
+      "vol": 0.72,
+      "why": "NEW_COMPONENT: the access token docking at the app"
+    },
+    {
+      "at": 33.76,
+      "sfx": "tt_click_trim",
+      "vol": 0.95,
+      "why": "SCOPE: the revoke switch flipping"
+    },
+    {
+      "at": 40.65,
+      "sfx": "tt_whoosh",
+      "vol": 0.503,
+      "why": "PAYOFF: the master-key card receding out of frame"
+    }
+  ],
+  "_vol_note": "Volumes derived from each file's measured mean level, partially normalised (k=0.6) toward -18 dB so a 32 dB spread across the set does not make hot files dominate and quiet ones vanish. sparkle/vine_boom/bass_drop carry stated manual overrides.",
+  "_meme_note": "Voice meme tt_oh_no_no_no placed at 10.8 in place of tt_error_glitch, per request. One per episode, on the beat whose narration the meme actually matches."
+}

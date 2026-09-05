@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+
+      :root {
+        --cyan: #22d3ee;
+        --cyan-light: #67e8f9;
+        --ink: #050a0e;
+      }
+
+      #root { position: relative; width: 1080px; height: 1920px; }
+      #scene { position: absolute; inset: 0; }
+      #content-all { position: absolute; inset: 0; }
+
+      /* ---------------- headline lockup : x 56-580, y 186-270 ---------------- */
+      #headline-block {
+        position: absolute;
+        left: 56px;
+        top: 186px;
+        width: 524px;
+        height: 84px;
+        border-radius: 14px;
+        background: linear-gradient(180deg, rgba(5, 11, 16, 0.56), rgba(4, 8, 12, 0.46));
+        box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.26);
+        opacity: 0.55;
+      }
+      #accent {
+        position: absolute;
+        left: 20px;
+        top: 19px;
+        width: 6px;
+        height: 46px;
+        border-radius: 3px;
+        background: linear-gradient(180deg, var(--cyan-light), var(--cyan));
+      }
+      #headline {
+        position: absolute;
+        left: 44px;
+        top: 7px;
+        font-size: 66px;
+        line-height: 70px;
+        font-weight: 800;
+        letter-spacing: 8px;
+        color: #eaf9ff;
+        white-space: nowrap;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9), 0 0 24px rgba(0, 0, 0, 0.7),
+          0 1px 0 rgba(0, 0, 0, 0.95);
+      }
+
+      /* ---------------- panel glow : x 836-1080, y 284-1252 ---------------- */
+      #panel-glow {
+        position: absolute;
+        left: 836px;
+        top: 284px;
+        width: 244px;
+        height: 968px;
+        border-radius: 30px 0 0 30px;
+        background: linear-gradient(
+          to left,
+          rgba(34, 211, 238, 0.2) 0%,
+          rgba(34, 211, 238, 0.07) 45%,
+          rgba(34, 211, 238, 0) 100%
+        );
+        opacity: 0.4;
+      }
+
+      /* ---------------- panel : x 852-1080, y 296-1240 ---------------- */
+      #panel {
+        position: absolute;
+        left: 852px;
+        top: 296px;
+        width: 228px;
+        height: 944px;
+        overflow: hidden;
+        border-radius: 20px 0 0 20px;
+        background: linear-gradient(180deg, rgba(7, 12, 18, 0.64), rgba(4, 8, 13, 0.72));
+        box-shadow: inset 0 0 44px rgba(34, 211, 238, 0.1), 0 0 0 1.5px rgba(34, 211, 238, 0.42);
+        opacity: 0.5;
+        transform: translateX(24px);
+      }
+
+      #strip { position: absolute; left: 0; top: 0; width: 228px; height: 1620px; }
+
+      .tile {
+        position: absolute;
+        left: 0;
+        width: 228px;
+        height: 148px;
+        border-radius: 10px;
+        overflow: hidden;
+        background: rgba(10, 16, 22, 0.5);
+      }
+      .photo {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0;
+      }
+      .tile.loaded .photo { opacity: 1; }
+
+      .skel {
+        position: absolute;
+        inset: 0;
+        border-radius: 10px;
+        background: rgba(148, 163, 184, 0.13);
+        box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.22);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .tile.loaded .skel { opacity: 0; }
+      .skel-glow {
+        position: absolute;
+        inset: 0;
+        border-radius: 10px;
+        background: linear-gradient(
+          105deg,
+          rgba(226, 232, 240, 0) 22%,
+          rgba(226, 232, 240, 0.2) 50%,
+          rgba(226, 232, 240, 0) 78%
+        );
+        opacity: 0.35;
+      }
+      .skel svg { width: 62px; height: 62px; opacity: 0.42; }
+
+      /* ---------------- viewport window ---------------- */
+      #window {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 228px;
+        height: 464px;
+        border: 2px solid rgba(103, 232, 249, 0.85);
+        border-radius: 12px;
+        background: rgba(34, 211, 238, 0.055);
+        box-shadow: inset 0 0 34px rgba(34, 211, 238, 0.17);
+      }
+      #win-tag {
+        position: absolute;
+        left: 12px;
+        top: 10px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        background: rgba(4, 12, 17, 0.78);
+        border: 1px solid rgba(34, 211, 238, 0.5);
+        color: var(--cyan-light);
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 26px;
+        letter-spacing: 3.5px;
+        white-space: nowrap;
+      }
+      .brk {
+        position: absolute;
+        width: 26px;
+        height: 26px;
+        border: 3px solid var(--cyan-light);
+      }
+      #brk-tl { left: -1px; top: -1px; border-right: none; border-bottom: none; border-radius: 8px 0 0 0; }
+      #brk-tr { right: -1px; top: -1px; border-left: none; border-bottom: none; border-radius: 0 8px 0 0; }
+      #brk-bl { left: -1px; bottom: -1px; border-right: none; border-top: none; border-radius: 0 0 0 8px; }
+      #brk-br { right: -1px; bottom: -1px; border-left: none; border-top: none; border-radius: 0 0 8px 0; }
+
+      /* ---------------- bottom edge flares (inside panel, clipped) ---------------- */
+      .flare {
+        position: absolute;
+        left: 0;
+        top: 936px;
+        width: 228px;
+        height: 8px;
+        background: linear-gradient(
+          to right,
+          rgba(34, 211, 238, 0) 0%,
+          var(--cyan-light) 55%,
+          rgba(255, 255, 255, 0.95) 100%
+        );
+        box-shadow: 0 0 22px 4px rgba(34, 211, 238, 0.75);
+        opacity: 0;
+      }
+
+      #grain { position: absolute; inset: 0; opacity: 0.9; pointer-events: none; }
+
+      /* ---------------- request pulses : y 1206-1213 (+glow -> 1182-1237) ------- */
+      .pulse {
+        position: absolute;
+        left: 856px;
+        top: 1206px;
+        width: 156px;
+        height: 7px;
+        border-radius: 5px;
+        background: linear-gradient(
+          to right,
+          rgba(34, 211, 238, 0) 0%,
+          rgba(103, 232, 249, 0.95) 68%,
+          #ffffff 100%
+        );
+        box-shadow: 0 0 20px 4px rgba(34, 211, 238, 0.55);
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="6.60"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="scene" class="clip" data-start="0" data-duration="6.60" data-track-index="1">
+        <div id="content-all">
+          <!-- ============ headline ============ -->
+          <div id="headline-block">
+            <div id="accent"></div>
+            <div id="headline">LAZY LOAD</div>
+          </div>
+
+          <!-- ============ panel ============ -->
+          <div id="panel-glow"></div>
+
+          <div id="panel">
+            <div id="strip" data-layout-allow-overflow="true">
+              <div class="tile loaded" id="t0" style="top: 6px" data-layout-allow-overflow="true">
+                <img class="photo" src="assets/t0_puppy.jpg" alt="" />
+                <div class="skel">
+                  <div class="skel-glow"></div>
+                  <svg viewBox="0 0 64 64" fill="none">
+                    <rect x="5" y="11" width="54" height="42" rx="6" stroke="#cbd5e1" stroke-width="3" />
+                    <circle cx="21" cy="25" r="5" fill="#cbd5e1" />
+                    <path d="M9 47L25 32L36 42L45 34L55 47Z" fill="#cbd5e1" />
+                  </svg>
+                </div>
+              </div>
+
+              <div class="tile loaded" id="t1" style="top: 164px" data-layout-allow-overflow="true">
+                <img class="photo" src="assets/t1_pasta.jpg" alt="" />
+                <div class="skel">
+                  <div class="skel-glow"></div>
+                  <svg viewBox="0 0 64 64" fill="none">
+                    <rect x="5" y="11" width="54" height="42" rx="6" stroke="#cbd5e1" stroke-width="3" />
+                    <circle cx="21" cy="25" r="5" fill="#cbd5e1" />
+                    <path d="M9 47L25 32L36 42L45 34L55 47Z" fill="#cbd5e1" />
+                  </svg>
+                </div>
+              </div>
+
+              <div class="tile loaded" id="t2" style="top: 322px" data-layout-allow-overflow="true">
+                <img class="photo" src="assets/t2_fjord.jpg" alt="" />
+                <div class="skel">
+                  <div class="skel-glow"></div>
+                  <svg viewBox="0 0 64 64" fill="none">
+                    <rect x="5" y="11" width="54" height="42" rx="6" stroke="#cbd5e1" stroke-width="3" />
+                    <circle cx="21" cy="25" r="5" fill="#cbd5e1" />
+                    <path d="M9 47L25 32L36 42L45 34L55 47Z" fill="#cbd5e1" />
+                  </svg>
+                </div>
+              </div>
+
+              <div class="tile" id="t3" style="top: 480px" data-layout-allow-overflow="true">
+                <img class="photo" src="assets/t3_strawberries.jpg" alt="" />
+                <div class="skel">
+                  <div class="skel-glow"></div>
+                  <svg viewBox="0 0 64 64" fill="none">
+                    <rect x="5" y="11" width="54" height="42" rx="6" stroke="#cbd5e1" stroke-width="3" />
+                    <circle cx="21" cy="25" r="5" fill="#cbd5e1" />
+                    <path d="M9 47L25 32L36 42L45 34L55 47Z" fill="#cbd5e1" />
+                  </svg>
+                </div>
+              </div>
+
+              <div class="tile" id="t4" style="top: 638px" data-layout-allow-overflow="true">
+                <img class="photo" src="assets/t4_snowmtn.jpg" alt="" />
+                <div class="skel">
+                  <div class="skel-glow"></div>
+                  <svg viewBox="0 0 64 64" fill="none">
+                    <rect x="5" y="11" width="54" height="42" rx="6" stroke="#cbd5e1" stroke-width="3" />
+                    <circle cx="21" cy="25" r="5" fill="#cbd5e1" />
+                    <path d="M9 47L25 32L36 42L45 34L55 47Z" fill="#cbd5e1" />
+                  </svg>
+                </div>
+              </div>
+
+              <div class="tile" id="t5" style="top: 796px" data-layout-allow-overflow="true">
+                <img class="photo" src="assets/t5_waterfall.jpg" alt="" />
+                <div class="skel">
+                  <div class="skel-glow"></div>
+                  <svg viewBox="0 0 64 64" fill="none">
+                    <rect x="5" y="11" width="54" height="42" rx="6" stroke="#cbd5e1" stroke-width="3" />
+                    <circle cx="21" cy="25" r="5" fill="#cbd5e1" />
+                    <path d="M9 47L25 32L36 42L45 34L55 47Z" fill="#cbd5e1" />
+                  </svg>
+                </div>
+              </div>
+
+              <div class="tile" id="t6" style="top: 954px" data-layout-allow-overflow="true">
+                <img class="photo" src="assets/t6_dog.jpg" alt="" />
+                <div class="skel">
+                  <div class="skel-glow"></div>
+                  <svg viewBox="0 0 64 64" fill="none">
+                    <rect x="5" y="11" width="54" height="42" rx="6" stroke="#cbd5e1" stroke-width="3" />
+                    <circle cx="21" cy="25" r="5" fill="#cbd5e1" />
+                    <path d="M9 47L25 32L36 42L45 34L55 47Z" fill="#cbd5e1" />
+                  </svg>
+                </div>
+              </div>
+
+              <div class="tile" id="t7" style="top: 1112px" data-layout-allow-overflow="true">
+                <img class="photo" src="assets/t7_pancakes.jpg" alt="" />
+                <div class="skel">
+                  <div class="skel-glow"></div>
+                  <svg viewBox="0 0 64 64" fill="none">
+                    <rect x="5" y="11" width="54" height="42" rx="6" stroke="#cbd5e1" stroke-width="3" />
+                    <circle cx="21" cy="25" r="5" fill="#cbd5e1" />
+                    <path d="M9 47L25 32L36 42L45 34L55 47Z" fill="#cbd5e1" />
+                  </svg>
+                </div>
+              </div>
+
+              <div class="tile" id="t8" style="top: 1270px" data-layout-allow-overflow="true">
+                <img class="photo" src="assets/t8_lake.jpg" alt="" />
+                <div class="skel">
+                  <div class="skel-glow"></div>
+                  <svg viewBox="0 0 64 64" fill="none">
+                    <rect x="5" y="11" width="54" height="42" rx="6" stroke="#cbd5e1" stroke-width="3" />
+                    <circle cx="21" cy="25" r="5" fill="#cbd5e1" />
+                    <path d="M9 47L25 32L36 42L45 34L55 47Z" fill="#cbd5e1" />
+                  </svg>
+                </div>
+              </div>
+
+              <div class="tile" id="t9" style="top: 1428px" data-layout-allow-overflow="true">
+                <div class="skel">
+                  <div class="skel-glow"></div>
+                  <svg viewBox="0 0 64 64" fill="none">
+                    <rect x="5" y="11" width="54" height="42" rx="6" stroke="#cbd5e1" stroke-width="3" />
+                    <circle cx="21" cy="25" r="5" fill="#cbd5e1" />
+                    <path d="M9 47L25 32L36 42L45 34L55 47Z" fill="#cbd5e1" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div id="window">
+              <div class="brk" id="brk-tl"></div>
+              <div class="brk" id="brk-tr"></div>
+              <div class="brk" id="brk-bl"></div>
+              <div class="brk" id="brk-br"></div>
+              <div id="win-tag">VIEWPORT</div>
+            </div>
+
+            <div class="flare" id="flare-a"></div>
+            <div class="flare" id="flare-b"></div>
+            <div id="grain"></div>
+          </div>
+
+          <!-- ============ request pulses ============ -->
+          <div class="pulse" id="pulse-a"></div>
+          <div class="pulse" id="pulse-b"></div>
+        </div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.04 0" />
+      </filter>
+    </svg>
+
+    <script>
+      document.getElementById("grain").style.filter = "url(#grain-filter)";
+
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      /* =====================================================================
+         Composition duration 6.600s.  No camera push-in: composed scale 1.000.
+         ===================================================================== */
+
+      /* ---------- entrance : begins at local t=0, visible on frame 0 ---------- */
+      tl.fromTo("#panel", { opacity: 0.5, x: 24 }, { opacity: 1, x: 0, duration: 0.55, ease: "power3.out" }, 0);
+      tl.fromTo("#panel-glow", { opacity: 0.4 }, { opacity: 1, duration: 0.6, ease: "power2.out" }, 0);
+      /* horizontal entrance only — a vertical offset here would push the block's
+         top edge above the y=180 limit on frame 0 (186 - 10 - 1px ring = 175). */
+      tl.fromTo(
+        "#headline-block",
+        { opacity: 0.55, x: -14 },
+        { opacity: 1, x: 0, duration: 0.5, ease: "power3.out" },
+        0
+      );
+
+      /* ---------- ambient : skeleton shimmer.  odd repeat -> lands on base.
+         end = 0.30 + 6 * 0.90 = 5.70  (< 6.30 fade start) ---------- */
+      tl.to(".skel-glow", { opacity: 0.75, duration: 0.9, ease: "sine.inOut", yoyo: true, repeat: 5 }, 0.3);
+
+      /* =====================  ACT 1 : the viewport scrolls  ==================== */
+      /* window 464px tall travels panel-y 0 -> 480 (its bottom lands on 944 = panel bottom) */
+      tl.fromTo(
+        "#window",
+        { y: 0 },
+        { y: 480, duration: 2.4, ease: "sine.inOut", immediateRender: false },
+        0.2
+      );
+
+      /* tiles load as the window arrives over them (>= 0.63s apart) */
+      const act1 = [
+        { id: "#t3", t: 1.15 },
+        { id: "#t4", t: 1.78 },
+        { id: "#t5", t: 2.42 },
+      ];
+      act1.forEach((r) => {
+        tl.fromTo(
+          r.id + " .photo",
+          { opacity: 0, scale: 1.09 },
+          { opacity: 1, scale: 1, duration: 0.45, ease: "power3.out", immediateRender: false },
+          r.t
+        );
+        tl.fromTo(
+          r.id + " .skel",
+          { opacity: 1 },
+          { opacity: 0, duration: 0.32, ease: "power2.out", immediateRender: false },
+          r.t
+        );
+      });
+
+      /* =====================  TURN : bottom reached, request out  ============== */
+      tl.fromTo("#flare-a", { opacity: 0 }, { opacity: 1, duration: 0.1, ease: "power3.out", immediateRender: false }, 2.6);
+      tl.fromTo("#flare-a", { opacity: 1 }, { opacity: 0, duration: 0.55, ease: "power2.out", immediateRender: false }, 2.7);
+
+      tl.fromTo("#pulse-a", { opacity: 0 }, { opacity: 1, duration: 0.1, ease: "power3.out", immediateRender: false }, 2.74);
+      tl.fromTo(
+        "#pulse-a",
+        { x: 0, y: 0 },
+        { x: 300, y: -34, duration: 0.44, ease: "power2.in", immediateRender: false },
+        2.74
+      );
+      tl.fromTo("#pulse-a", { opacity: 1 }, { opacity: 0, duration: 0.22, ease: "power2.out", immediateRender: false }, 3.02);
+
+      /* =====================  ACT 2 : the batch arrives  ====================== */
+      /* strip scrolls up 480 -> three new skeleton tiles (t6,t7,t8) land inside the window */
+      tl.fromTo(
+        "#strip",
+        { y: 0 },
+        { y: -480, duration: 0.95, ease: "power2.inOut", immediateRender: false },
+        3.1
+      );
+
+      const act2 = [
+        { id: "#t6", t: 4.2 },
+        { id: "#t7", t: 4.83 },
+        { id: "#t8", t: 5.46 },
+      ];
+      act2.forEach((r) => {
+        tl.fromTo(
+          r.id + " .photo",
+          { opacity: 0, scale: 1.09 },
+          { opacity: 1, scale: 1, duration: 0.45, ease: "power3.out", immediateRender: false },
+          r.t
+        );
+        tl.fromTo(
+          r.id + " .skel",
+          { opacity: 1 },
+          { opacity: 0, duration: 0.32, ease: "power2.out", immediateRender: false },
+          r.t
+        );
+      });
+
+      /* ---- the loop closes : over-scroll to the new bottom, request again ---- */
+      tl.fromTo(
+        "#strip",
+        { y: -480 },
+        { y: -512, duration: 0.25, ease: "power2.out", immediateRender: false },
+        5.88
+      );
+      tl.fromTo("#flare-b", { opacity: 0 }, { opacity: 1, duration: 0.09, ease: "power3.out", immediateRender: false }, 6.06);
+      tl.fromTo("#flare-b", { opacity: 1 }, { opacity: 0, duration: 0.34, ease: "power2.out", immediateRender: false }, 6.16);
+
+      /* LANDS ON "requests the next batch" -> local 6.13 (output 22.03) */
+      tl.fromTo("#pulse-b", { opacity: 0 }, { opacity: 1, duration: 0.09, ease: "power3.out", immediateRender: false }, 6.13);
+      tl.fromTo(
+        "#pulse-b",
+        { x: 0, y: 0 },
+        { x: 300, y: -34, duration: 0.44, ease: "power2.in", immediateRender: false },
+        6.13
+      );
+
+      /* ---------- fade : 6.30 + 0.30 = 6.600 exactly ---------- */
+      tl.fromTo(
+        ["#headline-block", "#panel-glow", "#panel", "#strip", "#window", "#pulse-b"],
+        { opacity: 1 },
+        { opacity: 0, duration: 0.3, ease: "power3.out", immediateRender: false },
+        6.3
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

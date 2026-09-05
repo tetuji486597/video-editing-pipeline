@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body {
+        font-family: Inter, sans-serif;
+      }
+
+      :root {
+        --cyan: #22d3ee;
+        --amber: #fbbf24;
+        --slate: #94a3b8;
+        --paper: #e6edf3;
+      }
+
+      #root {
+        position: relative;
+      }
+      .fill {
+        position: absolute;
+        inset: 0;
+      }
+
+      /* ---------- camera push-in, origin = the panel's own centre ---------- */
+      #scene {
+        transform-origin: 50% 21.51%; /* 413 / 1920 */
+      }
+
+      /* ---------- contained accent glows (NOT full-frame) ---------- */
+      #glow-cyan,
+      #glow-amber {
+        position: absolute;
+        left: 30px;
+        top: 200px;
+        width: 1020px;
+        height: 420px;
+      }
+      #glow-cyan {
+        background: radial-gradient(ellipse at 50% 50%, rgba(34, 211, 238, 0.17) 0%, rgba(34, 211, 238, 0) 68%);
+        opacity: 0.35;
+      }
+      #glow-amber {
+        background: radial-gradient(ellipse at 50% 50%, rgba(251, 191, 36, 0.18) 0%, rgba(251, 191, 36, 0) 68%);
+        opacity: 0;
+      }
+
+      /* ---------- the terminal window ---------- */
+      #term {
+        position: absolute;
+        left: 62px;
+        top: 226px;
+        width: 956px;
+        height: 374px;
+        border-radius: 20px;
+        overflow: hidden;
+        background: linear-gradient(180deg, #0d1218 0%, #080b0f 100%);
+        border: 1px solid rgba(34, 211, 238, 0.3);
+        box-shadow: 0 16px 28px rgba(0, 0, 0, 0.5);
+        opacity: 0.5;
+        transform: translateY(14px) scale(0.955);
+      }
+
+      #titlebar {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 956px;
+        height: 56px;
+        background: rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+      }
+      .dot {
+        position: absolute;
+        top: 21px;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+      }
+      #dot1 {
+        left: 26px;
+        background: rgba(255, 95, 87, 0.85);
+      }
+      #dot2 {
+        left: 52px;
+        background: rgba(254, 188, 46, 0.85);
+      }
+      #dot3 {
+        left: 78px;
+        background: rgba(40, 200, 64, 0.85);
+      }
+      #title {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 956px;
+        height: 56px;
+        line-height: 56px;
+        text-align: center;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 22px;
+        letter-spacing: 3px;
+        color: rgba(203, 213, 225, 0.62);
+      }
+
+      #body {
+        position: absolute;
+        left: 38px;
+        top: 80px;
+        width: 880px;
+        height: 268px;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 62px;
+        line-height: 84px;
+        color: var(--paper);
+      }
+      .row {
+        position: absolute;
+        left: 0;
+        width: 880px;
+        height: 84px;
+        white-space: pre;
+      }
+      #row-cmd {
+        top: 0;
+      }
+      #row-name {
+        top: 100px;
+      }
+      #row-addr {
+        top: 184px;
+      }
+      .rowtext {
+        position: relative;
+        z-index: 1;
+      }
+      .prompt {
+        color: #4ade80;
+      }
+      .lbl {
+        color: var(--slate);
+      }
+      #row-name .val {
+        color: var(--paper);
+      }
+      #row-addr .val {
+        color: var(--amber);
+        font-weight: 700;
+      }
+      .ch-cmd {
+        display: none;
+      }
+      .ch-name,
+      .ch-addr {
+        opacity: 0;
+      }
+
+      #cursor {
+        display: inline-block;
+        width: 36px;
+        height: 64px;
+        background: #cbd5e1;
+        vertical-align: -14px;
+        opacity: 1;
+      }
+
+      #addr-hl {
+        position: absolute;
+        left: 324.8px;
+        top: 6px;
+        width: 0;
+        height: 72px;
+        border-radius: 6px;
+        background: rgba(251, 191, 36, 0.18);
+        z-index: 0;
+      }
+
+      #spinner {
+        position: absolute;
+        left: 874px;
+        top: 100px;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        border: 5px solid rgba(34, 211, 238, 0.18);
+        border-top-color: #22d3ee;
+        opacity: 0;
+      }
+
+      #scan {
+        position: absolute;
+        left: 0;
+        top: 76px;
+        width: 956px;
+        height: 3px;
+        background: linear-gradient(90deg, rgba(251, 191, 36, 0) 0%, rgba(251, 191, 36, 0.95) 50%, rgba(251, 191, 36, 0) 100%);
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="7.80"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="main-clip" class="clip" data-start="0" data-duration="7.80" data-track-index="1">
+        <div id="content-all" class="fill">
+          <div id="scene" class="fill">
+            <div id="glow-cyan"></div>
+            <div id="glow-amber"></div>
+
+            <div id="term">
+              <div id="titlebar">
+                <div class="dot" id="dot1"></div>
+                <div class="dot" id="dot2"></div>
+                <div class="dot" id="dot3"></div>
+                <div id="title">dns · nslookup</div>
+              </div>
+
+              <div id="body">
+                <div class="row" id="row-cmd"><span class="rowtext"><span class="prompt">$ </span><span
+                      class="seg"
+                      data-cls="ch-cmd"
+                    >nslookup google.com</span><span id="cursor"></span></span></div>
+
+                <div class="row" id="row-name"><span class="rowtext"><span class="seg lbl" data-cls="ch-name">Name:    </span><span
+                      class="seg val"
+                      data-cls="ch-name"
+                    >google.com</span></span></div>
+
+                <div class="row" id="row-addr"><div id="addr-hl"></div><span class="rowtext"><span class="seg lbl" data-cls="ch-addr">Address: </span><span
+                      class="seg val"
+                      data-cls="ch-addr"
+                    >172.217.72.139</span></span></div>
+              </div>
+
+              <div id="spinner"></div>
+              <div id="scan"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      /* ---------- deterministic per-character split (no randomness) ---------- */
+      Array.prototype.forEach.call(document.querySelectorAll(".seg"), function (seg) {
+        var cls = seg.getAttribute("data-cls");
+        var text = seg.textContent;
+        var out = "";
+        for (var i = 0; i < text.length; i++) {
+          var c = text.charAt(i);
+          if (c === " ") c = "&nbsp;";
+          out += '<span class="ch ' + cls + '">' + c + "</span>";
+        }
+        seg.innerHTML = out;
+      });
+
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      /* ---------- continuous slow push-in about the panel's own centre ---------- */
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.025, duration: 7.8, ease: "sine.inOut" }, 0);
+
+      /* ================= ACT 1 — the query ================= */
+
+      // primary entrance: starts at t=0 and NOT at opacity 0 (CSS frame-0 state = 0.5)
+      tl.fromTo(
+        "#term",
+        { opacity: 0.5, scale: 0.955, y: 14 },
+        { opacity: 1, scale: 1, y: 0, duration: 0.55, ease: "power3.out" },
+        0
+      );
+      tl.fromTo("#glow-cyan", { opacity: 0.35 }, { opacity: 1, duration: 0.7, ease: "power2.out" }, 0);
+
+      // blinking cursor — odd repeat so it lands back on the base value; ends 0 + 8*0.25 = 2.00
+      tl.fromTo(
+        "#cursor",
+        { opacity: 1 },
+        { opacity: 0.06, duration: 0.25, ease: "sine.inOut", yoyo: true, repeat: 7 },
+        0
+      );
+
+      // the command types itself, left-anchored (hidden chars are display:none, so the
+      // cursor advances and nothing ever slides). 19 chars, 0.62 -> 1.88
+      const cmdChars = gsap.utils.toArray(".ch-cmd");
+      cmdChars.forEach(function (el, i) {
+        tl.set(el, { display: "inline" }, 0.62 + i * 0.07);
+      });
+
+      // Enter: cursor away, resolver spinner spins up
+      tl.fromTo("#cursor", { opacity: 1 }, { opacity: 0, duration: 0.12, ease: "power2.in", immediateRender: false }, 2.1);
+      tl.fromTo(
+        "#spinner",
+        { opacity: 0, scale: 0.5 },
+        { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.7)", immediateRender: false },
+        2.2
+      );
+      // real CSS border-ring geometry, not a degenerate SVG line. Single tween: 2.20 -> 4.28
+      tl.fromTo(
+        "#spinner",
+        { rotation: 0 },
+        { rotation: 999, duration: 2.08, ease: "none", immediateRender: false },
+        2.2
+      );
+
+      /* ================= THE TURN @ 4.28-4.82 — the response arrives ================= */
+
+      tl.fromTo("#spinner", { opacity: 1 }, { opacity: 0, duration: 0.22, ease: "power2.in", immediateRender: false }, 4.28);
+      // a print head sweeps down the body
+      tl.fromTo("#scan", { opacity: 0 }, { opacity: 0.9, duration: 0.1, ease: "power2.out", immediateRender: false }, 4.3);
+      tl.fromTo("#scan", { y: 0 }, { y: 250, duration: 0.38, ease: "power2.out", immediateRender: false }, 4.3);
+      tl.fromTo("#scan", { opacity: 0.9 }, { opacity: 0, duration: 0.26, ease: "power2.in", immediateRender: false }, 4.42);
+      // colour phase-shift: querying (cyan) -> answered (amber)
+      tl.fromTo("#glow-cyan", { opacity: 1 }, { opacity: 0, duration: 0.5, ease: "power2.inOut", immediateRender: false }, 4.32);
+      tl.fromTo("#glow-amber", { opacity: 0 }, { opacity: 0.95, duration: 0.5, ease: "power2.inOut", immediateRender: false }, 4.32);
+      tl.fromTo(
+        "#term",
+        { borderColor: "rgba(34,211,238,0.30)" },
+        { borderColor: "rgba(251,191,36,0.38)", duration: 0.5, ease: "power2.inOut", immediateRender: false },
+        4.32
+      );
+
+      /* ================= ACT 2 — the real answer prints ================= */
+
+      tl.fromTo(
+        ".ch-name",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.12, ease: "power2.out", stagger: 0.016, immediateRender: false },
+        4.9
+      );
+      tl.fromTo(
+        ".ch-addr",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.12, ease: "power2.out", stagger: 0.014, immediateRender: false },
+        5.55
+      );
+
+      // LANDING: the highlight finishes across 172.217.72.139 at exactly local 6.97
+      // ("gets back an address" @ output 28.67). width, not scaleX -> no transformed
+      // descendant inside the faded wrapper.
+      tl.fromTo("#addr-hl", { width: 0 }, { width: 540.8, duration: 0.25, ease: "power3.out", immediateRender: false }, 6.72);
+      // one settle pulse, odd repeat, true end = 7.00 + 2*0.22 = 7.44 (< fade start 7.50)
+      tl.fromTo(
+        "#addr-hl",
+        { backgroundColor: "rgba(251,191,36,0.18)" },
+        {
+          backgroundColor: "rgba(251,191,36,0.42)",
+          duration: 0.22,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 1,
+          immediateRender: false,
+        },
+        7.0
+      );
+
+      /* ================= FADE — one per visible leaf, finishes at exactly 7.800 ======= */
+      // #glow-cyan is already at opacity 0 from the turn, so it is excluded.
+      tl.fromTo("#term", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 7.5);
+      tl.fromTo("#glow-amber", { opacity: 0.95 }, { opacity: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 7.5);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

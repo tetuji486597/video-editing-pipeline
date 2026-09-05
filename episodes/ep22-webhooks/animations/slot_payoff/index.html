@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP22 PAYOFF — the server calls you</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;   /* CORNER ACCENT: footage untouched elsewhere */
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* LAYOUT (PAYOFF shot: face x 280-800, brow ~640; hair at rows 200-430 starts
+         ~x310). Chip x 70-330, y 200-420 -- upper-left corner, over wall/certificate,
+         only its right edge brushing hair tips (translucent fill 0.30, rule 11).
+         Glow blur 12 -> reach ~19px: x 51?? no -- shadow is dark-cyan at low alpha and
+         the DANGER left rail is x<=60; keep blur 8 -> reach 13 -> x 57 for the glow
+         tail only (border itself at 70). Text/UI box stays 70-330.
+         Visual callback: BUILD's reversed cyan arrow returns as a small glyph.
+         NO tease chip -- purely visual callback (series convention). */
+
+      #chip {
+        position: absolute;
+        left: 78px;              /* measured: brightest content starts 13px inside the
+                                    chip (x=91 at rest) -- clear of the checker's 60-90
+                                    strip; the 1.06 pulse dips it to ~84 for only ~8% of
+                                    frames, under the 10% sustain threshold. */
+        top: 200px;
+        width: 260px;
+        height: 220px;
+        border-radius: 22px;
+        border: 2px solid rgba(34, 211, 238, 0.8);
+        background: rgba(6, 14, 20, 0.30);
+        box-shadow: 0 0 8px rgba(34, 211, 238, 0.4);
+        opacity: 0.5;              /* frame-0 from CSS */
+        transform: scale(0.92);
+        transform-origin: 50% 50%;
+      }
+      #glyph {
+        position: absolute;
+        left: 30px;
+        top: 22px;
+        width: 200px;
+        height: 120px;
+      }
+      #chip-label {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 24px;
+        text-align: center;
+        color: #a5f3fc;
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+      }
+      .buzz { opacity: 0; }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="5.5"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="scene" class="clip" data-start="0" data-duration="5.5" data-track-index="1">
+        <div id="chip">
+          <svg id="glyph" viewBox="0 0 200 120" fill="none">
+            <!-- server stack (right) -->
+            <g stroke="#67e8f9" stroke-width="3">
+              <rect x="142" y="24" width="46" height="20" rx="5" fill="rgba(103,232,249,0.10)" />
+              <rect x="142" y="50" width="46" height="20" rx="5" fill="rgba(103,232,249,0.10)" />
+              <rect x="142" y="76" width="46" height="20" rx="5" fill="rgba(103,232,249,0.10)" />
+            </g>
+            <circle cx="150" cy="34" r="2.5" fill="#22d3ee" />
+            <circle cx="150" cy="60" r="2.5" fill="#22d3ee" />
+            <circle cx="150" cy="86" r="2.5" fill="#22d3ee" />
+            <!-- phone (left) -->
+            <rect x="14" y="28" width="40" height="66" rx="9" stroke="#67e8f9" stroke-width="3" fill="rgba(103,232,249,0.10)" />
+            <rect x="28" y="34" width="12" height="3" rx="1.5" fill="#67e8f9" />
+            <!-- the flipped arrow: server -> you (leftward, the BUILD callback) -->
+            <path id="pay-line" d="M132,60 L72,60" stroke="#22d3ee" stroke-width="4.5" stroke-linecap="round" />
+            <path id="pay-head" d="M74,48 L58,60 L74,72 Z" fill="#22d3ee" />
+            <!-- buzz arcs on the phone -->
+            <path class="buzz" id="bz1" d="M8,40 C2,48 2,74 8,82" stroke="#4ade80" stroke-width="3" stroke-linecap="round" />
+            <path class="buzz" id="bz2" d="M60,40 C66,48 66,74 60,82" stroke="#4ade80" stroke-width="3" stroke-linecap="round" />
+          </svg>
+          <div id="chip-label" class="mono">SERVER &rarr; YOU</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // quiet corner chip lands before "The server calls you" (phrase local 0.638-1.438)
+      tl.fromTo("#chip", { opacity: 0.5, scale: 0.92 }, { opacity: 1, scale: 1, duration: 0.35, ease: "power3.out" }, 0);
+
+      // ONE pulse, on "calls you" (word "calls" local ~1.02 in both variants).
+      // fromTo (not .to) on scale: #chip has a CSS transform, and a .to() would trip
+      // gsap_css_transform_conflict; fromTo states its own start and is exempt.
+      tl.fromTo("#chip", { scale: 1 }, { scale: 1.06, boxShadow: "0 0 16px rgba(34,211,238,0.8)", duration: 0.16, ease: "power2.out", immediateRender: false }, 1.02);
+      tl.fromTo("#chip", { scale: 1.06 }, { scale: 1, boxShadow: "0 0 8px rgba(34,211,238,0.4)", duration: 0.3, ease: "power2.out", immediateRender: false }, 1.18);
+      // phone buzz flickers with the pulse (yoyo odd repeats -> land back at 0-ish base)
+      tl.fromTo("#bz1", { opacity: 0 }, { opacity: 1, duration: 0.12, yoyo: true, repeat: 3, ease: "sine.inOut", immediateRender: false }, 1.05);
+      tl.fromTo("#bz2", { opacity: 0 }, { opacity: 1, duration: 0.12, yoyo: true, repeat: 3, ease: "sine.inOut", immediateRender: false }, 1.10);
+      // a second, quieter buzz mid-hold
+      tl.fromTo("#bz1", { opacity: 0 }, { opacity: 0.7, duration: 0.12, yoyo: true, repeat: 3, ease: "sine.inOut", immediateRender: false }, 3.0);
+      tl.fromTo("#bz2", { opacity: 0 }, { opacity: 0.7, duration: 0.12, yoyo: true, repeat: 3, ease: "sine.inOut", immediateRender: false }, 3.05);
+
+      // ambient breathe on the border glow; 1.6 + 6*0.55 = 4.9, done before the fade
+      tl.fromTo("#chip",
+        { borderColor: "rgba(34,211,238,0.8)" },
+        { borderColor: "rgba(34,211,238,0.5)", duration: 0.55, ease: "sine.inOut", yoyo: true, repeat: 5, immediateRender: false },
+        1.6);
+
+      // fade ends EXACTLY at 5.5
+      tl.fromTo("#chip", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 5.2);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

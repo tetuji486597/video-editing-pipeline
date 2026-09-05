@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP25 payoff — small steps beat big launches (half panel)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* HALF-SCREEN PANEL (upper half). Shot measured: hair top ~250, brow ~720,
+         eyes ~800, chin ~1250. Panel x 70-850, y 185-670 -> clears the brow by 50px;
+         eyes and the whole face stay visible below. Panel fill 0.62 alpha (a panel,
+         not a takeover -- footage below is fully clear and shows through the fill).
+         NO box-shadow on the panel: at y=185 even a modest blur's 1.6x tail would
+         cross y=180, so definition comes from the border + inner gradient only.
+         NO push-in on this comp; drift/motion lives inside. PURELY VISUAL CALLBACK:
+         the PROBLEM beat's crate returns and dissolves into small steps. NO tease. */
+
+      #panel {
+        position: absolute; left: 70px; top: 185px; width: 780px; height: 485px;
+        border-radius: 24px; overflow: hidden;
+        background: linear-gradient(172deg, rgba(10, 14, 20, 0.66) 0%, rgba(6, 9, 13, 0.60) 100%);
+        border: 1.5px solid rgba(148, 163, 184, 0.35);
+        opacity: 0.55;            /* frame-0 state from CSS; entrance tween at t=0 */
+      }
+      /* local coords below are panel-relative (panel origin = canvas (70,185)) */
+      #h1 {
+        position: absolute; left: 0; right: 0; top: 40px; text-align: center;
+        color: #f8fafc; font-size: 110px; line-height: 110px; font-weight: 800;
+        letter-spacing: -2px; white-space: nowrap;
+        text-shadow: 0 4px 18px rgba(0, 0, 0, 0.8);
+        opacity: 0;
+      }
+      #h2 {
+        position: absolute; left: 0; right: 0; top: 195px; text-align: center;
+        color: #86efac; font-size: 72px; line-height: 72px; font-weight: 800;
+        letter-spacing: -1px; white-space: nowrap;
+        text-shadow: 0 3px 14px rgba(0, 0, 0, 0.8);
+        opacity: 0;
+      }
+
+      /* the PROBLEM crate, back as a grey cracked ghost (visual callback, no text) */
+      #crate-ghost {
+        position: absolute; left: 60px; top: 310px; width: 170px; height: 140px;
+        border-radius: 8px;
+        background: linear-gradient(165deg, #4b5563 0%, #374151 60%, #24292f 100%);
+        border: 2px solid #1c2126;
+        opacity: 0.2;
+        filter: saturate(0.3) brightness(0.9);
+      }
+      #crate-ghost .slat { position: absolute; left: 0; right: 0; height: 3px; background: rgba(10, 12, 14, 0.6); }
+      #crate-ghost .s1 { top: 34px; } #crate-ghost .s2 { top: 70px; } #crate-ghost .s3 { top: 106px; }
+      #crack-svg { position: absolute; left: 0; top: 0; width: 170px; height: 140px; overflow: visible; }
+      #crack-svg path { fill: none; stroke: rgba(17, 20, 24, 0.85); stroke-width: 3; stroke-linejoin: round; }
+
+      .frag {
+        position: absolute; left: 130px; top: 360px; width: 24px; height: 24px;
+        border-radius: 5px; background: rgba(107, 114, 128, 0.9); opacity: 0;
+      }
+
+      /* the marching row of small green steps */
+      #lane {
+        position: absolute; left: 300px; top: 352px; width: 450px; height: 56px;
+        -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 10%, #000 88%, transparent 100%);
+        mask-image: linear-gradient(to right, transparent 0%, #000 10%, #000 88%, transparent 100%);
+      }
+      .step {
+        position: absolute; left: 0; top: 6px; width: 44px; height: 44px;
+        border-radius: 9px;
+        background: rgba(34, 90, 54, 0.85);
+        border: 2px solid rgba(74, 222, 128, 0.9);
+        box-shadow: 0 0 10px rgba(74, 222, 128, 0.4);
+        display: flex; align-items: center; justify-content: center;
+        color: #bbf7d0; font-size: 24px; font-weight: 800;
+        opacity: 0;
+      }
+
+      #sweep {
+        position: absolute; left: -260px; top: 0; width: 220px; height: 485px;
+        background: linear-gradient(100deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.16) 50%, rgba(255,255,255,0) 100%);
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="5.40" data-width="1080" data-height="1920">
+      <section id="main-clip" class="clip" data-start="0" data-duration="5.40" data-track-index="1">
+        <div id="panel">
+          <!-- ACT 1: the PROBLEM crate ghosts back, grey and cracked.
+               TURN: a light sweep -- it shatters into small green step-chips.
+               ACT 2: the row keeps flowing; the headline lands. NO tease chip. -->
+          <div id="h1">SMALL STEPS</div>
+          <div id="h2">BEAT BIG LAUNCHES</div>
+
+          <div id="crate-ghost">
+            <div class="slat s1"></div><div class="slat s2"></div><div class="slat s3"></div>
+            <svg id="crack-svg" viewBox="0 0 170 140">
+              <path d="M84,4 L74,34 L92,58 L78,86 L94,112 L86,136" />
+              <path d="M30,60 L58,66 L74,34" />
+            </svg>
+          </div>
+
+          <div class="frag" id="f1"></div>
+          <div class="frag" id="f2"></div>
+          <div class="frag" id="f3"></div>
+          <div class="frag" id="f4"></div>
+          <div class="frag" id="f5"></div>
+
+          <div id="lane">
+            <div class="step" id="sp1">&#10003;</div>
+            <div class="step" id="sp2">&#10003;</div>
+            <div class="step" id="sp3">&#10003;</div>
+            <div class="step" id="sp4">&#10003;</div>
+            <div class="step" id="sp5">&#10003;</div>
+            <div class="step" id="sp6">&#10003;</div>
+          </div>
+
+          <div id="sweep" data-layout-allow-overflow="true"></div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ---------- entrance at t=0 ----------
+      tl.fromTo("#panel", { opacity: 0.55 }, { opacity: 1, duration: 0.35, ease: "power3.out" }, 0);
+      tl.fromTo("#crate-ghost", { opacity: 0.2, y: 10 }, { opacity: 0.8, y: 0, duration: 0.5, ease: "power3.out" }, 0);
+
+      // ---------- TURN: lands on "the scary parts" (abs 45.71-46.33 = local 0.41-1.03)
+      tl.fromTo("#sweep", { x: 0, opacity: 0 }, {x: 0, opacity: 1, duration: 0.1, ease: "power1.in", immediateRender: false }, 0.75);
+      tl.to("#sweep", { x: 1180, duration: 0.5, ease: "power2.inOut" }, 0.78);
+      tl.to("#sweep", { opacity: 0, duration: 0.12, ease: "power1.out" }, 1.24);
+      tl.to("#crate-ghost", { opacity: 0.12, scale: 0.94, duration: 0.5, ease: "power2.out" }, 0.85);
+      // fragments burst rightward and green up (texture, staggered)
+      const frags = [
+        { sel: "#f1", dx: 90,  dy: -36, t: 0.85 },
+        { sel: "#f2", dx: 130, dy: -6,  t: 0.95 },
+        { sel: "#f3", dx: 110, dy: 26,  t: 1.05 },
+        { sel: "#f4", dx: 150, dy: -22, t: 1.15 },
+        { sel: "#f5", dx: 140, dy: 12,  t: 1.25 },
+      ];
+      frags.forEach((f) => {
+        tl.fromTo(f.sel,
+          { x: 0, y: 0, opacity: 0.95, backgroundColor: "rgba(107,114,128,0.9)" },
+          { x: f.dx, y: f.dy, opacity: 0, backgroundColor: "rgba(74,222,128,0.9)", duration: 0.55, ease: "power2.out", immediateRender: false },
+          f.t);
+      });
+
+      // ---------- ACT 2: the marching row of small green steps ----------
+      // each step: constant drift across the masked lane; all complete by 5.00 < fade 5.10
+      const steps = ["#sp1", "#sp2", "#sp3", "#sp4", "#sp5", "#sp6"];
+      steps.forEach((s, i) => {
+        // explicit set: opacity listed only in a fromTo's from-vars is NOT applied
+        // (confirmed on the first render -- the whole row was invisible)
+        tl.set(s, { opacity: 1 }, 1.0 + i * 0.5);
+        tl.fromTo(s, { x: 0 },
+          { x: 406, duration: 1.5, ease: "none", immediateRender: false }, 1.0 + i * 0.5);
+        tl.set(s, { opacity: 0 }, 2.5 + i * 0.5);   // parked invisible after its run
+      });
+
+      // headline lands as the resolution states itself
+      tl.fromTo("#h1", { opacity: 0, y: 22, scale: 0.96 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: "power3.out", immediateRender: false }, 1.7);
+      tl.fromTo("#h2", { opacity: 0, y: 16 },
+        { opacity: 1, y: 0, duration: 0.45, ease: "power3.out", immediateRender: false }, 2.35);
+      // gentle breathing on the headline glow (yoyo, ODD repeat, ends 4.80 < 5.10)
+      tl.fromTo("#h2", { textShadow: "0 3px 14px rgba(0,0,0,0.8)" },
+        { textShadow: "0 3px 22px rgba(74,222,128,0.45)", duration: 0.6, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 3.6);
+
+      // ---------- fade: FINISHES at exactly 5.400 (5.10 + 0.30) ----------
+      // #panel is the only top-level leaf; transformed children (#h1, steps, ghost)
+      // are also faded individually so nothing strands (multiplied curves still land
+      // at zero on the boundary).
+      ["#panel", "#h1", "#h2"].forEach((sel) => {
+        tl.fromTo(sel, { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 5.1);
+      });
+      // the ghost is resting at 0.12, so its fade must start FROM 0.12, not 1
+      tl.fromTo("#crate-ghost", { opacity: 0.12 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 5.1);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

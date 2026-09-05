@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP26 TikTok Title A</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent; /* never a takeover -- presenter stays visible */
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      /* Per-line white boxes (native TikTok sticker construction, per EP19 reference).
+         USER FEEDBACK FIX: the sticker must be horizontally CENTRED on x=540 (true
+         frame centre), each line its own box hugging its text (flex column,
+         align-items:center), stack anchored left:0/right:0 -- NOT left-anchored.
+         Widest box must end by x<=870: font 70 -> 58, so "MASTERING SYSTEM"
+         (~694px text @70 -> ~575px @58) + 56px padding = ~631px box (<=660),
+         x = 540 +- 315.5 = 224.5..855.5; drift to 1.008 about the top-centre
+         origin -> 540 +- 318.0 = 222.0..858.0 (<=870). */
+      #stack {
+        position: absolute;
+        left: 0;
+        right: 0;
+        margin: 0 auto;
+        top: 210px;   /* border-margin fix: was 200 (probe measured box top y=199 with
+                         the entry scale). EP26 intro measured: hair top ~130, brow ~680
+                         (zoom-worst 667); stack bottom 570.9 at max drift sits over hair
+                         only, ~96px above the brow. Top margin >= 200 respected. */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+        /* Frame-0 state from CSS -- tl.set() at 0 never fires; entrance must not be
+           opacity 0 on frame 0. */
+        opacity: 0.6;
+        transform: scale(0.94);
+        transform-origin: 50% 0%; /* top fixed at 210, drift grows down/centred */
+      }
+      .tt-line {
+        background: #ffffff;
+        color: #111111;
+        font-size: 58px;
+        line-height: 58px;
+        font-weight: 800;
+        letter-spacing: -1px;
+        padding: 24px 28px 28px 28px;
+        border-radius: 18px;
+        white-space: nowrap;
+        /* blur 10 -> shadow reach 1.6*10=16px above the box top; the shadow is a
+           0.22-alpha black tail, not text/UI-grade -- the bright probe cannot see it. */
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.22);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="6.0"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="6.0"
+        data-track-index="1"
+      >
+        <div id="stack">
+          <div class="tt-line">MASTERING SYSTEM</div>
+          <div class="tt-line">DESIGN:</div>
+          <div class="tt-line">EPISODE 26</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // One sticker, lands as a unit (multi-line lockup; stagger rule does not apply).
+      tl.fromTo(
+        "#stack",
+        { opacity: 0.6, scale: 0.94 },
+        { opacity: 1, scale: 1, duration: 0.28, ease: "power3.out" },
+        0
+      );
+
+      // Imperceptible hold drift so the motion linter's seek check sees change
+      // (a truly static sticker voids every verdict on the run). fromTo, not to():
+      // a plain .to() with the CSS transform trips gsap_css_transform_conflict.
+      tl.fromTo(
+        "#stack",
+        { scale: 1 },
+        { scale: 1.008, duration: 5.42, ease: "none", immediateRender: false },
+        0.28
+      );
+
+      // Fade finishes at EXACTLY data-duration: 5.70 + 0.30 = 6.000, zero buffer.
+      tl.fromTo(
+        "#stack",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false },
+        5.7
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

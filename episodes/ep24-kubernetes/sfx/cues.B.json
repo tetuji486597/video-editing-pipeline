@@ -1,0 +1,86 @@
+{
+  "cues": [
+    {
+      "at": 5.813,
+      "sfx": "tt_error_glitch",
+      "vol": 0.54,
+      "why": "HOOK: the rack node flips red on 'three AM'"
+    },
+    {
+      "at": 5.933,
+      "sfx": "tt_oh_no_no_no",
+      "vol": 0.55,
+      "why": "HOOK voice meme: the 3AM disaster (then subverted)"
+    },
+    {
+      "at": 8.983,
+      "sfx": "tt_sparkle_trim",
+      "vol": 0.72,
+      "why": "HOOK: the node flips back green on 'already handled it'"
+    },
+    {
+      "at": 16.273,
+      "sfx": "tt_click_trim",
+      "vol": 0.95,
+      "why": "PROBLEM: 'restarts crashes?' chip"
+    },
+    {
+      "at": 17.073,
+      "sfx": "pop_bubble",
+      "vol": 0.48,
+      "why": "PROBLEM: 'scales under load?' chip (variety)"
+    },
+    {
+      "at": 19.313,
+      "sfx": "pop_balloon",
+      "vol": 0.32,
+      "why": "PROBLEM: 'dead hardware?' chip (variety)"
+    },
+    {
+      "at": 23.813,
+      "sfx": "tt_keyboard_trim",
+      "vol": 0.95,
+      "why": "BUILD: 'desired: 10 replicas' types on 'ten copies'"
+    },
+    {
+      "at": 26.583,
+      "sfx": "tt_correct_ding",
+      "vol": 0.75,
+      "why": "BUILD: actual hits 10, MATCH green"
+    },
+    {
+      "at": 30.933,
+      "sfx": "tt_bubble_pop",
+      "vol": 0.45,
+      "why": "CONTROL: dead pod respawns -- the game-like pop"
+    },
+    {
+      "at": 32.633,
+      "sfx": "tt_swoosh",
+      "vol": 0.5,
+      "why": "CONTROL: workloads slide to neighbours on 'machine fails'"
+    },
+    {
+      "at": 36.133,
+      "sfx": "riser",
+      "vol": 0.8,
+      "why": "CONTROL: autoscale ramps up on 'auto-scales up' -- a riser IS a ramp (variety)"
+    },
+    {
+      "at": 43.633,
+      "sfx": "swoosh_elec",
+      "vol": 0.75,
+      "why": "AI_ANGLE: GPU cards slot in (variety)"
+    },
+    {
+      "at": 48.933,
+      "sfx": "impact_trim",
+      "vol": 0.6,
+      "why": "PAYOFF: Captain Kube card lands -- soft cinematic impact (variety)"
+    }
+  ],
+  "_vol_note": "Volumes = 0.45 * 10^(0.6*(-18-mean)/20) clamped [0.15,0.95] (the shipped TIKTOK_SFX_NOTES calibration), with the usual manual overrides: bass-heavy (vine/bass_drop/bass_hit) held <=0.45, voice memes carry the x1.25 speech bump, sparkle boosted (broadband shimmer masks easily). Diversity pass 2026-08-28: no sound repeats within an episode except deliberate anchors; underused files (ding, riser, swoosh_elec/double/deep, pop_balloon/bubble, bass_hit, impact_trim, shutter, whoosh_trim) rotated in per user feedback.",
+  "video": "final_nosfx_B.mp4",
+  "out": "final_B.mp4",
+  "_note": "Variant B: every cue = A - 1.1667s. Voice meme: tt_oh_no_no_no. 13 distinct sounds."
+}

@@ -1,0 +1,98 @@
+{
+  "cues": [
+    {
+      "at": 6.3,
+      "sfx": "tt_keyboard_trim",
+      "vol": 0.95,
+      "why": "HOOK: the question types into the user bubble"
+    },
+    {
+      "at": 9.0,
+      "sfx": "tt_record_scratch",
+      "vol": 0.52,
+      "why": "HOOK: wrong answer lands on 'get it wrong' (script: record-scratch)"
+    },
+    {
+      "at": 9.6,
+      "sfx": "tt_bruh",
+      "vol": 0.55,
+      "why": "HOOK voice meme: the red X on '2 R's'"
+    },
+    {
+      "at": 15.8,
+      "sfx": "tt_camera_shutter",
+      "vol": 0.58,
+      "why": "PROBLEM: shutter at the cyan->amber turn"
+    },
+    {
+      "at": 17.79,
+      "sfx": "tt_bass_drop",
+      "vol": 0.22,
+      "why": "PROBLEM: vocab counter lands 1,000,000+ on 'of millions'"
+    },
+    {
+      "at": 19.53,
+      "sfx": "tt_wrong_buzzer",
+      "vol": 0.29,
+      "why": "PROBLEM: [UNK] stamp on 'unknown word'"
+    },
+    {
+      "at": 21.67,
+      "sfx": "tt_click_trim",
+      "vol": 0.95,
+      "why": "BUILD: first slice blade on 'chops'"
+    },
+    {
+      "at": 22.35,
+      "sfx": "swoosh_elec",
+      "vol": 0.75,
+      "why": "BUILD: second slice -- electronic blade sweep (variety)"
+    },
+    {
+      "at": 28.4,
+      "sfx": "pop_bubble",
+      "vol": 0.48,
+      "why": "BUILD: the straw|berries split lands (variety)"
+    },
+    {
+      "at": 31.9,
+      "sfx": "swoosh_double",
+      "vol": 0.61,
+      "why": "NEW_COMPONENT: card flips -- double-swish reads as the flip"
+    },
+    {
+      "at": 34.7,
+      "sfx": "shutter",
+      "vol": 0.61,
+      "why": "NEW_COMPONENT: the amber->cyan turn -- the OTHER shutter sample (variety)"
+    },
+    {
+      "at": 40.6,
+      "sfx": "tt_correct_ding",
+      "vol": 0.75,
+      "why": "TOKENS: ring draws around the real 'Tokens 3' readout"
+    },
+    {
+      "at": 42.3,
+      "sfx": "tt_bubble_pop",
+      "vol": 0.45,
+      "why": "TOKENS: context-window meter ticks begin"
+    },
+    {
+      "at": 46.2,
+      "sfx": "tt_swoosh",
+      "vol": 0.5,
+      "why": "PAYOFF: the strawberry outline splits on 'chunks'"
+    },
+    {
+      "at": 46.9,
+      "sfx": "pop_balloon",
+      "vol": 0.32,
+      "why": "PAYOFF: ID tags land (variety)"
+    }
+  ],
+  "_vol_note": "Volumes = 0.45 * 10^(0.6*(-18-mean)/20) clamped [0.15,0.95] (the shipped TIKTOK_SFX_NOTES calibration), with the usual manual overrides: bass-heavy (vine/bass_drop/bass_hit) held <=0.45, voice memes carry the x1.25 speech bump, sparkle boosted (broadband shimmer masks easily). Diversity pass 2026-08-28: no sound repeats within an episode except deliberate anchors; underused files (ding, riser, swoosh_elec/double/deep, pop_balloon/bubble, bass_hit, impact_trim, shutter, whoosh_trim) rotated in per user feedback.",
+  "video": "final_nosfx_A.mp4",
+  "out": "final_A.mp4",
+  "_note": "Variant A. Voice meme: tt_bruh. 15 distinct sounds."
+}

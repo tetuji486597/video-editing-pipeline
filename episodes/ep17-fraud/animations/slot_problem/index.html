@@ -1,0 +1,931 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP17 Problem — Too Fast For Humans, Too Blunt For Rules</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      /* OVERLAY_SPEC font rule: Inter for UI/type. Monospace stack must name
+         JetBrains Mono FIRST (ui-monospace silently falls through). */
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .fill { position: absolute; inset: 0; }
+
+      /* ==========================================================
+         BACKGROUND — opaque fill on a CHILD div, never #root/.clip.
+         Present instantly at CSS opacity 1: no fade-in at all, so
+         frame 0 is never a near-black flash. Radial base + two
+         coloured glow blobs + vignette + static feTurbulence grain.
+         Glow blobs use explicit left/top (NO transform) so the
+         #bg-fill opacity fade cascades to them cleanly.
+         ========================================================== */
+      #bg-fill {
+        background: radial-gradient(120% 92% at 52% 30%, #141a24 0%, #0b0f16 44%, #05070b 78%, #020305 100%);
+        opacity: 1;
+      }
+      #bg-glow-cyan {
+        position: absolute;
+        left: 110px;
+        top: -60px;
+        width: 1180px;
+        height: 1180px;
+        background: radial-gradient(circle, rgba(34, 211, 238, 0.13) 0%, rgba(34, 211, 238, 0) 62%);
+      }
+      #bg-glow-red {
+        position: absolute;
+        left: 150px;
+        top: 640px;
+        width: 1240px;
+        height: 1240px;
+        background: radial-gradient(circle, rgba(220, 38, 38, 0.14) 0%, rgba(220, 38, 38, 0) 60%);
+      }
+      #vignette {
+        background: radial-gradient(
+          ellipse 760px 980px at 50% 46%,
+          rgba(0, 0, 0, 0) 0%,
+          rgba(0, 0, 0, 0) 46%,
+          rgba(2, 3, 5, 0.55) 79%,
+          rgba(1, 2, 3, 0.93) 100%
+        );
+      }
+      #grain { opacity: 1; pointer-events: none; }
+      #flash {
+        background: #fecaca;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      /* ==========================================================
+         SCENE — camera push-in target.
+         Content design band is y=240 (headline top) .. y=1150
+         (backlog bottom), x=60 .. x=1040.
+         transform-origin is pinned to THAT band's own centre:
+           x = (60 + 1040) / 2 = 550
+           y = (240 + 1150) / 2 = 695     half-height = 455
+         scale 1 -> 1.045 resolves to
+           top    = 695 - 455 * 1.045 = 219.5   (39.5px clear of y=180)
+           bottom = 695 + 455 * 1.045 = 1170.5  (109.5px clear of y=1280)
+           left   = 550 - 490 * 1.045 = 37.95   (on canvas)
+           right  = 550 + 490 * 1.045 = 1062.05 (on canvas)
+         ========================================================== */
+      #scene { transform-origin: 550px 695px; }
+
+      /* ---------- headline: ONE line, 6 words, the whole text budget
+           except the two labels. Shadow blur kept at 10 with a +3
+           offset so top_reach = 240 + 3 - 10 = 233, which pushes out
+           to 212.2 at full push-in — still 32px clear of y=180
+           (OVERLAY_SPEC trap #6: a shadow reaches its FULL blur). --- */
+      #headline {
+        position: absolute;
+        left: 60px;
+        top: 240px;
+        width: 980px;
+        text-align: center;
+        font-size: 64px;
+        line-height: 70px;
+        font-weight: 800;
+        letter-spacing: -1px;
+        color: #ffffff;
+        text-shadow: 0 3px 10px rgba(0, 0, 0, 0.92);
+        opacity: 0;
+        transform: translateY(24px);
+      }
+
+      /* ---------- the single human reviewer (hand-built SVG, no emoji) --- */
+      #reviewer {
+        position: absolute;
+        left: 60px;
+        top: 470px;
+        width: 156px;
+        height: 220px;
+        border-radius: 22px;
+        background: linear-gradient(165deg, rgba(15, 23, 34, 0.92), rgba(7, 11, 17, 0.95));
+        border: 1.5px solid rgba(125, 211, 252, 0.30);
+        box-shadow: 0 0 0 0 rgba(125, 211, 252, 0);
+        opacity: 0;
+      }
+      #rev-person {
+        position: absolute;
+        left: 24px;
+        top: 26px;
+        width: 108px;
+        height: 108px;
+        color: #7dd3fc;
+      }
+      #rev-slot {
+        position: absolute;
+        left: 26px;
+        top: 158px;
+        width: 104px;
+        height: 34px;
+        border-radius: 9px;
+        background: rgba(52, 211, 153, 0.10);
+        border: 1px solid rgba(52, 211, 153, 0.34);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #rev-tick { width: 22px; height: 22px; color: #34d399; opacity: 0; }
+
+      /* ---------- the backlog pile: 28 slivers stacking upward ---------- */
+      #backlog {
+        position: absolute;
+        left: 60px;
+        top: 740px;
+        width: 156px;
+        height: 410px;
+        border-radius: 18px;
+        background: rgba(8, 12, 18, 0.72);
+        border: 2px solid rgba(148, 163, 184, 0.18);
+        opacity: 0;
+      }
+      .sliver {
+        position: absolute;
+        left: 8px;
+        width: 136px;
+        height: 10px;
+        border-radius: 5px;
+        opacity: 0;
+        transform: scaleY(0.25);
+        transform-origin: 50% 100%;
+      }
+
+      /* ---------- the transaction stream ---------- */
+      #stream {
+        position: absolute;
+        left: 260px;
+        top: 470px;
+        width: 780px;
+        height: 564px;
+        border-radius: 24px;
+        overflow: hidden;
+        background: linear-gradient(180deg, rgba(9, 14, 22, 0.74), rgba(5, 9, 15, 0.88));
+        border: 1.5px solid rgba(148, 163, 184, 0.20);
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+        /* Primary content is present on frame 0 at 0.5 opacity, never 0. */
+        opacity: 0.5;
+        transform: scale(0.97);
+        transform-origin: 50% 50%;
+      }
+      .lane {
+        position: absolute;
+        left: 18px;
+        width: 744px;
+        height: 78px;
+      }
+      .lane-track {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 2376px;
+        height: 78px;
+      }
+      .chip {
+        position: absolute;
+        top: 12px;
+        height: 54px;
+        border-radius: 12px;
+        border-left: 4px solid #64748b;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      }
+      .cdot {
+        position: absolute;
+        left: 16px;
+        top: 21px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: rgba(226, 232, 240, 0.42);
+      }
+      .cbar {
+        position: absolute;
+        left: 38px;
+        top: 24px;
+        width: calc(100% - 62px);
+        height: 6px;
+        border-radius: 3px;
+        background: rgba(148, 163, 184, 0.30);
+      }
+      /* the red phase wash — a tint layer, like #flash, not a UI element */
+      #rule-wash {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          180deg,
+          rgba(220, 38, 38, 0.10) 0%,
+          rgba(220, 38, 38, 0.55) 42%,
+          rgba(220, 38, 38, 0.14) 100%
+        );
+        opacity: 0;
+        pointer-events: none;
+      }
+      #scan {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 780px;
+        height: 120px;
+        background: linear-gradient(
+          180deg,
+          rgba(248, 113, 113, 0) 0%,
+          rgba(248, 113, 113, 0.6) 50%,
+          rgba(248, 113, 113, 0) 100%
+        );
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      /* ---------- the legitimate traveller's row (Act 2 hero) ----------
+           Parked off the right edge with `left`, NOT a CSS transform (the
+           linter's gsap_css_transform_conflict rule): GSAP owns `x` outright.
+           At left:778px it is fully outside #stream's 780px overflow:hidden
+           box on frame 0, so no opacity fromTo is needed. Its resting
+           position is x = -760 -> local left 18px. */
+      #hero-row {
+        position: absolute;
+        left: 778px;
+        top: 466px;
+        width: 744px;
+        height: 78px;
+        border-radius: 16px;
+        background: rgba(11, 34, 26, 0.92);
+        border: 2px solid rgba(52, 211, 153, 0.55);
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+        opacity: 1;
+      }
+      #hero-badge {
+        position: absolute;
+        left: 26px;
+        top: 16px;
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        background: rgba(16, 185, 129, 0.18);
+        border: 2px solid #34d399;
+      }
+      #hero-check,
+      #hero-cross {
+        position: absolute;
+        left: 9px;
+        top: 9px;
+        width: 24px;
+        height: 24px;
+      }
+      #hero-check { color: #6ee7b7; opacity: 1; }
+      #hero-cross { color: #fca5a5; opacity: 0; }
+      #hero-plane {
+        position: absolute;
+        left: 96px;
+        top: 17px;
+        width: 44px;
+        height: 44px;
+        color: #6ee7b7;
+      }
+      .hero-bar { position: absolute; border-radius: 6px; }
+      #hero-bar-1 {
+        left: 176px;
+        top: 26px;
+        width: 244px;
+        height: 12px;
+        background: rgba(167, 243, 208, 0.30);
+      }
+      #hero-bar-2 {
+        left: 176px;
+        top: 46px;
+        width: 158px;
+        height: 8px;
+        background: rgba(167, 243, 208, 0.18);
+      }
+      #hero-declined {
+        position: absolute;
+        right: 26px;
+        top: 0;
+        height: 78px;
+        line-height: 78px;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 44px;
+        font-weight: 700;
+        letter-spacing: 4px;
+        color: #fecaca;
+        opacity: 0;
+        transform: scale(1.3);
+        transform-origin: 100% 50%;
+      }
+
+      /* ---------- the rigid rule bar (Act 2 turn) ----------
+           Sits in a 176px gap reserved BETWEEN lane 2 and lane 3:
+           lane2 bottom y=662, bar y=710..794, lane3 top y=838
+           -> 48px and 44px clear, both >= 40px.
+           Directional shadow (0 8px 30px) buys top-reach headroom:
+           top_reach = 710 + 8 - 30 = 688. During the slam its start
+           position is top=470, top_reach=448, which is 68px below
+           the headline's bottom at y=380. */
+      #rule-bar {
+        position: absolute;
+        left: 260px;
+        top: 710px;
+        width: 780px;
+        height: 84px;
+        border-radius: 10px;
+        background: linear-gradient(180deg, #b91c1c 0%, #7f1d1d 100%);
+        border-top: 3px solid #f87171;
+        box-shadow: 0 8px 30px rgba(220, 38, 38, 0.45);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transform: translateY(-240px);
+        transform-origin: 50% 50%;
+      }
+      #rule-label {
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 40px;
+        font-weight: 700;
+        letter-spacing: 8px;
+        color: #ffffff;
+        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="8.600"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="main-clip"
+        class="clip"
+        data-start="0"
+        data-duration="8.600"
+        data-track-index="1"
+      >
+        <div id="content-all" class="fill">
+          <div id="bg-fill" class="fill">
+            <div id="bg-glow-cyan"></div>
+            <div id="bg-glow-red"></div>
+          </div>
+          <div id="vignette" class="fill"></div>
+
+          <div id="scene" class="fill">
+            <div id="headline">No Human Can Review<br />Every Swipe</div>
+
+            <div id="reviewer">
+              <svg id="rev-person" viewBox="0 0 108 108" fill="none">
+                <circle cx="54" cy="30" r="19" stroke="currentColor" stroke-width="5" />
+                <path
+                  d="M18 92c0-19 16-32 36-32s36 13 36 32"
+                  stroke="currentColor"
+                  stroke-width="5"
+                  stroke-linecap="round"
+                />
+              </svg>
+              <div id="rev-slot">
+                <svg id="rev-tick" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M4 12.5L9.5 18L20 6"
+                    stroke="currentColor"
+                    stroke-width="3.2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </div>
+            </div>
+
+            <div id="backlog"></div>
+
+            <div id="stream">
+              <div class="lane" style="top: 18px">
+                <div class="lane-track" id="trk-a" data-layout-allow-overflow="true"></div>
+              </div>
+              <div class="lane" style="top: 114px">
+                <div class="lane-track" id="trk-b" data-layout-allow-overflow="true"></div>
+              </div>
+              <!-- lane E occupies the rule bar's reserved band (abs 711-789) so
+                   the stream has no hole in Act 1. It is wiped out at the slam,
+                   which is what the bar lands ON. 49px clear of lanes 2 and 3. -->
+              <div class="lane" style="top: 241px">
+                <div class="lane-track" id="trk-e" data-layout-allow-overflow="true"></div>
+              </div>
+              <div class="lane" style="top: 368px">
+                <div class="lane-track" id="trk-c" data-layout-allow-overflow="true"></div>
+              </div>
+              <div class="lane" style="top: 466px">
+                <div class="lane-track" id="trk-d" data-layout-allow-overflow="true"></div>
+              </div>
+
+              <div id="rule-wash"></div>
+              <div id="scan"></div>
+
+              <div id="hero-row" data-layout-allow-overflow="true">
+                <div id="hero-badge">
+                  <svg id="hero-check" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M4 12.5L9.5 18L20 6"
+                      stroke="currentColor"
+                      stroke-width="3.2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                  <svg id="hero-cross" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M6 6L18 18M18 6L6 18"
+                      stroke="currentColor"
+                      stroke-width="3.2"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </div>
+                <svg id="hero-plane" viewBox="0 0 24 24" fill="currentColor">
+                  <path
+                    d="M22 15.5v-2l-8.5-5V3a1.5 1.5 0 0 0-3 0v5.5L2 13.5v2l8.5-2.6v5.4l-2.3 1.7V21l3.8-1.1 3.8 1.1v-1l-2.3-1.7v-5.4L22 15.5z"
+                  />
+                </svg>
+                <div class="hero-bar" id="hero-bar-1"></div>
+                <div class="hero-bar" id="hero-bar-2"></div>
+                <div id="hero-declined" data-layout-allow-occlusion="true">DECLINED</div>
+              </div>
+            </div>
+
+            <div id="rule-bar">
+              <div id="rule-label">BLOCK FOREIGN</div>
+            </div>
+          </div>
+
+          <div id="flash" class="fill"></div>
+          <div id="grain" class="fill"></div>
+        </div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter">
+        <feTurbulence
+          type="fractalNoise"
+          baseFrequency="0.85"
+          numOctaves="2"
+          stitchTiles="stitch"
+          seed="7"
+          result="noise"
+        />
+        <feColorMatrix
+          in="noise"
+          type="matrix"
+          values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.042 0"
+        />
+      </filter>
+    </svg>
+
+    <script>
+      // OVERLAY_SPEC: required alongside the fromTo fade — a lazy tween can
+      // silently fail to render when the renderer seeks a paused timeline.
+      gsap.defaults({ lazy: false });
+
+      document.getElementById("grain").style.filter = "url(#grain-filter)";
+
+      /* ============================================================
+         DETERMINISTIC SCENE CONTENT — every position, width, tone and
+         colour below is a hard-coded literal. No Math.random(), no
+         Date.now(). The "random-looking" stream is an authored one.
+         ============================================================ */
+
+      // one scroll period = 594px, repeated 4x -> 2376px track
+      const PERIOD = 594;
+      const COPIES = 4;
+
+      // 0 = neutral slate, 1 = cyan (scored), 2 = green (approved)
+      const TONES = [
+        { bg: "rgba(30,41,59,0.88)", ac: "#64748b" },
+        { bg: "rgba(11,42,54,0.88)", ac: "#22d3ee" },
+        { bg: "rgba(13,44,34,0.88)", ac: "#34d399" }
+      ];
+
+      // [left within period, width, tone]
+      const LANES = {
+        "trk-a": [[0, 150, 0], [170, 120, 1], [314, 176, 0], [512, 64, 2]],
+        "trk-b": [[24, 132, 1], [180, 96, 0], [300, 158, 2], [482, 88, 0]],
+        "trk-e": [[10, 168, 1], [196, 128, 0], [352, 96, 2], [478, 92, 0]],
+        "trk-c": [[0, 104, 0], [128, 170, 1], [322, 126, 0], [472, 100, 1]],
+        "trk-d": [[40, 142, 2], [206, 110, 0], [340, 186, 1], [550, 40, 0]]
+      };
+
+      const TRACK_IDS = ["trk-a", "trk-b", "trk-e", "trk-c", "trk-d"];
+      TRACK_IDS.forEach(function (id) {
+        const trk = document.getElementById(id);
+        for (let k = 0; k < COPIES; k++) {
+          LANES[id].forEach(function (c) {
+            const d = document.createElement("div");
+            d.className = "chip";
+            d.setAttribute("data-layout-allow-overflow", "true");
+            d.style.left = c[0] + k * PERIOD + "px";
+            d.style.width = c[1] + "px";
+            d.style.background = TONES[c[2]].bg;
+            d.style.borderLeftColor = TONES[c[2]].ac;
+            if (c[1] >= 100) {
+              d.innerHTML = '<i class="cdot"></i><i class="cbar"></i>';
+            }
+            trk.appendChild(d);
+          });
+        }
+      });
+
+      // backlog: 28 slivers, pitch 14 (h10 + gap4), DOM order bottom -> top so
+      // the stagger fills upward. Colour ramps cool -> amber -> red with depth.
+      const backlogEl = document.getElementById("backlog");
+      const SLIVER_N = 28;
+      for (let i = 0; i < SLIVER_N; i++) {
+        const s = document.createElement("div");
+        s.className = "sliver";
+        s.style.top = 387 - i * 14 + "px";
+        s.style.background = i < 11 ? "#475569" : i < 20 ? "#b45309" : "#dc2626";
+        backlogEl.appendChild(s);
+      }
+
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      const D = 8.6;
+      const FADE_START = 8.3; // + 0.30 duration = 8.600 exactly, zero buffer
+
+      /* ---------- continuous camera push-in, whole beat ---------- */
+      // origin pinned to the content band centre (550px, 695px) — see CSS.
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.045, duration: D, ease: "sine.inOut" }, 0);
+
+      /* ============================================================
+         ACT 1 (0.00 - 5.00) — the scale mismatch
+         ============================================================ */
+
+      // Reveal 1 @ 0.00 — the stream. Primary content, present on frame 0 at
+      // 0.5 opacity (CSS), animating up. from-vars match the CSS frame-0 state.
+      tl.fromTo(
+        "#stream",
+        { opacity: 0.5, scale: 0.97 },
+        { opacity: 1, scale: 1, duration: 0.6, ease: "power3.out" },
+        0
+      );
+
+      // The rows themselves: constant velocity is genuinely the point here, so
+      // ease:"none" is correct (OVERLAY_SPEC trap #7). 594px per 0.99s = 600px/s.
+      // repeat 4 -> ends at 0 + (4+1)*0.99 = 4.95s, no repeatDelay.
+      TRACK_IDS.forEach(function (id) {
+        tl.fromTo(
+          "#" + id,
+          { x: 0 },
+          { x: -PERIOD, duration: 0.99, ease: "none", repeat: 4 },
+          0
+        );
+      });
+      // Constant-velocity segment hands off at exactly x=-594 into the
+      // deceleration, so there is no jump at 4.95.
+      TRACK_IDS.forEach(function (id) {
+        tl.fromTo(
+          "#" + id,
+          { x: -PERIOD },
+          { x: -PERIOD - 300, duration: 0.85, ease: "power3.out", immediateRender: false },
+          4.95
+        );
+      });
+
+      // Reveal 2 @ 0.70 (0.70 after reveal 1) — the single human reviewer.
+      tl.fromTo(
+        "#reviewer",
+        { opacity: 0, y: 18 },
+        { opacity: 1, y: 0, duration: 0.55, ease: "power3.out", immediateRender: false },
+        0.7
+      );
+      // ambient: the reviewer card breathes. repeat 3 is ODD -> lands back on
+      // the base shadow. Ends 1.00 + (3+1)*1.20 = 5.80 < 8.30.
+      tl.to(
+        "#reviewer",
+        {
+          boxShadow: "0 0 22px 2px rgba(125,211,252,0.35)",
+          duration: 1.2,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 3
+        },
+        1.0
+      );
+
+      // Reveal 3 @ 1.40 (0.70 after reveal 2) — the headline.
+      tl.fromTo(
+        "#headline",
+        { opacity: 0, y: 24 },
+        { opacity: 1, y: 0, duration: 0.6, ease: "power3.out", immediateRender: false },
+        1.4
+      );
+
+      // ambient: the reviewer clears exactly one transaction at a time while
+      // hundreds stream past. repeat 7 is ODD -> ends back at opacity 0.
+      // Ends 1.60 + (7+1)*0.45 + 7*0.35 = 7.65 < 8.30.
+      tl.fromTo(
+        "#rev-tick",
+        { opacity: 0 },
+        {
+          opacity: 0.95,
+          duration: 0.45,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 7,
+          repeatDelay: 0.35,
+          immediateRender: false
+        },
+        1.6
+      );
+
+      // Reveal 4 @ 2.30 (0.90 after reveal 3) — the backlog starts piling up.
+      // Container + its 28 slivers are ONE visual event.
+      tl.fromTo(
+        "#backlog",
+        { opacity: 0, y: 14 },
+        { opacity: 1, y: 0, duration: 0.5, ease: "power3.out", immediateRender: false },
+        2.3
+      );
+      // staggered fill: ends 2.30 + 27*0.19 + 0.30 = 7.73 < 8.30. Not a repeat.
+      tl.fromTo(
+        ".sliver",
+        { opacity: 0, scaleY: 0.25 },
+        {
+          opacity: 1,
+          scaleY: 1,
+          duration: 0.3,
+          ease: "power2.out",
+          stagger: 0.19,
+          immediateRender: false
+        },
+        2.3
+      );
+
+      /* ============================================================
+         THE TURN @ 5.00 — the rigid rule bar SLAMS down (impact 5.26)
+         ============================================================ */
+      const SLAM = 5.0;
+      const IMPACT = 5.26;
+
+      // the row of transactions the bar is about to land on is wiped out on the
+      // way down — gone by 5.22, four frames before impact at 5.26.
+      tl.fromTo(
+        "#trk-e",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.22, ease: "power2.in", immediateRender: false },
+        SLAM
+      );
+      tl.fromTo(
+        "#rule-bar",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.08, ease: "power2.out", immediateRender: false },
+        SLAM
+      );
+      // travel 240px: start top = 710 - 240 = 470, which is 90px BELOW the
+      // headline's bottom edge (380) — the bar never crosses the headline.
+      tl.fromTo(
+        "#rule-bar",
+        { y: -240 },
+        { y: 0, duration: 0.26, ease: "power4.out", immediateRender: false },
+        SLAM
+      );
+      // impact squash COMPRESSES (scaleY < 1) so it can never overshoot past
+      // its resting extent — no new bounds to resolve.
+      tl.fromTo(
+        "#rule-bar",
+        { scaleY: 1 },
+        { scaleY: 0.86, duration: 0.05, ease: "power2.out", immediateRender: false },
+        IMPACT
+      );
+      tl.to("#rule-bar", { scaleY: 1, duration: 0.3, ease: "power4.out" }, IMPACT + 0.05);
+
+      // full-frame flash (exempt from the content band)
+      tl.fromTo(
+        "#flash",
+        { opacity: 0 },
+        { opacity: 0.4, duration: 0.05, ease: "power3.out", immediateRender: false },
+        IMPACT
+      );
+      tl.to("#flash", { opacity: 0, duration: 0.28, ease: "power3.out" }, IMPACT + 0.05);
+
+      // camera jolt. Worst case at t=5.26 (push-in ~1.030): band top resolves
+      // to 226.4, minus the 8px kick = 218.4, still clear of y=180.
+      tl.to("#scene", { y: -8, duration: 0.05, ease: "power2.out" }, IMPACT);
+      tl.to("#scene", { y: 6, duration: 0.06, ease: "power2.inOut" }, IMPACT + 0.05);
+      tl.to("#scene", { y: -3, duration: 0.06, ease: "power2.inOut" }, IMPACT + 0.11);
+      tl.to("#scene", { y: 0, duration: 0.08, ease: "power2.out" }, IMPACT + 0.17);
+
+      /* ---------- colour phase-shift: cyan/slate -> red ---------- */
+      tl.fromTo(
+        "#rule-wash",
+        { opacity: 0 },
+        { opacity: 0.3, duration: 0.45, ease: "power2.out", immediateRender: false },
+        IMPACT
+      );
+      // lanes 1 and 2 recede to texture above the bar
+      tl.fromTo(
+        ["#trk-a", "#trk-b"],
+        { opacity: 1 },
+        { opacity: 0.16, duration: 0.45, ease: "power2.out", immediateRender: false },
+        IMPACT
+      );
+      // lane 3 nearly out, lane 4 fully out so the hero row owns the slot
+      tl.fromTo(
+        "#trk-c",
+        { opacity: 1 },
+        { opacity: 0.06, duration: 0.45, ease: "power2.out", immediateRender: false },
+        IMPACT
+      );
+      tl.fromTo(
+        "#trk-d",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.4, ease: "power2.out", immediateRender: false },
+        IMPACT
+      );
+      // the headline retires to texture — the composition must RESOLVE on the
+      // false positive, not on an Act-1 statement competing with it.
+      tl.fromTo(
+        "#headline",
+        { opacity: 1 },
+        { opacity: 0.25, duration: 0.5, ease: "power2.out", immediateRender: false },
+        IMPACT
+      );
+      // ambient on the rule bar. repeat 1 is ODD. Ends 5.60 + 2*0.85 = 7.30.
+      tl.to(
+        "#rule-bar",
+        {
+          boxShadow: "0 8px 44px rgba(220,38,38,0.75)",
+          duration: 0.85,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 1
+        },
+        5.6
+      );
+
+      /* ============================================================
+         ACT 2 (5.90 - 8.30) — the rule blocks a real traveller
+         ============================================================ */
+
+      // Reveal 5 @ 5.90 (0.64 after the slam impact) — a visibly FINE
+      // transaction: green row, green check, an aircraft glyph. It rides in
+      // and settles at 6.80, then holds green for 0.4s before anything happens.
+      const HERO_REST = -760; // CSS left:778 + x:-760 -> local left 18px
+      tl.fromTo(
+        "#hero-row",
+        { x: 0 },
+        { x: HERO_REST, duration: 0.9, ease: "power3.out", immediateRender: false },
+        5.9
+      );
+
+      // the rule's scan falls from the bar onto the row
+      tl.fromTo(
+        "#scan",
+        { y: 210, opacity: 0 },
+        { opacity: 0.85, duration: 0.14, ease: "power2.out", immediateRender: false },
+        7.02
+      );
+      tl.to("#scan", { y: 470, duration: 0.42, ease: "power2.in" }, 7.02);
+      tl.to("#scan", { opacity: 0, duration: 0.16, ease: "power2.in" }, 7.3);
+
+      /* ---------- the false positive @ 7.20 ----------
+         Colour flip, badge swap and DECLINED are ONE compound event on ONE
+         object (EP4 slot_problem does the same at `payoff`: flash + border +
+         button colour + glow all fire together). They are not independent
+         reveals, so the 0.6s stagger floor does not apply between them. */
+      const REJECT = 7.2;
+      tl.to(
+        "#hero-row",
+        {
+          backgroundColor: "rgba(46,10,14,0.95)",
+          borderColor: "rgba(248,113,113,0.85)",
+          duration: 0.22,
+          ease: "power3.out"
+        },
+        REJECT
+      );
+      tl.to(
+        "#hero-badge",
+        {
+          backgroundColor: "rgba(239,68,68,0.22)",
+          borderColor: "#f87171",
+          duration: 0.22,
+          ease: "power3.out"
+        },
+        REJECT
+      );
+      tl.to("#hero-plane", { color: "#fca5a5", duration: 0.22, ease: "power3.out" }, REJECT);
+      tl.to(
+        ".hero-bar",
+        { backgroundColor: "rgba(254,202,202,0.22)", duration: 0.22, ease: "power3.out" },
+        REJECT
+      );
+      // trap #2: only the OUTGOING element is touched here, and the incoming
+      // one at a DIFFERENT position — never a blanket hide-all + show-one.
+      tl.to("#hero-check", { opacity: 0, duration: 0.16, ease: "power2.out" }, REJECT + 0.02);
+      tl.fromTo(
+        "#hero-cross",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.2, ease: "power3.out", immediateRender: false },
+        REJECT + 0.1
+      );
+
+      // the verdict lands at 7.55 and holds — well inside the "by ~8.0" target.
+      tl.fromTo(
+        "#hero-declined",
+        { opacity: 0, scale: 1.3 },
+        { opacity: 1, scale: 1, duration: 0.3, ease: "power4.out", immediateRender: false },
+        7.55
+      );
+
+      // rejected-row jolt (deterministic literals, not a random shake).
+      // Ends 7.60 + 0.36 = 7.96.
+      tl.to("#hero-row", { x: HERO_REST - 18, duration: 0.08, ease: "power2.out" }, 7.6);
+      tl.to("#hero-row", { x: HERO_REST + 12, duration: 0.08, ease: "power2.inOut" }, 7.68);
+      tl.to("#hero-row", { x: HERO_REST - 8, duration: 0.07, ease: "power2.inOut" }, 7.76);
+      tl.to("#hero-row", { x: HERO_REST + 4, duration: 0.07, ease: "power2.inOut" }, 7.83);
+      tl.to("#hero-row", { x: HERO_REST, duration: 0.06, ease: "power2.out" }, 7.9);
+      // repeat 1 is ODD -> returns to the base shadow. Ends 7.60 + 2*0.32 = 8.24
+      // < 8.30, so it cannot outlive the fade. The glow is clipped by #stream's
+      // overflow:hidden, so it adds no bounds.
+      tl.to(
+        "#hero-row",
+        {
+          boxShadow: "0 0 34px 6px rgba(239,68,68,0.55)",
+          duration: 0.32,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 1
+        },
+        7.6
+      );
+
+      /* ============================================================
+         FADE — finishes at EXACTLY 8.600, zero buffer.
+         fromTo with an explicit start value (plus gsap.defaults lazy:false)
+         because a plain tl.to({opacity:0}) can silently fail here.
+         Every group's `from` is that element's ACTUAL end-state opacity, so
+         nothing pops back into view on the first fade frame. Elements already
+         at opacity 0 (#trk-d, #trk-e, #rev-tick, #hero-check, #scan, #flash)
+         are EXCLUDED entirely.
+         ============================================================ */
+      tl.fromTo(
+        [
+          "#bg-fill",
+          "#vignette",
+          "#grain",
+          "#reviewer",
+          "#backlog",
+          ".sliver",
+          "#stream",
+          "#rule-bar",
+          "#rule-label",
+          "#hero-row",
+          "#hero-badge",
+          "#hero-cross",
+          "#hero-plane",
+          ".hero-bar",
+          "#hero-declined"
+        ],
+        { opacity: 1 },
+        { opacity: 0, duration: 0.3, ease: "power1.out", immediateRender: false },
+        FADE_START
+      );
+      tl.fromTo(
+        ["#trk-a", "#trk-b"],
+        { opacity: 0.16 },
+        { opacity: 0, duration: 0.3, ease: "power1.out", immediateRender: false },
+        FADE_START
+      );
+      tl.fromTo(
+        "#trk-c",
+        { opacity: 0.06 },
+        { opacity: 0, duration: 0.3, ease: "power1.out", immediateRender: false },
+        FADE_START
+      );
+      tl.fromTo(
+        "#headline",
+        { opacity: 0.25 },
+        { opacity: 0, duration: 0.3, ease: "power1.out", immediateRender: false },
+        FADE_START
+      );
+      tl.fromTo(
+        "#rule-wash",
+        { opacity: 0.3 },
+        { opacity: 0, duration: 0.3, ease: "power1.out", immediateRender: false },
+        FADE_START
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

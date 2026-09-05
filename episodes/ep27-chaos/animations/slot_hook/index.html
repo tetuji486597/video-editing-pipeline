@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP27 hook — the monkey in production (transparent, under the sticker)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent; /* TRANSPARENT: presenter + sticker stay visible */
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* FRAME DIVISION (grid-measured on the real HOOK frames, src 4.28-10.64 scaled to
+         1080x1920, zoom 1.0->1.08 about (540,730)):
+           sticker (slot_tiktok_title): y 220-512, shadow reach 537.
+           face: hair 300-700, brow ~700, eyes ~790, mouth 1030-1100, chin bottom 1220
+                 (1259 at zoom worst); face x 190-770 (173-778 worst); left ear x 157-189
+                 y 795-946 (worst); jaw left edge x>=238 for y>=1000, neck x>=313 for
+                 y>=1130; right jaw x<=734 for y<=1130, neck x<=659 for y>=1130.
+         The brief's "lower band y~700-1270" IS the face on this shot, so the scene lives
+         on the FLANKS and SHOULDERS only, all inside x 70-870 / y 955-1278:
+           LaMelo sticker   x 70-270   y 1060-1260   (0.15-1.5s only; head is tilted up
+                                                      at that moment, shoulder/background)
+           toilet slot      x 70-180   y 960-1130    (act 2; clears ear bottom 946 by 14)
+           rack             x 70-300   y 1130-1270   (neck edge 313 -> 13px clear)
+           logo badge       x 755-865  y 998-1108    (right jaw <=734 -> 21px clear)
+           monkey           x 700-870  y 1114-1275   (transparent corner over the jaw tip)
+           cable            y 1228-1266 between rack and monkey, over the collar; the chin
+                            bottom at the yank (zoom 1.05) is 1244, cable sag sits below it
+         Fills are translucent (<=0.30) per rule 11. */
+
+      /* ---- LaMelo 6-7 sticker (act 1 opener) ---- */
+      #lamelo {
+        position: absolute;
+        left: 70px;
+        top: 1060px;
+        width: 200px;
+        height: 200px;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 6px solid #ffffff;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+        opacity: 0.5;               /* frame-0: visible, popping up (entrance at t=0) */
+        transform: scale(0.6);
+        transform-origin: 50% 100%;
+      }
+      #lamelo img {
+        position: absolute;
+        left: -80px;                /* crop: photo circle centred on head+torso */
+        top: -12px;
+        width: 400px;
+        height: auto;
+      }
+      .badge67 {
+        position: absolute;
+        left: 214px;                /* x 214-278 */
+        top: 1036px;                /* y 1036-1100 */
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: #ff2fd6;
+        border: 4px solid #ffffff;
+        color: #ffffff;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 40px;
+        font-weight: 800;
+        line-height: 56px;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+        opacity: 0;
+      }
+
+      /* ---- the rack (left shoulder) ---- */
+      #rack {
+        position: absolute;
+        left: 70px;
+        top: 1130px;
+        width: 230px;
+        height: 140px;
+        border-radius: 12px;
+        background: rgba(4, 22, 12, 0.30);
+        border: 2px solid rgba(57, 255, 20, 0.85);
+        box-shadow: 0 0 10px rgba(57, 255, 20, 0.35);
+        opacity: 0;                 /* enters at 1.55s; hidden at rest (trap 10) */
+      }
+      #rack-head {
+        position: absolute;
+        left: 10px;
+        top: 6px;                   /* abs y 1136-1160 */
+        height: 24px;
+        line-height: 24px;
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 3px;
+        color: #39ff14;
+        text-shadow: 0 0 8px rgba(57, 255, 20, 0.9);
+      }
+      #rack-led {
+        position: absolute;
+        right: 12px;
+        top: 12px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #39ff14;
+        box-shadow: 0 0 8px #39ff14;
+      }
+      .unit {
+        position: absolute;
+        left: 10px;
+        width: 206px;
+        height: 44px;
+        border-radius: 6px;
+        background: rgba(10, 30, 16, 0.32);
+        border: 1px solid rgba(57, 255, 20, 0.55);
+      }
+      #u1 { top: 38px; }            /* abs y 1168-1212 */
+      #u2 { top: 90px; }            /* abs y 1220-1264 */
+      .led {
+        position: absolute;
+        left: 10px;
+        top: 16px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #39ff14;
+        box-shadow: 0 0 8px #39ff14;
+      }
+      .slots {
+        position: absolute;
+        left: 34px;
+        top: 12px;
+        display: flex;
+        gap: 6px;
+      }
+      .slots i {
+        display: block;
+        width: 22px;
+        height: 20px;
+        border-radius: 3px;
+        background: rgba(57, 255, 20, 0.28);
+      }
+      #u2-off {
+        position: absolute;
+        left: 118px;
+        top: 12px;                  /* abs y 1232-1252 */
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        color: #ff3b3b;
+        text-shadow: 0 0 8px rgba(255, 59, 59, 0.9);
+        opacity: 0;
+      }
+      #u2-x {
+        position: absolute;
+        left: 36px;
+        top: 6px;
+        width: 32px;
+        height: 32px;
+        opacity: 0;
+      }
+
+      /* ---- the real Chaos Monkey logo on a Netflix-red badge (right, above monkey) ---- */
+      #logo-badge {
+        position: absolute;
+        left: 755px;
+        top: 998px;
+        width: 110px;
+        height: 110px;
+        border-radius: 18px;
+        background: #e50914;
+        border: 3px solid #ffffff;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transform: scale(0.6);
+      }
+      #logo-badge img { width: 92px; height: 92px; }
+
+      /* ---- Chimpanzini (right shoulder) ---- */
+      #monkey {
+        position: absolute;
+        left: 700px;
+        top: 1114px;
+        width: 170px;               /* 504x476 -> 170x161 */
+        height: auto;
+        opacity: 0;
+        filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+      }
+
+      /* ---- cable + sparks ---- */
+      #cable-svg {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: visible;
+      }
+      .cable { fill: none; stroke: #39ff14; stroke-width: 5; stroke-linecap: round; }
+      .cable-glow { fill: none; stroke: rgba(57, 255, 20, 0.35); stroke-width: 13; stroke-linecap: round; }
+      #cable-sag, #cable-sag-glow { opacity: 0; }
+      #cable-loose, #cable-loose-glow { opacity: 0; }
+      #sparks { opacity: 0; }
+      #sparks line { stroke: #ffe14d; stroke-width: 4; stroke-linecap: round; }
+
+      /* ---- Skibidi Toilet, act 2: rises from behind the rack ---- */
+      #toilet-clip {
+        position: absolute;
+        left: 60px;
+        top: 955px;
+        width: 190px;
+        height: 175px;              /* x 60-250, y 955-1130: bottom edge = rack top */
+        overflow: hidden;
+      }
+      #toilet {
+        position: absolute;
+        left: 10px;
+        top: 175px;                 /* rests fully below the clip (invisible) */
+        width: 110px;               /* 678x1048 -> 110x170 -> visible at abs y 960-1130 */
+        height: auto;
+        transform-origin: 50% 100%;
+        filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.55));
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="6.3666"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="scene" class="clip" data-start="0" data-duration="6.3666" data-track-index="1">
+        <!-- act 1 opener: LaMelo 6-7 -->
+        <div id="lamelo"><img src="assets/lamelo_1000.jpg" alt="" data-layout-allow-overflow="true" /></div>
+        <div class="badge67" id="six">6</div>
+        <div class="badge67" id="seven">7</div>
+
+        <!-- act 2: toilet (behind the rack in z-order) -->
+        <div id="toilet-clip">
+          <img id="toilet" src="assets/skibidi_toilet_transparent.png" alt="" data-layout-allow-overflow="true" />
+        </div>
+
+        <!-- cable under the collar -->
+        <svg id="cable-svg" viewBox="0 0 1080 1920" data-layout-allow-overflow="true">
+          <path id="cable-sag-glow" class="cable-glow" d="M300,1242 C420,1268 560,1268 715,1228" />
+          <path id="cable-sag" class="cable" d="M300,1242 C420,1268 560,1268 715,1228" />
+          <path id="cable-loose-glow" class="cable-glow" d="M715,1228 C640,1184 600,1250 652,1262" />
+          <path id="cable-loose" class="cable" d="M715,1228 C640,1184 600,1250 652,1262" />
+          <g id="sparks">
+            <line x1="304" y1="1240" x2="330" y2="1214" />
+            <line x1="306" y1="1244" x2="340" y2="1244" />
+            <line x1="304" y1="1248" x2="328" y2="1268" />
+          </g>
+        </svg>
+
+        <!-- the rack -->
+        <div id="rack">
+          <div id="rack-head" class="mono">PRODUCTION</div>
+          <div id="rack-led"></div>
+          <div class="unit" id="u1">
+            <div class="led"></div>
+            <div class="slots"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="unit" id="u2">
+            <div class="led" id="u2-led"></div>
+            <div class="slots" id="u2-slots"><i></i><i></i><i></i></div>
+            <svg id="u2-x" viewBox="0 0 32 32"><path d="M6 6 L26 26 M26 6 L6 26" stroke="#ff3b3b" stroke-width="5" stroke-linecap="round" fill="none"/></svg>
+            <div id="u2-off" class="mono">OFFLINE</div>
+          </div>
+        </div>
+
+        <!-- logo badge + monkey -->
+        <div id="logo-badge"><img src="assets/chaos_monkey_white.png" alt="" /></div>
+        <img id="monkey" src="assets/chimpanzini_bananini_render.png" alt="" data-layout-allow-overflow="true" />
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      const FADE_AT = 6.0866, FADE = 0.28;   // 6.0866 + 0.28 = 6.3666 = data-duration (191 frames @30fps)
+
+      // ---------- ACT 1a: "Six, seven" (0.18 / 0.52) -- LaMelo pops at t=0 ----------
+      tl.fromTo("#lamelo", { opacity: 0.5, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.25, ease: "back.out(1.6)" }, 0);
+      // the hand-bob: y in BOTH from and to (renderer trap 8); odd repeat lands on base
+      tl.fromTo("#lamelo", { y: -8 }, { y: 8, duration: 0.14, ease: "sine.inOut", yoyo: true, repeat: 5, immediateRender: false }, 0.3);
+      tl.fromTo("#six", { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.18, ease: "back.out(2)", immediateRender: false }, 0.2);
+      tl.fromTo("#six", { opacity: 1 }, { opacity: 0, duration: 0.1, immediateRender: false }, 0.55);
+      tl.fromTo("#seven", { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.18, ease: "back.out(2)", immediateRender: false }, 0.56);
+      tl.fromTo("#seven", { opacity: 1 }, { opacity: 0, duration: 0.12, immediateRender: false }, 1.3);
+      tl.fromTo("#lamelo", { opacity: 1, scale: 1 }, { opacity: 0, scale: 0.6, duration: 0.2, ease: "power3.in", immediateRender: false }, 1.3);
+
+      // ---------- ACT 1b: "Netflix has a robot" -- the rack, the logo, the monkey ----------
+      tl.fromTo("#rack", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out", immediateRender: false }, 1.55);
+      tl.fromTo("#logo-badge", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(1.5)", immediateRender: false }, 2.15);
+      tl.fromTo("#monkey", { opacity: 0, x: 60 }, { opacity: 1, x: 0, duration: 0.5, ease: "power3.out", immediateRender: false }, 2.75);
+      // the monkey "creeps": a slow lean toward the rack
+      tl.fromTo("#monkey", { x: 0 }, { x: -14, duration: 0.7, ease: "sine.inOut", immediateRender: false }, 3.25);
+      tl.fromTo("#cable-sag", { opacity: 0 }, { opacity: 1, duration: 0.3, immediateRender: false }, 3.3);
+      tl.fromTo("#cable-sag-glow", { opacity: 0 }, { opacity: 1, duration: 0.3, immediateRender: false }, 3.3);
+      // ambient LED breathe on the head LED (odd repeat -> lands on base), ends before the turn
+      tl.fromTo("#rack-led", { opacity: 1 }, { opacity: 0.45, duration: 0.3, ease: "sine.inOut", yoyo: true, repeat: 3, immediateRender: false }, 2.0);
+
+      // ---------- TURN: "break Netflix" (3.96) -- the yank ----------
+      tl.fromTo("#monkey", { x: -14 }, { x: 18, duration: 0.12, ease: "power4.out", immediateRender: false }, 3.98);
+      tl.fromTo("#monkey", { x: 18 }, { x: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 4.1);
+      tl.fromTo("#cable-sag", { opacity: 1 }, { opacity: 0, duration: 0.06, immediateRender: false }, 4.0);
+      tl.fromTo("#cable-sag-glow", { opacity: 1 }, { opacity: 0, duration: 0.06, immediateRender: false }, 4.0);
+      tl.fromTo("#cable-loose", { opacity: 0 }, { opacity: 1, duration: 0.08, immediateRender: false }, 4.04);
+      tl.fromTo("#cable-loose-glow", { opacity: 0 }, { opacity: 1, duration: 0.08, immediateRender: false }, 4.04);
+      tl.fromTo("#sparks", { opacity: 0, scale: 0.5, transformOrigin: "0% 50%" }, { opacity: 1, scale: 1, duration: 0.1, ease: "power4.out", immediateRender: false }, 4.02);
+      tl.fromTo("#sparks", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 4.14);
+      // unit 2 goes dark: LED red, slots dim, X + OFFLINE ("on purpose" lands 4.64)
+      tl.to("#u2-led", { backgroundColor: "#ff3b3b", boxShadow: "0 0 8px #ff3b3b", duration: 0.1 }, 4.2);
+      tl.to("#u2-slots", { opacity: 0.25, duration: 0.2 }, 4.2);
+      tl.fromTo("#u2-x", { opacity: 0, scale: 1.8 }, { opacity: 1, scale: 1, duration: 0.25, ease: "power4.out", immediateRender: false }, 4.25);
+      tl.fromTo("#u2-off", { opacity: 0, x: -10 }, { opacity: 1, x: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 4.6);
+      tl.to("#rack", { borderColor: "rgba(255,59,59,0.9)", boxShadow: "0 0 14px rgba(255,59,59,0.5)", duration: 0.15 }, 4.2);
+      tl.to("#rack", { borderColor: "rgba(57,255,20,0.85)", boxShadow: "0 0 10px rgba(57,255,20,0.35)", duration: 0.5 }, 4.7);
+      // the rack shakes on the yank (x in both from & to; odd repeat lands on base)
+      tl.fromTo("#rack", { x: 0 }, { x: 6, duration: 0.05, yoyo: true, repeat: 5, immediateRender: false }, 4.0);
+
+      // ---------- ACT 2: "what the skibidi" (5.58) -- toilet rises from behind the rack ----------
+      tl.fromTo("#toilet", { y: 0 }, { y: -170, duration: 0.4, ease: "back.out(1.3)", immediateRender: false }, 5.55);
+      tl.fromTo("#toilet", { rotation: -6 }, { rotation: 6, duration: 0.07, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 5.95);
+
+      // ---------- fade: one fade per visible leaf, finishing at EXACTLY 6.375 ----------
+      ["#rack", "#logo-badge", "#monkey", "#cable-svg", "#toilet"].forEach((s) => {
+        tl.fromTo(s, { opacity: 1 }, { opacity: 0, duration: FADE, ease: "power2.out", immediateRender: false }, FADE_AT);
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

@@ -1,0 +1,182 @@
+{
+  "version": 1,
+  "sources": {
+    "ep28": "C:/Users/gordo/Downloads/drive-download-20260904T054818Z-1-001/ep28.mp4"
+  },
+  "ranges": [
+    {
+      "source": "ep28",
+      "start": 22.6,
+      "end": 25.75,
+      "beat": "INTRO",
+      "quote": "Explaining streaming to Gen Alpha in thirty seconds.",
+      "reason": "Last complete take (the attempt at 9.60 is incomplete). Acoustic onset 22.76 (a soft breath from 22.51 at the -25dB floor) vs ASR 'Explaining' start 22.80 -- agree within 40ms; range starts 160ms before onset. Acoustic end 25.60 at every floor vs ASR 'seconds.' end 25.46 -- ASR under-boxes the tail by 140ms, so the end is padded off the acoustic edge (+150ms). Silence follows until 31.76.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep28",
+      "start": 31.62,
+      "end": 42.15,
+      "beat": "HOOK",
+      "quote": "You know how ChatGPT yaps one word at a time? Like, chat, is this real or is bro LARPing? Turns out it legiterally doesn't know the end of the sentence yet. Bro straight freestyling from the dome.",
+      "reason": "Only take. Acoustic onset 31.76-31.79 vs ASR 'You' 31.74 -- agree; start is 160ms before onset. Acoustic end 41.94 (-12dB) / 42.03 (-18dB) vs ASR 'dome.' end 41.98 -- agree; end padded to 42.15. Internal beats: 0.49s after 'LARPing?' and 0.30s after 'yet.' -- both natural, neither over 0.8s.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep28",
+      "start": 50.25,
+      "end": 61.16,
+      "beat": "PROBLEM",
+      "quote": "So the AI makes one word at a time, and a long answer takes, like, sixty-seven seconds to finish. If you had to look at a blank screen for sixty-seven seconds, we would close the tab and might even touch grass. Like bro, Psy bow.",
+      "reason": "Only take. Acoustic onset 50.35 (-18dB; a pre-breath from 50.13 at -25dB) vs ASR 'So' 50.38 -- agree; start 100ms before onset. END DISAGREEMENT: ASR boxes 'bow.' as 60.62-61.86 (a 1.24s word) but the audio drops to floor at 60.84-61.01 at every threshold -- Scribe padded the box by ~0.85s. Cutting off the ASR end would have shipped nearly a second of dead air; range ends 150ms after the acoustic edge instead. Internal: 0.32s after 'grass.' is the setup for the punchline, kept.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep28",
+      "start": 66.4,
+      "end": 75.88,
+      "beat": "BUILD",
+      "quote": "So instead of raw dogging the whole answer, the server just backshots each word to your phone the second it pops out. There's one pipe, and it stays open, and words keep falling down it.",
+      "reason": "Only take. Acoustic onset 66.49-66.54 vs ASR 'So' 66.56 -- agree; start 120ms before onset. Acoustic end 75.67-75.73 vs ASR 'it.' 75.76 -- agree; end padded +150ms. Internal pauses (0.28s after 'answer,', 0.23s before 'the second', 0.21s after 'out.') are all phrase breaths.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep28",
+      "start": 126.02,
+      "end": 146.98,
+      "beat": "NEW_COMPONENT",
+      "quote": "That pipe is called server-sent events, SSE, and the thing about it is it only goes in one direction, from the server down to you. The chat app episode had a pipe that went both ways, but you talk back in a chat. Here you're just an NPC listening, so one way is fine. And the sneaky part is the first word shows up in, like, half a second, so your brain goes, \"Oh, that was fast,\" even though the whole thing still took sixty-seven seconds. It's basically continuous aura farming.",
+      "reason": "LAST take of the SSE explanation (earlier attempts at 78.50 and 94.52 are flubbed/alternates, not used) spanning the 'aura farming' tag line as ONE range -- the 0.47-0.53s breath between 'seconds.' (144.64) and 'It's' (145.34) is natural and stays. Acoustic onset 126.12 vs ASR 'That' 126.15 -- agree; start 100ms before onset. Acoustic end 146.77 (-18dB) / 146.88 (-25dB) vs ASR 'farming.' 146.79 -- agree; end padded to 146.98. Largest internal pause is 0.43s after 'fine.' -- nothing over 0.8s.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep28",
+      "start": 149.68,
+      "end": 156.5,
+      "beat": "PAYOFF",
+      "quote": "So give people the first word right away instead of making them bed rot until the last one. Next, we'll look at who's reading a billion posts a day.",
+      "reason": "Only take. Acoustic onset 149.78-149.80 (an inhale from 149.42 at -25dB) vs ASR 'So' 149.84 -- agree; start 100ms before onset. Acoustic end 156.22 (-12dB) / 156.37 (-25dB) vs ASR 'day' 156.25 -- agree; end padded to 156.50. Internal: 0.23s after 'one.' before 'Next' -- kept.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    }
+  ],
+  "grade": "eq=contrast=1.15:saturation=1.05,colorbalance=rs=-0.04:gs=0.02:bs=0.05:rm=0.01:gm=0.0:bm=-0.01:rh=0.06:gh=0.02:bh=-0.06,vignette=angle=0.7,unsharp=5:5",
+  "overlays": [
+    {
+      "file": "animations/slot_tiktok_title/render.webm",
+      "start_in_output": 0.0,
+      "duration": 3.1,
+      "_note": "TikTok text sticker over INTRO (0-3.167): EXPLAINING STREAMING / TO GEN ALPHA / IN 30 SECONDS. Fade 2.82-3.10; gap to hook 1.30s (deliberate, >=0.5)."
+    },
+    {
+      "file": "animations/slot_hook/render.webm",
+      "start_in_output": 4.4,
+      "duration": 9.3,
+      "_note": "HALF-PANEL (upper band y214-590 over hair). Lands: typing 'is this real' @6.42 (local 2.02), caret stops mid-word + 'idk yet' @10.35 (5.95), mic drop @12.25 (7.85), typing resumes 'from the dome' @12.87. Ends 13.70 (beat ends 13.708); gap to problem 1.30s."
+    },
+    {
+      "file": "animations/slot_problem/render.webm",
+      "start_in_output": 15.0,
+      "duration": 9.6,
+      "_note": "TAKEOVER. Stopwatch 0:00->1:07 lands on 1st 'sixty-seven' @16.80 (local 1.80, LaMelo pop), 2nd @19.44 (4.44, pop); TURN 'close the tab' @20.98 (5.98); 'touch grass' @22.16 (7.16); SYBAU on 'Psy bow' @23.72 (8.72). Fade 24.30-24.60 (9.6s = 288 frames on the 30fps render grid; the beat ends 24.625); gap to build 1.60s."
+    },
+    {
+      "file": "animations/slot_build/render.webm",
+      "start_in_output": 26.2,
+      "duration": 7.9,
+      "_note": "MOTION GRAPHIC (transparent, upper band). Monkeys run from 'backshots' @27.67 (local 1.47); ONE PIPE @31.05 (4.85); OPEN glow on 'stays open' @31.78 (5.58); words keep falling to 33.85. Ends 34.10 (beat ends 34.125); gap to new_component 0.50s exactly."
+    },
+    {
+      "file": "animations/slot_new_component/render.webm",
+      "start_in_output": 34.6,
+      "duration": 20.5,
+      "_note": "TAKEOVER with the REAL Wikimedia EventStreams capture. 'server-sent events' @34.985 (local 0.385), SSE @35.9 (1.3), 'one direction' @37.8 (3.2), 'both ways' @41.1 (6.5), NPC @43.6 (9.0); TURN 'one way is fine' ONE WAY ONLY @45.5 (10.9); capture window @47.2 (12.6), FIRST WORD 0.5s @47.85 (13.25), chunks arrive on 'that was fast' @49.5-51.5, WHOLE THING 1:07 + LaMelo on 'sixty-seven' @51.8 (17.2), AURA @54.4 (19.8). Ends 55.10 (beat ends 55.125); gap to payoff 0.60s."
+    },
+    {
+      "file": "animations/slot_payoff/render.webm",
+      "start_in_output": 55.7,
+      "duration": 4.8,
+      "_note": "CORNER ACCENT (top-right, over hair). First word lands @56.0 (local 0.3); bed glyph on 'bed rot' @57.65 (1.95). No tease chip. Ends 60.5 (beat ends 61.958)."
+    }
+  ],
+  "subtitles": "master.ass",
+  "_zoom_note": "Gradual zoom on the talking head, focal (540,730) = render.py's eye-line default. Direction alternates per segment (1.0->1.08->1.0...) so each range starts at the scale the previous one ended on and the drift is continuous across every cut. No overlays yet, so the 8% magnitude is not constrained by face clearances; if overlays are added later, re-check clearances (a centered zoom displaces a point by distance_from_focal*(Z-1)).",
+  "_edge_note": "Every range START and END was measured with find_dead_air.py at three floors (-12/-18/-25 dB below the file's own speech level) and cross-checked against words.py. Only one real ASR-vs-acoustic disagreement: PROBLEM's closing 'bow.' is boxed to 61.86 but the audio ends at 61.01. All pads are 100-160ms before onset and 120-150ms after the acoustic tail.",
+  "_beat_windows_output_timeline": {
+    "INTRO": [
+      0.0,
+      3.1667
+    ],
+    "HOOK": [
+      3.1667,
+      13.7083
+    ],
+    "PROBLEM": [
+      13.7083,
+      24.625
+    ],
+    "BUILD": [
+      24.625,
+      34.125
+    ],
+    "NEW_COMPONENT": [
+      34.125,
+      55.125
+    ],
+    "PAYOFF": [
+      55.125,
+      61.9583
+    ]
+  },
+  "total_duration_s": 61.9583,
+  "_windows_note": "Output-timeline windows on render.py's real 24fps extract grid: each segment's rendered duration is ceil((end-start)*24)/24, not the raw source span. Verified against rendered clips where measurable. Overlay start_in_output values are derived from THESE numbers.",
+  "_overlay_note": "Built 2026-09-04. Gap audit (end -> next start): title 3.100->4.400 (1.300), hook 13.700->15.000 (1.300), problem 24.600->26.200 (1.600), build 34.100->34.600 (0.500), new_component 55.100->55.700 (0.600). Every gap is >=0.5s deliberate breathing room; none is a sub-0.5s flash. Every composition's fade lands at exactly its declared duration (verified on the rendered alpha plane with check_fade.py). All durations sit on the renderer's 30fps frame grid so declared == rendered.",
+  "gameplay": {
+    "file": "../../shared_assets/brainrot/gameplay/minecraft_parkour_7yl7Wc1dtWc.mp4",
+    "src_start": 10.0,
+    "y": 1300,
+    "h": 620,
+    "crop": {
+      "x": 0,
+      "y": 650,
+      "w": 1080,
+      "h": 620
+    },
+    "_note": "Brainrot gameplay strip (user request). Bottom 620px = shirt only (chin ~1200). Composited above overlays, below captions; muted."
+  }
+}

@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP13 Hook — 429 Too Many Requests</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+
+      :root {
+        --blue: #3b82f6;
+        --blue-light: #60a5fa;
+        --red: #ef4444;
+        --red-light: #f87171;
+        --text: #f3f4f6;
+        --dim: #9ca3af;
+      }
+
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .fill { position: absolute; inset: 0; }
+
+      /* ================= BACKGROUND (full-bleed, exempt from the 180-1280 band) ======= */
+      #bg-fill {
+        background: radial-gradient(120% 88% at 50% 30%, #131a26 0%, #0a0e16 44%, #070a11 76%, #060305 100%);
+      }
+      #glow-blue {
+        position: absolute;
+        left: 50%; top: 36%;
+        width: 1500px; height: 1500px;
+        transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(59, 130, 246, 0.17) 0%, rgba(59, 130, 246, 0) 62%);
+      }
+      #glow-red {
+        position: absolute;
+        left: 50%; top: 60%;
+        width: 1600px; height: 1600px;
+        transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(239, 68, 68, 0.22) 0%, rgba(239, 68, 68, 0) 62%);
+        opacity: 0;
+      }
+      #vignette {
+        background: radial-gradient(115% 70% at 50% 42%, rgba(0,0,0,0) 38%, rgba(0,0,0,0.55) 78%, rgba(0,0,0,0.85) 100%);
+      }
+
+      /* ================= CAMERA (slow push-in under everything) ======================= */
+      #scene { transform-origin: 50% 50%; }
+
+      /* ================= COUNTER CHIP  (abs y 240 - 324, x 350 - 730) ================= */
+      #chip {
+        position: absolute;
+        left: 350px; top: 240px;
+        width: 380px; height: 84px;
+        border-radius: 42px;
+        background: rgba(12, 20, 34, 0.85);
+        border: 2px solid rgba(96, 165, 250, 0.5);
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45), 0 0 22px 0 rgba(59, 130, 246, 0.22);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 40px;
+      }
+      #chip-label {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: 4px;
+        color: var(--blue-light);
+      }
+      #chip-num {
+        position: relative;
+        width: 80px;
+        height: 56px;
+      }
+      #chip-num span {
+        position: absolute;
+        inset: 0;
+        text-align: center;
+        font-size: 50px;
+        font-weight: 800;
+        line-height: 56px;
+        color: var(--text);
+        opacity: 0;
+      }
+      #d0 { opacity: 1; }
+
+      /* ================= LOGIN CARD  (abs y 384 - 940, x 150 - 930) =================== */
+      #card {
+        position: absolute;
+        left: 150px; top: 384px;
+        width: 780px; height: 556px;
+        border-radius: 34px;
+        background: linear-gradient(180deg, #131b28 0%, #0d1420 100%);
+        border: 1px solid rgba(96, 165, 250, 0.22);
+        box-shadow: 0 34px 80px rgba(0, 0, 0, 0.6);
+        /* same filter functions, same order, as the phase-2 tween target */
+        filter: saturate(1) brightness(1);
+        transform-origin: 50% 50%;
+      }
+      /* card-relative 44 -> abs 428 */
+      #form-title {
+        position: absolute;
+        left: 44px; top: 44px;
+        font-size: 44px; font-weight: 800; line-height: 56px;
+        color: var(--text);
+      }
+      /* card-relative 152 -> abs 536 ; 280 -> abs 664 */
+      .field {
+        position: absolute;
+        left: 44px;
+        width: 692px; height: 84px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 2px solid rgba(148, 163, 184, 0.26);
+        display: flex;
+        align-items: center;
+        padding-left: 26px;
+        color: var(--dim);
+        font-size: 28px;
+      }
+      #inp-email { top: 152px; }
+      #inp-pass  { top: 280px; font-size: 34px; letter-spacing: 8px; }
+      /* card-relative 408 -> abs 792 */
+      #btn-login {
+        position: absolute;
+        left: 44px; top: 408px;
+        width: 692px; height: 96px;
+        border-radius: 18px;
+        background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+        box-shadow: 0 12px 30px rgba(59, 130, 246, 0.42);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        font-size: 42px; font-weight: 800; letter-spacing: 1px;
+        overflow: hidden;             /* clips every ripple inside the button box */
+        transform-origin: 50% 50%;
+      }
+      #btn-label { position: relative; z-index: 2; }
+      .ripple {
+        position: absolute;
+        left: 441px; top: -92px;      /* centred on the fingertip contact point */
+        width: 280px; height: 280px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.5);
+        opacity: 0;
+        z-index: 1;
+        transform: scale(0);
+      }
+
+      /* ================= FINGER  (abs y 832 - 1053, x 746 - 884 drawn) ================ */
+      #finger {
+        position: absolute;
+        left: 700px; top: 800px;
+        width: 300px; height: 300px;
+      }
+
+      /* ================= 429 TOAST  (abs y 1000 - 1216, x 130 - 950) ================== */
+      #toast {
+        position: absolute;
+        left: 130px; top: 1000px;
+        width: 820px; height: 216px;
+        border-radius: 26px;
+        background: linear-gradient(180deg, #1a1013 0%, #120a0c 100%);
+        border: 1px solid rgba(239, 68, 68, 0.34);
+        box-shadow: 0 28px 70px rgba(0, 0, 0, 0.62), 0 0 18px 0 rgba(239, 68, 68, 0.18);
+        display: flex;
+        align-items: center;
+        padding-left: 52px;
+        gap: 44px;
+        overflow: hidden;
+        opacity: 0;
+        transform-origin: 50% 50%;    /* symmetric 1.15 overshoot — clearance math depends on it */
+      }
+      #toast-bar {
+        position: absolute;
+        left: 0; top: 0;
+        width: 12px; height: 216px;
+        background: linear-gradient(180deg, #f87171 0%, #ef4444 100%);
+      }
+      #toast-num {
+        font-size: 100px; font-weight: 800; line-height: 104px;
+        color: var(--red-light);
+        text-shadow: 0 0 26px rgba(239, 68, 68, 0.5);
+      }
+      #toast-text { display: flex; flex-direction: column; gap: 8px; }
+      #toast-title {
+        font-size: 34px; font-weight: 800; letter-spacing: 3px; line-height: 42px;
+        color: var(--text);
+      }
+      #toast-sub {
+        font-size: 24px; font-weight: 500; line-height: 30px;
+        color: var(--dim);
+      }
+
+      /* ================= FULL-BLEED OVERLAYS (exempt from the 180-1280 band) ========== */
+      #flash { background: #ffffff; opacity: 0; pointer-events: none; }
+      #dither { opacity: 1; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="3.4"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="scene-clip" class="clip" data-start="0" data-duration="3.4" data-track-index="1">
+        <div id="content-all" class="fill">
+          <!-- background: opaque from frame 0, never fades in -->
+          <div id="bg-fill" class="fill">
+            <div id="glow-blue"></div>
+            <div id="glow-red"></div>
+            <div id="vignette" class="fill"></div>
+          </div>
+
+          <div id="scene" class="fill">
+            <!-- PHASE 1 — request counter chip -->
+            <div id="chip">
+              <div id="chip-label">REQUESTS</div>
+              <div id="chip-num">
+                <span id="d0">0</span>
+                <span id="d1">1</span>
+                <span id="d2">2</span>
+                <span id="d3">3</span>
+                <span id="d5">5</span>
+                <span id="d8">8</span>
+              </div>
+            </div>
+
+            <!-- PHASE 1 — realistic mobile login form -->
+            <div id="card">
+              <div id="form-title">Sign in</div>
+              <div id="inp-email" class="field">you@example.com</div>
+              <div id="inp-pass" class="field">&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</div>
+              <div id="btn-login">
+                <div class="ripple" id="rip1"></div>
+                <div class="ripple" id="rip2"></div>
+                <div class="ripple" id="rip3"></div>
+                <div class="ripple" id="rip4"></div>
+                <div class="ripple" id="rip5"></div>
+                <div id="btn-label">Log In</div>
+              </div>
+            </div>
+
+            <!-- PHASE 1 — hand-built pointing finger (static SVG rotate, never GSAP-rotated) -->
+            <div id="finger">
+              <svg viewBox="0 0 300 300" width="300" height="300">
+                <g transform="rotate(-14 130 160)">
+                  <rect x="62" y="146" width="126" height="124" rx="46"
+                        fill="#dbe3ec" stroke="rgba(8,12,20,0.55)" stroke-width="3" />
+                  <rect x="76" y="28" width="54" height="150" rx="27"
+                        fill="#e8eef5" stroke="rgba(8,12,20,0.55)" stroke-width="3" />
+                  <path d="M136 176 L182 176" stroke="rgba(8,12,20,0.28)" stroke-width="3" stroke-linecap="round" />
+                  <path d="M138 206 L184 206" stroke="rgba(8,12,20,0.22)" stroke-width="3" stroke-linecap="round" />
+                </g>
+              </svg>
+            </div>
+
+            <!-- PHASE 2 — OS-style 429 notification toast -->
+            <div id="toast">
+              <div id="toast-bar"></div>
+              <div id="toast-num">429</div>
+              <div id="toast-text">
+                <div id="toast-title">TOO MANY REQUESTS</div>
+                <div id="toast-sub">Rate limit exceeded &middot; retry in 30s</div>
+              </div>
+            </div>
+          </div>
+
+          <div id="flash" class="fill"></div>
+          <div id="dither" class="fill"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- static deterministic grain / dither -->
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+        <feColorMatrix in="noise" type="matrix"
+          values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.04 0" />
+      </filter>
+    </svg>
+
+    <script>
+      document.getElementById("dither").style.filter = "url(#grain-filter)";
+
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      /* ---------- continuous camera push-in beneath everything (full 3.4s) ---------- */
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.06, duration: 3.4, ease: "sine.inOut" }, 0);
+
+      /* ================== PHASE 1 — "the mash" (0 - 1.70s) ========================== */
+      /* Primary entrance elements begin at LOCAL t=0 AND start already-visible
+         (opacity 0.55, not 0). Starting from 0 leaves frame 0 showing only the dark
+         #bg-fill — the 1-2 frame near-black flash that skill rule 12 documents as a
+         confirmed shipped bug. Measured: frame 0 YMAX 57 -> 149 with this change. */
+      tl.fromTo("#card",
+        { opacity: 0.55, scale: 0.965 },
+        { opacity: 1, scale: 1, duration: 0.42, ease: "power3.out" }, 0);
+      tl.fromTo("#chip",
+        { opacity: 0.55, y: -10 },
+        { opacity: 1, y: 0, duration: 0.38, ease: "power3.out" }, 0);
+      tl.fromTo("#finger",
+        { opacity: 0, y: 46 },
+        { opacity: 1, y: 0, duration: 0.34, ease: "power3.out" }, 0.08);
+
+      /* 5 presses, accelerating: gaps 0.37 / 0.28 / 0.22 / 0.18 */
+      const pressTimes = [0.45, 0.82, 1.10, 1.32, 1.50];
+      const ripples    = ["#rip1", "#rip2", "#rip3", "#rip4", "#rip5"];
+      /* counter ticks 0 -> 1 -> 2 -> 3 -> 5 -> 8 via stacked spans (seek-safe, no callbacks) */
+      const digits     = ["#d0", "#d1", "#d2", "#d3", "#d5", "#d8"];
+
+      pressTimes.forEach(function (t, i) {
+        /* finger drives down then springs back */
+        tl.to("#finger", { y: 16, duration: 0.06, ease: "power3.out" }, t - 0.06);
+        tl.to("#finger", { y: 0, duration: 0.11, ease: "back.out(2.2)" }, t);
+
+        /* button depresses and springs back */
+        tl.to("#btn-login", { scaleY: 0.94, scaleX: 0.985, y: 5, duration: 0.06, ease: "power3.out" }, t - 0.06);
+        tl.to("#btn-login", { scaleY: 1, scaleX: 1, y: 0, duration: 0.14, ease: "back.out(2.2)" }, t);
+
+        /* each press emits a ripple, clipped inside the button */
+        tl.fromTo(ripples[i],
+          { scale: 0, opacity: 0.5 },
+          { scale: 1, opacity: 0, duration: 0.4, ease: "power3.out" }, t);
+
+        /* counter chip ticks up */
+        tl.to(digits[i],     { opacity: 0, duration: 0.07, ease: "power3.out" }, t);
+        tl.to(digits[i + 1], { opacity: 1, duration: 0.07, ease: "power3.out" }, t);
+      });
+
+      /* ================== TRANSITION — "the shutter hit" (~1.70s) =================== */
+      /* hard white flash, 0.06s up to 0.5 opacity */
+      tl.fromTo("#flash", { opacity: 0 }, { opacity: 0.5, duration: 0.06, ease: "power3.out" }, 1.70);
+      tl.to("#flash", { opacity: 0, duration: 0.22, ease: "power3.out" }, 1.76);
+
+      /* finger is fully gone by 1.74, before the toast starts at 1.76 */
+      tl.to("#finger", { opacity: 0, duration: 0.06, ease: "power3.out" }, 1.68);
+
+      /* colour hit: blue -> red across the whole frame */
+      tl.to("#glow-blue", { opacity: 0, duration: 0.35, ease: "power3.out" }, 1.72);
+      tl.to("#glow-red", { opacity: 1, duration: 0.35, ease: "power3.out" }, 1.72);
+
+      /* the form dims + desaturates and recedes slightly (scale shrinks inward = safe) */
+      tl.to("#card",
+        { filter: "saturate(0.18) brightness(0.6)", opacity: 0.55, scale: 0.97,
+          duration: 0.4, ease: "power3.out" }, 1.72);
+
+      /* the counter freezes on 8 and goes red */
+      tl.to("#chip",
+        { backgroundColor: "rgba(48, 12, 14, 0.9)", borderColor: "rgba(239, 68, 68, 0.75)",
+          boxShadow: "0 10px 28px rgba(0,0,0,0.45), 0 0 26px 0 rgba(239,68,68,0.35)",
+          duration: 0.28, ease: "power3.out" }, 1.72);
+      tl.to("#chip-label", { color: "#f87171", duration: 0.28, ease: "power3.out" }, 1.72);
+      tl.to("#chip-num span", { color: "#f87171", duration: 0.28, ease: "power3.out" }, 1.72);
+
+      /* ================== PHASE 2 — "the 429 slam" (1.76 - 3.40s) =================== */
+      tl.fromTo("#toast",
+        { opacity: 0, scale: 1.15 },
+        { opacity: 1, scale: 1, duration: 0.42, ease: "power4.out" }, 1.76);
+
+      /* continuous red glow pulse for the remainder (finite repeat — never Infinity) */
+      tl.to("#toast",
+        { boxShadow: "0 28px 70px rgba(0,0,0,0.62), 0 0 46px 8px rgba(239,68,68,0.55)",
+          duration: 0.55, ease: "sine.inOut", yoyo: true, repeat: 5 }, 2.20);
+
+      /* ================== TAIL — fade finishes at EXACTLY 3.400 ===================== */
+      /* 3.1 + 0.3 = 3.4, zero buffer */
+      tl.to("#content-all", { opacity: 0, duration: 0.3, ease: "power3.out" }, 3.1);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

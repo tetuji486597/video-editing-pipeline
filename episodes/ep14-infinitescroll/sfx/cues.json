@@ -1,0 +1,56 @@
+{
+  "video": "final_nosfx.mp4",
+  "out": "final.mp4",
+  "cues": [
+    {
+      "at": 2.2,
+      "sfx": "tt_vine_boom",
+      "vol": 0.3,
+      "why": "HOOK: the scrollbar collapses -- the feed has no end"
+    },
+    {
+      "at": 13.53,
+      "sfx": "tt_metal_pipe",
+      "vol": 0.42,
+      "why": "PROBLEM: the app locks up on the word 'freeze'"
+    },
+    {
+      "at": 22.03,
+      "sfx": "tt_swoosh",
+      "vol": 0.503,
+      "why": "BUILD: the request pulse leaving frame"
+    },
+    {
+      "at": 29.5,
+      "sfx": "tt_camera_shutter",
+      "vol": 0.577,
+      "why": "NEW_COMPONENT: the shutter-flash phase boundary, cyan->amber"
+    },
+    {
+      "at": 31.8,
+      "sfx": "tt_bruh",
+      "vol": 0.42,
+      "why": "NEW_COMPONENT: the duplicate row flagged red -- page numbers just broke"
+    },
+    {
+      "at": 37.9,
+      "sfx": "tt_sparkle_trim",
+      "vol": 0.72,
+      "why": "RECYCLE: the infinity glyph completing on 'feels infinite'"
+    },
+    {
+      "at": 45.55,
+      "sfx": "tt_whoosh",
+      "vol": 0.503,
+      "why": "AI_ANGLE: the ranking sweep crossing the candidates"
+    },
+    {
+      "at": 49.6,
+      "sfx": "tt_bubble_pop",
+      "vol": 0.447,
+      "why": "PAYOFF: the one real card landing"
+    }
+  ],
+  "_vol_note": "Volumes derived from each file's measured mean level, partially normalised (k=0.6) toward -18 dB so a 32 dB spread across the set does not make hot files dominate and quiet ones vanish. sparkle/vine_boom/bass_drop carry stated manual overrides.",
+  "_meme_note": "Voice meme tt_bruh placed at 31.8 in place of tt_wrong_buzzer, per request. One per episode, on the beat whose narration the meme actually matches."
+}

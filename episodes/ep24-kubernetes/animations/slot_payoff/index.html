@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP24 payoff — the robot that babysits your servers</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent; /* STATIC PHOTO CARD: held card in the upper band */
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      #content-all { position: absolute; inset: 0; opacity: 0.55; } /* frame-0 visible */
+
+      #card {
+        position: absolute;
+        left: 150px; top: 190px; width: 700px; height: 460px;
+        border-radius: 24px;
+        background: rgba(12, 16, 26, 0.9);
+        border: 1.5px solid rgba(120, 150, 190, 0.5);
+        box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
+        transform-origin: 50% 50%;
+        overflow: hidden;
+      }
+      #kube-img {
+        position: absolute; left: 30px; top: 26px; width: 272px; height: 398px;
+        object-fit: contain;
+        filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.55));
+      }
+      /* right zone: crib of servers, x 490-810 abs -> card-rel 340-660 */
+      #zzz { position: absolute; left: 360px; top: 40px; width: 180px; height: 80px; opacity: 0; }
+      #crib { position: absolute; left: 340px; top: 130px; width: 320px; height: 240px; opacity: 0; }
+      #sweep-beam {
+        position: absolute; left: 330px; top: 120px; width: 60px; height: 260px;
+        background: linear-gradient(90deg, rgba(103, 232, 249, 0) 0%, rgba(103, 232, 249, 0.28) 50%, rgba(103, 232, 249, 0) 100%);
+        opacity: 0;
+      }
+      #tag {
+        position: absolute; left: 350px; top: 402px;
+        color: rgba(148, 197, 220, 0.85); font-size: 24px; letter-spacing: 3px;
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="4.9"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="scene" class="clip" data-start="0" data-duration="4.9" data-track-index="1">
+        <div id="content-all">
+          <div id="card">
+            <!-- Captain Kube — phippy.io / CNCF art, CC-BY-4.0 (see assets/ATTRIB.md) -->
+            <img id="kube-img" src="assets/captain_kube_full.png" alt="" />
+
+            <svg id="zzz" viewBox="0 0 180 80" data-layout-allow-overflow="true">
+              <!-- hand-drawn z wisps, not emoji -->
+              <path d="M18 62 L50 62 L20 74 L52 74" fill="none"
+                    stroke="rgba(148,197,220,0.85)" stroke-width="4" stroke-linecap="round"/>
+              <path d="M76 34 L104 34 L78 46 L106 46" fill="none"
+                    stroke="rgba(148,197,220,0.7)" stroke-width="4" stroke-linecap="round"/>
+              <path d="M128 8 L152 8 L130 20 L154 20" fill="none"
+                    stroke="rgba(148,197,220,0.55)" stroke-width="4" stroke-linecap="round"/>
+            </svg>
+
+            <svg id="crib" viewBox="0 0 320 240">
+              <!-- crib: side rails + base -->
+              <line x1="16" y1="30" x2="16" y2="210" stroke="rgba(148,197,220,0.8)" stroke-width="5" stroke-linecap="round"/>
+              <line x1="304" y1="30" x2="304" y2="210" stroke="rgba(148,197,220,0.8)" stroke-width="5" stroke-linecap="round"/>
+              <line x1="10" y1="214" x2="310" y2="214" stroke="rgba(148,197,220,0.8)" stroke-width="5" stroke-linecap="round"/>
+              <g stroke="rgba(148,197,220,0.45)" stroke-width="3">
+                <line x1="46" y1="34" x2="46" y2="210"/><line x1="76" y1="34" x2="76" y2="210"/>
+                <line x1="244" y1="34" x2="244" y2="210"/><line x1="274" y1="34" x2="274" y2="210"/>
+              </g>
+              <!-- three sleeping servers tucked in the crib -->
+              <g>
+                <rect x="96" y="96" width="128" height="32" rx="6"
+                      fill="rgba(34,211,238,0.14)" stroke="rgba(103,232,249,0.85)" stroke-width="2.5"/>
+                <circle id="led1" cx="204" cy="112" r="5" fill="rgba(52,211,153,0.9)"/>
+                <rect x="96" y="136" width="128" height="32" rx="6"
+                      fill="rgba(34,211,238,0.14)" stroke="rgba(103,232,249,0.85)" stroke-width="2.5"/>
+                <circle id="led2" cx="204" cy="152" r="5" fill="rgba(52,211,153,0.9)"/>
+                <rect x="96" y="176" width="128" height="32" rx="6"
+                      fill="rgba(34,211,238,0.14)" stroke="rgba(103,232,249,0.85)" stroke-width="2.5"/>
+                <circle id="led3" cx="204" cy="192" r="5" fill="rgba(52,211,153,0.9)"/>
+                <!-- blanket line -->
+                <path d="M96 132 Q160 122 224 132" fill="none" stroke="rgba(148,197,220,0.55)" stroke-width="3"/>
+              </g>
+            </svg>
+
+            <div id="sweep-beam"></div>
+            <div id="tag" class="mono">ALWAYS ON WATCH</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ---- Act 1: the card lands ON "robot" (A 50.09 -> local 0.29) ----
+      tl.fromTo("#content-all", { opacity: 0.55 }, { opacity: 1, duration: 0.3, ease: "power3.out" }, 0);
+      tl.fromTo("#card", { y: 28, scale: 0.96 }, { y: 0, scale: 1, duration: 0.45, ease: "power3.out" }, 0);
+      // deliberately-still hold: only a slow drift (ends before the fade)
+      tl.fromTo("#card", { scale: 1 }, { scale: 1.015, duration: 4.1, ease: "sine.inOut", immediateRender: false }, 0.5);
+
+      // crib + wisps on "babysits" (A 50.63 -> local 0.83)
+      tl.fromTo("#crib", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out", immediateRender: false }, 0.85);
+      tl.fromTo("#zzz", { opacity: 0, y: 10 }, { opacity: 0.9, y: 0, duration: 0.45, ease: "power3.out", immediateRender: false }, 1.05);
+      tl.fromTo("#tag", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power3.out", immediateRender: false }, 1.65);
+
+      // ---- Turn: one calm scan sweep across the crib (the wheel-eye on duty) ----
+      tl.fromTo("#sweep-beam", { opacity: 0, x: 0 }, {x: 0, opacity: 1, duration: 0.25, ease: "power2.out", immediateRender: false }, 1.5);
+      tl.to("#sweep-beam", { x: 270, duration: 1.2, ease: "sine.inOut" }, 1.6);
+      tl.to("#sweep-beam", { opacity: 0, duration: 0.25, ease: "power2.out" }, 2.75); // gone by 3.0
+      // LEDs blink softly as the beam passes (odd repeats -> return to base)
+      tl.to("#led1", { opacity: 0.4, duration: 0.3, ease: "sine.inOut", yoyo: true, repeat: 1 }, 1.8);  // ends 2.4
+      tl.to("#led2", { opacity: 0.4, duration: 0.3, ease: "sine.inOut", yoyo: true, repeat: 1 }, 2.1);  // ends 2.7
+      tl.to("#led3", { opacity: 0.4, duration: 0.3, ease: "sine.inOut", yoyo: true, repeat: 1 }, 2.4);  // ends 3.0
+      // wisps drift once, gently
+      tl.fromTo("#zzz", { y: 0 }, { y: -8, duration: 1.0, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 2.2); // ends 4.2
+
+      // ---- Act 2: hold. NO tease chip (series convention). ----
+
+      // ---- fade out finishes at EXACTLY 4.9, zero buffer ----
+      tl.fromTo("#content-all", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 4.6);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

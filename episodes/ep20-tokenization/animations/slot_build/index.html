@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP20 BUILD — the tokenizer chops "I love strawberries" (upper-band motion graphic)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;   /* transparent motion graphic over live footage */
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      #fade-wrap { position: absolute; inset: 0; }
+
+      /* UPPER BAND. BUILD framing: hair top ~150, brow ~720 (=> ~709 at max zoom).
+         All content lives y 235-578 (+ tick tops to 272), clearing the brow by ~130px.
+         The sentence sits over hair/background; chips are translucent (fill <= 0.32). */
+
+      #kicker {
+        position: absolute;
+        left: 84px; top: 235px;    /* x 84-~256, y 235-275 */
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 26px;
+        letter-spacing: 5px;
+        color: #a5f3fc;
+        padding: 7px 16px 9px 16px;
+        border: 1.5px solid rgba(165, 243, 252, 0.45);
+        border-radius: 10px;
+        background: rgba(6, 12, 20, 0.30);
+        opacity: 0.5;               /* frame-0 state from CSS; entrance animates up */
+        text-shadow: 0 1px 8px rgba(0, 0, 0, 0.8);
+      }
+
+      /* The sentence: 4 absolutely-positioned chunk wrappers, JetBrains Mono 66px
+         (char width 39.6px). Laid out so the four wrappers tile seamlessly:
+           W1 "I"        x 83.8  w 39.6
+           W2 " love"    x 123.4 w 198.0
+           W3 " straw"   x 321.4 w 237.6
+           W4 "berries"  x 559.0 w 277.2   (right edge 836.2 <= 860) */
+      .chunk {
+        position: absolute;
+        top: 380px;
+        height: 66px;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 66px;
+        line-height: 66px;
+        color: #ffffff;
+        white-space: pre;
+        text-shadow: 0 2px 12px rgba(0, 0, 0, 0.85), 0 0 4px rgba(0, 0, 0, 0.9);
+      }
+      #w1 { left: 97.8px; }
+      #w2 { left: 137.4px; }
+      #w3 { left: 335.4px; }
+      #w4 { left: 573px; }
+      .chunk .bch { opacity: 0; }
+
+      /* translucent pastel chip behind each chunk (the tokenizer's chunk colours) */
+      .chipbg {
+        position: absolute;
+        left: -10px; right: -10px; top: -12px; bottom: -12px;
+        border-radius: 14px;
+        opacity: 0;
+      }
+      #w1 .chipbg { background: rgba(199, 171, 255, 0.28); border: 1.5px solid rgba(199, 171, 255, 0.85); box-shadow: 0 0 10px rgba(199, 171, 255, 0.35); }
+      #w2 .chipbg { background: rgba(166, 227, 161, 0.28); border: 1.5px solid rgba(166, 227, 161, 0.85); box-shadow: 0 0 10px rgba(166, 227, 161, 0.35); }
+      #w3 .chipbg { background: rgba(250, 222, 140, 0.30); border: 1.5px solid rgba(250, 222, 140, 0.9);  box-shadow: 0 0 10px rgba(250, 222, 140, 0.4); }
+      #w4 .chipbg { background: rgba(255, 173, 194, 0.30); border: 1.5px solid rgba(255, 173, 194, 0.9);  box-shadow: 0 0 10px rgba(255, 173, 194, 0.4); }
+
+      /* "stays whole" ticks above the two common-word chips */
+      .tick {
+        position: absolute;
+        top: -48px;
+        left: 50%;
+        width: 36px; height: 36px;
+        margin-left: -18px;
+        opacity: 0;
+      }
+
+      #cursor {
+        position: absolute;
+        top: 380px;
+        left: 854px;               /* just right of the sentence's last char */
+        width: 8px; height: 62px;
+        background: #a5f3fc;
+        opacity: 0;
+        box-shadow: 0 0 8px rgba(165, 243, 252, 0.7);
+      }
+
+      /* slice blades: real-bbox divs (never a rotated zero-width SVG line) */
+      .blade {
+        position: absolute;
+        top: 328px;
+        width: 5px; height: 170px;
+        background: linear-gradient(to bottom, rgba(255,255,255,0.95), rgba(103,232,249,0.9));
+        border-radius: 3px;
+        box-shadow: 0 0 14px rgba(103, 232, 249, 0.8);
+        opacity: 0;
+        transform: scaleY(0);
+        transform-origin: 50% 0%;
+      }
+      #blade1 { left: 135px; }
+      #blade2 { left: 333px; }
+      #blade3 { left: 585px; }   /* cut3 x = 559 + the +14 interim shift, blade centred on 573 */
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="9.0"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="9.0"
+        data-track-index="1"
+      >
+        <div id="fade-wrap">
+          <div id="kicker">TOKENIZER</div>
+
+          <div class="chunk" id="w1"><div class="chipbg"></div><svg class="tick" viewBox="0 0 36 36"><circle cx="18" cy="18" r="15" fill="rgba(74,222,128,0.15)" stroke="#4ade80" stroke-width="2.5"/><path d="M11 18.5 L16 23.5 L25.5 13" fill="none" stroke="#4ade80" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="bch">I</span></div>
+          <div class="chunk" id="w2"><div class="chipbg"></div><svg class="tick" viewBox="0 0 36 36"><circle cx="18" cy="18" r="15" fill="rgba(74,222,128,0.15)" stroke="#4ade80" stroke-width="2.5"/><path d="M11 18.5 L16 23.5 L25.5 13" fill="none" stroke="#4ade80" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="bch"> </span><span class="bch">l</span><span class="bch">o</span><span class="bch">v</span><span class="bch">e</span></div>
+          <div class="chunk" id="w3"><div class="chipbg"></div><span class="bch"> </span><span class="bch">s</span><span class="bch">t</span><span class="bch">r</span><span class="bch">a</span><span class="bch">w</span></div>
+          <div class="chunk" id="w4"><div class="chipbg"></div><span class="bch">b</span><span class="bch">e</span><span class="bch">r</span><span class="bch">r</span><span class="bch">i</span><span class="bch">e</span><span class="bch">s</span></div>
+
+          <div id="cursor"></div>
+
+          <div class="blade" id="blade1"></div>
+          <div class="blade" id="blade2"></div>
+          <div class="blade" id="blade3"></div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ---------- entrance at t=0 ----------
+      tl.fromTo("#kicker", { opacity: 0.5, y: -12 },
+        { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 0);
+
+      // ---------- ACT 1: the sentence types on as plain text ----------
+      tl.fromTo("#cursor", { opacity: 0 },
+        { opacity: 1, duration: 0.1, immediateRender: false }, 0.1);
+      // 19 chars * 0.06 stagger ~= 1.14s of typing
+      tl.to(".bch", { opacity: 1, duration: 0.05, stagger: 0.06 }, 0.15);
+      // blink: 0.3 + 8*0.16 = 1.58, complete before the cursor exits at 1.6
+      tl.to("#cursor", { opacity: 0.15, duration: 0.16, ease: "sine.inOut",
+        yoyo: true, repeat: 7 }, 0.3);
+      tl.fromTo("#cursor", { opacity: 1 },
+        { opacity: 0, duration: 0.15, ease: "power2.out", immediateRender: false }, 1.6);
+
+      // ---------- TURN: the blade sweeps; cuts land one at a time (>=0.6s apart) ------
+      // helper: blade drop + retract
+      function slice(blade, at) {
+        tl.fromTo(blade, { opacity: 1, scaleY: 0 },
+          { opacity: 1, scaleY: 1, duration: 0.14, ease: "power4.in", immediateRender: false }, at);
+        tl.to(blade, { opacity: 0, duration: 0.22, ease: "power2.out" }, at + 0.16);
+      }
+
+      // cut 1 @1.7 — lands inside "chops text into tokens" (A 21.67-22.97, local 0.67-1.97)
+      slice("#blade1", 1.7);
+      tl.to("#w1", { x: -12, duration: 0.3, ease: "power3.out" }, 1.78);
+      tl.fromTo("#w1 .chipbg", { opacity: 0 },
+        { opacity: 1, duration: 0.3, ease: "power2.out", immediateRender: false }, 1.8);
+
+      // cut 2 @2.4 — separates [ love] from the rest
+      slice("#blade2", 2.4);
+      tl.fromTo("#w2 .chipbg", { opacity: 0 },
+        { opacity: 1, duration: 0.3, ease: "power2.out", immediateRender: false }, 2.5);
+      // the uncut remainder shifts right to open the gap (right edge 836+14=850 <= 860)
+      tl.to("#w3", { x: 14, duration: 0.35, ease: "power3.out" }, 2.48);
+      tl.to("#w4", { x: 14, duration: 0.35, ease: "power3.out" }, 2.48);
+
+      // ---------- "common words stay whole" (local ~4.9-6.2): the two common chips
+      // get a green tick and settle into the top row ----------
+      // row-1 target y = -115 so the moved chips (text y 260-336, chip 246-350) clear the
+      // still-unsplit " strawberries" at text y 380-446 by 30px+ (lint caught -53 colliding).
+      // x targets +74 vs the centred layout so the [I] chip (left edge x=360) keeps a
+      // 104px gap to the TOKENIZER kicker (ends x=256) — at +216 the gap was only 29px.
+      tl.to("#w1", { x: 290, y: -115, scale: 1.15, duration: 0.6, ease: "power3.out" }, 5.0);
+      tl.fromTo("#w1 .tick", { opacity: 0, scale: 0.5 },
+        { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.6)", immediateRender: false }, 5.3);
+      tl.to("#w2", { x: 361, y: -115, scale: 1.15, duration: 0.6, ease: "power3.out" }, 5.6);
+      tl.fromTo("#w2 .tick", { opacity: 0, scale: 0.5 },
+        { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.6)", immediateRender: false }, 5.9);
+      // the rare word waits, slightly dimmed — it is about to be split
+      tl.to("#w3", { opacity: 0.82, duration: 0.4 }, 5.2);
+      tl.to("#w4", { opacity: 0.82, duration: 0.4 }, 5.2);
+
+      // ---------- FINAL TURN: "split straw and berry" (straw @ local 7.57) ----------
+      slice("#blade3", 7.35);
+      tl.to("#w3", { opacity: 1, duration: 0.2 }, 7.4);
+      tl.to("#w4", { opacity: 1, duration: 0.2 }, 7.4);
+      // the two halves separate to the bottom row and pick up their chunk colours
+      tl.to("#w3", { x: -166, y: 107, scale: 1.15, duration: 0.55, ease: "power3.out" }, 7.5);
+      tl.fromTo("#w3 .chipbg", { opacity: 0 },
+        { opacity: 1, duration: 0.3, ease: "power2.out", immediateRender: false }, 7.62);
+      tl.to("#w4", { x: -74, y: 107, scale: 1.15, duration: 0.55, ease: "power3.out" }, 7.7);
+      tl.fromTo("#w4 .chipbg", { opacity: 0 },
+        { opacity: 1, duration: 0.3, ease: "power2.out", immediateRender: false }, 7.82);
+
+      // ---------- ACT 2 settle: gentle float, complete before the fade ----------
+      // 8.25 + 2*0.2 = 8.65 < 8.7 (fade start)
+      tl.to(".chunk", { y: "-=6", duration: 0.2, ease: "sine.inOut", yoyo: true, repeat: 1 }, 8.25);
+
+      // ---------- fade: finishes at EXACTLY 9.0, zero buffer ----------
+      tl.fromTo("#fade-wrap", { opacity: 1 },
+        { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 8.7);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

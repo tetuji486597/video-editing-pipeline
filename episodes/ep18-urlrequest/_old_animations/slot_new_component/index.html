@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP18 New Component — Then The Page Paints</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      #content-all { position: absolute; inset: 0; }
+
+      /* FULL-SCREEN OPAQUE TAKEOVER — the episode's only one. Background layers
+         are full-frame and exempt from the 180..1280 band.                     */
+      #bg-fill {
+        position: absolute; inset: 0;
+        background:
+          radial-gradient(ellipse 900px 900px at 26% 22%, #0a2136 0%, #061420 46%, #03080f 100%),
+          #03070d;
+      }
+      #blob-a {
+        position: absolute; left: -140px; top: 180px; width: 900px; height: 900px;
+        background: radial-gradient(circle at 50% 50%,
+          rgba(14,165,233,0.24) 0%, rgba(14,165,233,0.07) 46%, rgba(14,165,233,0) 72%);
+      }
+      #blob-b {
+        position: absolute; left: 380px; top: 820px; width: 860px; height: 860px;
+        background: radial-gradient(circle at 50% 50%,
+          rgba(16,185,129,0.17) 0%, rgba(16,185,129,0.05) 46%, rgba(16,185,129,0) 72%);
+      }
+      #vignette {
+        position: absolute; inset: 0;
+        background: radial-gradient(ellipse 700px 920px at 50% 46%,
+          rgba(0,0,0,0) 0%, rgba(0,0,0,0) 38%, rgba(2,4,9,0.54) 76%, rgba(1,2,5,0.94) 100%);
+      }
+      #grain { position: absolute; inset: 0; opacity: 0.04; }
+
+      /* the camera push-in wrapper. transform-origin is the DESIGN BAND's own
+         centre (540, 730) — see the bounds arithmetic in the timeline notes.   */
+      #cam { position: absolute; inset: 0; transform-origin: 540px 730px; }
+
+      /* ================= PHASE A : the chain  (y 246 .. 1114) ================
+         rail       x 210..216   y  320..1040
+         nodes      x 280..820   h 148  tops 246 / 486 / 726 / 966
+         token      x 191..235   44px dot, centre travels 320 -> 1040
+         padlock    x 860..940   y  756.. 840
+      ====================================================================== */
+      #stack { position: absolute; inset: 0; opacity: 0.55; }
+
+      #rail {
+        position: absolute; left: 210px; top: 320px; width: 6px; height: 720px;
+        border-radius: 3px; background: rgba(148,163,184,0.20);
+      }
+      #rail-fill {
+        position: absolute; left: 210px; top: 320px; width: 6px; height: 720px;
+        border-radius: 3px;
+        background: linear-gradient(180deg, #0ea5e9 0%, #38bdf8 60%, #10b981 100%);
+        box-shadow: 0 0 20px rgba(14,165,233,0.65);
+        transform: scaleY(0); transform-origin: 50% 0%;
+      }
+      .stub {
+        position: absolute; left: 216px; width: 64px; height: 3px;
+        background: rgba(148,163,184,0.22);
+      }
+
+      .node {
+        position: absolute; left: 280px; width: 540px; height: 148px;
+        border-radius: 24px;
+      }
+      .face-dim {
+        position: absolute; inset: 0; border-radius: 24px;
+        background: rgba(9,18,30,0.78);
+        border: 2px solid rgba(148,163,184,0.22);
+        box-shadow: inset 0 0 40px rgba(2,8,16,0.7);
+      }
+      .face-lit {
+        position: absolute; inset: 0; border-radius: 24px; opacity: 0;
+        background: linear-gradient(180deg, rgba(8,44,70,0.94) 0%, rgba(5,26,44,0.94) 100%);
+        border: 2px solid rgba(14,165,233,0.85);
+        box-shadow: 0 0 46px rgba(14,165,233,0.42), inset 0 0 44px rgba(14,165,233,0.20);
+      }
+      #tls .face-lit {
+        background: linear-gradient(180deg, rgba(6,54,44,0.94) 0%, rgba(4,30,26,0.94) 100%);
+        border-color: rgba(16,185,129,0.88);
+        box-shadow: 0 0 46px rgba(16,185,129,0.44), inset 0 0 44px rgba(16,185,129,0.22);
+      }
+      .node .lbl {
+        position: absolute; left: 0; top: 0; width: 540px; height: 148px;
+        line-height: 148px; text-align: center;
+        font-size: 110px; font-weight: 600; letter-spacing: 2px;
+        color: #64748b; white-space: nowrap;
+      }
+
+      #token {
+        position: absolute; left: 191px; top: 298px; width: 44px; height: 44px;
+        border-radius: 22px; opacity: 0;
+        background: radial-gradient(circle at 40% 36%, #f0f9ff 0%, #7dd3fc 42%, #0ea5e9 100%);
+        box-shadow: 0 0 26px rgba(56,189,248,0.9), 0 0 62px rgba(14,165,233,0.55);
+      }
+
+      /* --- the padlock, built from plain divs (real width/height, no SVG
+             rotation anywhere — renderer trap on degenerate bboxes) --- */
+      #lock { position: absolute; left: 860px; top: 760px; width: 80px; height: 80px; }
+      #lock-shackle {
+        position: absolute; left: 21px; top: 8px; width: 38px; height: 30px;
+        border: 7px solid rgba(148,163,184,0.55);
+        border-bottom: none; border-radius: 19px 19px 0 0;
+        transform: translate(9px, -12px);       /* OPEN at frame 0, from CSS */
+      }
+      #lock-body {
+        position: absolute; left: 9px; top: 32px; width: 62px; height: 48px;
+        border-radius: 10px; background: rgba(148,163,184,0.55);
+      }
+      #lock-glow {
+        position: absolute; left: -12px; top: -12px; width: 104px; height: 104px;
+        border-radius: 52px; opacity: 0;
+        background: radial-gradient(circle at 50% 50%,
+          rgba(16,185,129,0.55) 0%, rgba(16,185,129,0) 70%);
+      }
+
+      /* ================= PHASE B : the resolve ===============================
+         headline  y 592 .. 868   number pill  y 928 .. 1058
+         Phase B never co-occurs with Phase A: #stack is at opacity 0 from 5.52
+         and the headline arrives at 5.62.
+      ====================================================================== */
+      #headline {
+        position: absolute; left: 0; top: 592px; width: 1080px; height: 276px;
+        text-align: center; opacity: 0;
+      }
+      #headline div {
+        height: 138px; line-height: 138px; font-size: 118px; font-weight: 800;
+        letter-spacing: -2px; color: #ffffff; white-space: nowrap;
+        text-shadow: 0 6px 34px rgba(0,0,0,0.8), 0 0 60px rgba(14,165,233,0.28);
+      }
+      #headline .lit { color: #7dd3fc; }
+
+      #figure {
+        position: absolute; left: 350px; top: 928px; width: 380px; height: 130px;
+        border-radius: 26px; opacity: 0;
+        border: 2px solid rgba(14,165,233,0.60);
+        background: rgba(4,20,34,0.82);
+        box-shadow: 0 0 44px rgba(14,165,233,0.28), inset 0 0 34px rgba(14,165,233,0.14);
+        line-height: 126px; text-align: center;
+        font-size: 110px; font-weight: 500; letter-spacing: 1px; color: #e0f2fe;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="8.0"
+         data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="8.0" data-track-index="1">
+        <div id="content-all">
+
+          <div id="bg-fill" data-layout-allow-overflow="true"></div>
+          <div id="blob-a" data-layout-allow-overflow="true"></div>
+          <div id="blob-b" data-layout-allow-overflow="true"></div>
+
+          <div id="vignette" data-layout-allow-overflow="true"></div>
+
+          <svg id="grain" viewBox="0 0 100 100" preserveAspectRatio="none" data-layout-allow-overflow="true">
+            <filter id="grain-f">
+              <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" />
+              <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.4 0" />
+            </filter>
+            <rect width="100" height="100" filter="url(#grain-f)" />
+          </svg>
+
+          <div id="cam" data-layout-allow-overflow="true">
+            <div id="stack">
+              <div id="rail"></div>
+              <div id="rail-fill"></div>
+
+              <div class="stub" style="top: 318px;"></div>
+              <div class="stub" style="top: 558px;"></div>
+              <div class="stub" style="top: 798px;"></div>
+              <div class="stub" style="top: 1038px;"></div>
+
+              <div class="node" id="dns" style="top: 246px;">
+                <div class="face-dim"></div><div class="face-lit"></div>
+                <div class="lbl mono">DNS</div>
+              </div>
+              <div class="node" id="tcp" style="top: 486px;">
+                <div class="face-dim"></div><div class="face-lit"></div>
+                <div class="lbl mono">TCP</div>
+              </div>
+              <div class="node" id="tls" style="top: 726px;">
+                <div class="face-dim"></div><div class="face-lit"></div>
+                <div class="lbl mono">TLS</div>
+              </div>
+              <div class="node" id="http" style="top: 966px;">
+                <div class="face-dim"></div><div class="face-lit"></div>
+                <div class="lbl mono">HTTP</div>
+              </div>
+
+              <div id="lock">
+                <div id="lock-glow"></div>
+                <div id="lock-shackle"></div>
+                <div id="lock-body"></div>
+              </div>
+
+              <div id="token"></div>
+            </div>
+
+            <div id="headline">
+              <div>THEN THE <span class="lit">PAGE</span></div>
+              <div>PAINTS</div>
+            </div>
+
+            <div id="figure" class="mono">0.4s</div>
+          </div>
+
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      /* ---- camera push-in, 1.000 -> 1.060, origin (540, 730) = the centre of
+              the 230..1230 design band. Worst case at 1.060:
+                top    730 + (246 - 730) * 1.06 = 216.96   >= 180  OK
+                bottom 730 + (1114 - 730) * 1.06 = 1137.04 <= 1280 OK
+              No snap-zoom and no shake anywhere, so 1.060 IS the composed
+              worst-case scale.                                             ---- */
+      tl.fromTo("#cam", { scale: 1 },
+                { scale: 1.06, duration: 8.0, ease: "sine.inOut" }, 0);
+
+      /* the chain shell is already visible on frame 0 at 0.55 (CSS) */
+      tl.fromTo("#stack", { opacity: 0.55 },
+                { opacity: 1, duration: 0.45, ease: "power3.out" }, 0);
+
+      /* ===================== the token enters at DNS ========================= */
+      tl.fromTo("#token", { opacity: 0, scale: 0.5 },
+                { opacity: 1, scale: 1, duration: 0.24, ease: "power4.out",
+                  immediateRender: false }, 0.30);
+
+      const light = function (id, at) {
+        tl.fromTo("#" + id + " .face-lit", { opacity: 0 },
+                  { opacity: 1, duration: 0.32, ease: "power3.out",
+                    immediateRender: false }, at);
+        tl.fromTo("#" + id + " .lbl", { color: "#64748b" },
+                  { color: "#e0f2fe", duration: 0.32, ease: "power3.out",
+                    immediateRender: false }, at);
+      };
+
+      light("dns", 0.40);
+
+      /* ===================== three hops, 0.90s dwell before each ============= */
+      /* arrive DNS 0.54 -> depart 1.44 (dwell 0.90) */
+      tl.fromTo("#token", { y: 0 }, { y: 240, duration: 0.38, ease: "power2.inOut",
+                immediateRender: false }, 1.44);
+      tl.fromTo("#rail-fill", { scaleY: 0 }, { scaleY: 0.3333, duration: 0.38,
+                ease: "power2.inOut", immediateRender: false }, 1.44);
+      light("tcp", 1.84);
+
+      /* arrive TCP 1.82 -> depart 2.72 (dwell 0.90) */
+      tl.fromTo("#token", { y: 240 }, { y: 480, duration: 0.38, ease: "power2.inOut",
+                immediateRender: false }, 2.72);
+      tl.fromTo("#rail-fill", { scaleY: 0.3333 }, { scaleY: 0.6667, duration: 0.38,
+                ease: "power2.inOut", immediateRender: false }, 2.72);
+      light("tls", 3.12);
+
+      /* ---- the padlock CLICKS SHUT. It is not a new element: it is present
+              from frame 0 in its open state, so this is a state change, not a
+              reveal, and it costs no extra stagger slot.                   ---- */
+      tl.fromTo("#lock-shackle", { x: 9, y: -12 },
+                { x: 0, y: 0, duration: 0.20, ease: "power4.out",
+                  immediateRender: false }, 3.50);
+      tl.fromTo("#lock-shackle", { borderColor: "rgba(148,163,184,0.55)" },
+                { borderColor: "rgba(110,231,183,0.95)", duration: 0.26,
+                  ease: "power2.out", immediateRender: false }, 3.50);
+      tl.fromTo("#lock-body", { backgroundColor: "rgba(148,163,184,0.55)" },
+                { backgroundColor: "rgba(110,231,183,0.95)", duration: 0.26,
+                  ease: "power2.out", immediateRender: false }, 3.52);
+      tl.fromTo("#lock-glow", { opacity: 0 },
+                { opacity: 1, duration: 0.30, ease: "power3.out",
+                  immediateRender: false }, 3.56);
+
+      /* arrive TLS 3.10 -> depart 4.00 (dwell 0.90) */
+      tl.fromTo("#token", { y: 480 }, { y: 720, duration: 0.38, ease: "power2.inOut",
+                immediateRender: false }, 4.00);
+      tl.fromTo("#rail-fill", { scaleY: 0.6667 }, { scaleY: 1, duration: 0.38,
+                ease: "power2.inOut", immediateRender: false }, 4.00);
+      light("http", 4.40);
+
+      /* the completed chain is held, then PHASE A leaves entirely */
+      tl.fromTo("#stack", { opacity: 1 },
+                { opacity: 0, duration: 0.22, ease: "power2.in",
+                  immediateRender: false }, 5.30);
+
+      /* ===================== PHASE B : the resolve =========================== */
+      tl.fromTo("#headline", { opacity: 0, y: 32, scale: 1.05 },
+                { opacity: 1, y: 0, scale: 1, duration: 0.46, ease: "power4.out",
+                  immediateRender: false }, 5.62);
+
+      tl.fromTo("#figure", { opacity: 0, y: 20, scale: 0.92 },
+                { opacity: 1, y: 0, scale: 1, duration: 0.34, ease: "power4.out",
+                  immediateRender: false }, 6.28);
+
+      /* ONE ambient breathe. ODD repeat so it lands back on the base value, and
+         it COMPLETES at 6.90 + 2*0.22 = 7.34, before the 7.70 fade start. */
+      tl.to("#figure", { scale: 1.035, duration: 0.22, ease: "sine.inOut",
+                         yoyo: true, repeat: 1 }, 6.90);
+
+      /* ---- fade FINISHES at exactly 8.000 (7.70 + 0.30), zero buffer ---- */
+      tl.fromTo("#content-all", { opacity: 1 },
+                { opacity: 0, duration: 0.30, ease: "power2.out",
+                  immediateRender: false }, 7.70);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

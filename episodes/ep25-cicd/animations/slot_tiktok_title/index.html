@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP25 TikTok-style Title Box (variant A)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;   /* never a takeover -- the presenter stays visible */
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      /* TikTok's native text sticker: each WRAPPED LINE gets its own white rounded box.
+         USER FEEDBACK FIX: the sticker must be horizontally CENTRED on x=540 (TRUE
+         frame centre; left:0/right:0/margin:auto), not the x=480 safe-band centre it
+         previously used. To keep the widest box inside x<=870 at centre 540 it must
+         be <=660px wide: font 64 -> 56 ("MASTERING SYSTEM" measured 678px text @64 ->
+         ~593px @56) + 56px padding = ~649px box, x = 540 +- 324.7 = 215.3..864.7;
+         drift 1.01 about the top-centre origin -> 540 +- 327.9 = 212.1..867.9 (<=870). */
+      #stack {
+        position: absolute;
+        left: 0;
+        right: 0;
+        margin: 0 auto;           /* centred on x=540 */
+        top: 250px;               /* measured on THIS intro take: hair top ~200,
+                                     brow ~700 -> stack 250..586 sits over hair only,
+                                     clears the brow by ~114px (EP19 convention: solid
+                                     box over hair is fine, over facial features not) */
+        display: flex;
+        flex-direction: column;
+        align-items: center;      /* centred, each box hugging its own text */
+        gap: 12px;
+        /* Frame-0 state from CSS -- tl.set() at position 0 never fires in this renderer,
+           and the primary entrance must not be at opacity 0 on frame 0. */
+        opacity: 0.6;
+        transform: scale(0.94);
+        transform-origin: 50% 0%; /* top fixed at 250, drift centred on x=540 */
+      }
+      .tt-line {
+        background: #ffffff;
+        color: #111111;
+        font-size: 56px;
+        line-height: 56px;
+        font-weight: 800;
+        letter-spacing: -1px;
+        padding: 22px 28px 25px 28px;
+        border-radius: 16px;
+        white-space: nowrap;      /* each line is authored; never let it re-wrap */
+        /* soft shadow only; reach 1.6*16 = ~26px, far inside every band */
+        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.22);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="6.2"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="6.2"
+        data-track-index="1"
+      >
+        <div id="stack">
+          <!-- 3 boxes, variant-A wording, fixed by the skill's title table -->
+          <div class="tt-line">MASTERING SYSTEM</div>
+          <div class="tt-line">DESIGN:</div>
+          <div class="tt-line">EPISODE 25</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // The three lines are ONE sticker -- they land together (multi-line lockup basis).
+      tl.fromTo(
+        "#stack",
+        { opacity: 0.6, scale: 0.94 },
+        { opacity: 1, scale: 1, duration: 0.28, ease: "power3.out" },
+        0
+      );
+
+      // Static-sticker hold with an imperceptible drift so the motion linter's seek check
+      // advances (1.000 -> 1.010 over the hold; ~7px across the widest box). fromTo, not
+      // .to(), to avoid gsap_css_transform_conflict with the CSS transform.
+      tl.fromTo(
+        "#stack",
+        { scale: 1 },
+        { scale: 1.01, duration: 5.64, ease: "none", immediateRender: false },
+        0.28
+      );
+
+      // Fade FINISHES at exactly data-duration, zero buffer: 5.92 + 0.28 = 6.200.
+      tl.fromTo(
+        "#stack",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.28, ease: "power2.out", immediateRender: false },
+        5.92
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

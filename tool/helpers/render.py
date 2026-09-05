@@ -131,6 +131,21 @@ def is_hdr_source(video: Path) -> bool:
         return False
 
 
+def probe_dimensions(video: Path) -> tuple[int, int]:
+    """Return (width, height) of the first video stream; (2160, 3840) fallback."""
+    try:
+        out = subprocess.run(
+            ["ffprobe", "-v", "error", "-select_streams", "v:0",
+             "-show_entries", "stream=width,height",
+             "-of", "csv=p=0", str(video)],
+            capture_output=True, text=True, check=True,
+        )
+        w, h = map(int, out.stdout.strip().split(","))
+        return w, h
+    except Exception:
+        return 2160, 3840
+
+
 def is_portrait_source(video: Path) -> bool:
     """Return True if the video's height > width (portrait / vertical)."""
     try:
@@ -177,12 +192,34 @@ def build_punch_zoom_expr(
     )
 
 
+def build_slow_zoom_expr(
+    duration: float,
+    frm: float = 1.0,
+    to: float = 1.12,
+) -> str:
+    """Build Z(t) for a SLOW continuous drift across a whole segment.
+
+    Distinct from build_punch_zoom_expr, which is an in/hold/out accent landing on
+    a word (~1.1s total). This one eases gently from `frm` to `to` over the entire
+    segment so the frame is never still — a retention device, not a punctuation
+    mark. Set to < frm for a drift out.
+
+    Ease-in-out-cubic so it neither starts nor ends with a visible velocity jump;
+    a linear drift reads as a mechanical camera move.
+    """
+    p = f"clip(t/{max(duration, 0.001)},0,1)"
+    ease = f"(if(lt({p},0.5),4*pow({p},3),1-pow(-2*{p}+2,3)/2))"
+    return f"({frm}+({to}-{frm})*{ease})"
+
+
 def build_punch_zoom_filter(
     zoom_expr: str,
     focal_x: float = 540,
     focal_y: float = 730,
     out_w: int = 1080,
     out_h: int = 1920,
+    src_w: int = 2160,
+    src_h: int = 3840,
 ) -> str:
     """scale-then-crop filter chain that zooms toward a fixed focal point (fx, fy)
     in the ORIGINAL out_w x out_h frame — that point stays at the same on-screen
@@ -197,14 +234,45 @@ def build_punch_zoom_filter(
     Note: this ffmpeg build's `crop` filter has no `eval` option at all — its
     x/y expressions are simply re-evaluated every frame against that frame's
     actual `iw`/`ih` (unlike `scale`, which needs `eval=frame` explicitly).
+
+    JITTER FIX (2026-08-28, EP20-26 feedback: "the zoom appears to shake"):
+    the original chain animated `scale` to even-integer frame sizes (2px
+    quantized steps at output res) while the crop offset followed the
+    CONTINUOUS Z expression — the mismatch between the quantized actual size
+    and the un-quantized offset produced a visible judder on slow drifts.
+    New chain: the animated scale now runs on a 2x-SUPERSAMPLED canvas (a
+    2160-wide portrait source animates around 4320), so its even-integer
+    size steps are ~0.5 output px instead of 2; and the crop offset is
+    computed from THE SAME time expression with THE SAME trunc-to-even
+    quantization as the scale stage, so offset and size can never
+    disagree. Two implementation facts force this exact shape: crop's w/h
+    do NOT accept time expressions (only x/y are re-evaluated per frame),
+    and — measured with a crosshair test, 2026-08-28 — crop's `iw`/`ih`
+    are FROZEN at init time and do not track a size-changing input, so an
+    iw-based offset silently pins the crop at its initial position and
+    the zoom drifts toward the top-left corner (shipped once; the user
+    saw it as "zooming into the left"). Never write the offset in terms
+    of iw/ih; write it in terms of t.
+    The chain REPLACES the plain output-scale (extract_segment skips its
+    own `scale` when a zoom filter is present) and the grade now runs
+    AFTER the zoom, which also pins the vignette to the frame instead of
+    letting it drift with Z. Assumes the source has the same aspect ratio
+    as the output (true for this shoot: 2160x3840 -> 1080x1920).
     """
-    w_expr = f"trunc({out_w}*({zoom_expr})/2)*2"
-    h_expr = f"trunc({out_h}*({zoom_expr})/2)*2"
-    x_expr = f"{focal_x}*(({zoom_expr})-1)"
-    y_expr = f"{focal_y}*(({zoom_expr})-1)"
+    fx_frac = focal_x / out_w
+    fy_frac = focal_y / out_h
+    z = f"({zoom_expr})"
+    ss_w = src_w * 2
+    ss_h = src_h * 2
+    w_q = f"(trunc({ss_w}*{z}/2)*2)"
+    h_q = f"(trunc({ss_h}*{z}/2)*2)"
     return (
-        f"scale=w='{w_expr}':h='{h_expr}':eval=frame,"
-        f"crop=w={out_w}:h={out_h}:x='{x_expr}':y='{y_expr}'"
+        f"scale=w='{w_q}':h='{h_q}'"
+        f":eval=frame:flags=bicubic,"
+        f"crop=w={ss_w}:h={ss_h}:"
+        f"x='({w_q}-{ss_w})*{fx_frac:.6f}':"
+        f"y='({h_q}-{ss_h})*{fy_frac:.6f}',"
+        f"scale=w={out_w}:h={out_h}:flags=lanczos"
     )
 
 
@@ -242,13 +310,17 @@ def extract_segment(
     vf_parts: list[str] = []
     if is_hdr_source(source):
         vf_parts.append(TONEMAP_CHAIN)
-    vf_parts.append(scale)
-    if grade_filter:
-        vf_parts.append(grade_filter)
     if zoom_filter and not draft:
-        # zoom applied after grade (like a camera move over already-graded film);
-        # skipped in draft mode — draft is for cut-point checks, not visual QC
+        # The supersampled zoom chain ends in its own scale to the output size,
+        # so it REPLACES the plain scale. Grade runs after it (vignette/unsharp
+        # frame-locked at output res) — see build_punch_zoom_filter's jitter note.
         vf_parts.append(zoom_filter)
+        if grade_filter:
+            vf_parts.append(grade_filter)
+    else:
+        vf_parts.append(scale)
+        if grade_filter:
+            vf_parts.append(grade_filter)
     vf = ",".join(vf_parts)
 
     # 30ms audio fades at both edges (Rule 3) — prevent pops
@@ -326,19 +398,31 @@ def extract_all_segments(
         zoom_filter = None
         if r.get("zoom"):
             z = r["zoom"]
-            zoom_expr = build_punch_zoom_expr(
-                at=float(z["at"]),
-                scale=float(z.get("scale", 1.18)),
-                in_dur=float(z.get("in_dur", 0.28)),
-                hold_dur=float(z.get("hold_dur", 0.35)),
-                out_dur=float(z.get("out_dur", 0.45)),
-            )
+            if z.get("mode") == "slow":
+                # gradual drift across the whole segment (retention), focal-locked
+                # on the presenter's eye line so the face never slides in frame
+                frm = float(z.get("from", 1.0))
+                to = float(z.get("to", 1.12))
+                zoom_expr = build_slow_zoom_expr(duration, frm=frm, to=to)
+                print(f"        zoom: slow {frm}x -> {to}x over {duration:.2f}s "
+                      f"@ ({z.get('focal_x', 540)},{z.get('focal_y', 730)})")
+            else:
+                zoom_expr = build_punch_zoom_expr(
+                    at=float(z["at"]),
+                    scale=float(z.get("scale", 1.18)),
+                    in_dur=float(z.get("in_dur", 0.28)),
+                    hold_dur=float(z.get("hold_dur", 0.35)),
+                    out_dur=float(z.get("out_dur", 0.45)),
+                )
+                print(f"        zoom: punch to {z.get('scale', 1.18)}x at t={z['at']}s (local)")
+            sw, sh = probe_dimensions(src_path)
             zoom_filter = build_punch_zoom_filter(
                 zoom_expr,
                 focal_x=float(z.get("focal_x", 540)),
                 focal_y=float(z.get("focal_y", 730)),
+                src_w=sw,
+                src_h=sh,
             )
-            print(f"        zoom: punch to {z.get('scale', 1.18)}x at t={z['at']}s (local)")
 
         extract_segment(
             src_path, start, duration, seg_filter, out_path,
@@ -425,7 +509,7 @@ def build_master_srt(edl: dict, edit_dir: Path, out_path: Path) -> None:
             seg_offset += seg_duration
             continue
 
-        transcript = json.loads(tr_path.read_text())
+        transcript = json.loads(tr_path.read_text(encoding="utf-8"))
         words_in_seg = _words_in_range(transcript, seg_start, seg_end)
 
         # Group into 2-word chunks, break on punctuation
@@ -540,7 +624,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             seg_offset += seg_duration
             continue
 
-        transcript = json.loads(tr_path.read_text())
+        transcript = json.loads(tr_path.read_text(encoding="utf-8"))
         words_in_seg = _words_in_range(transcript, seg_start, seg_end)
 
         # Group into small chunks, break on punctuation, word cap, or a gap >= 0.4s
@@ -712,8 +796,9 @@ def build_final_composite(
     subtitles_path: Path | None,
     out_path: Path,
     edit_dir: Path,
+    gameplay: dict | None = None,
 ) -> None:
-    """Final pass: base → overlays (PTS-shifted) → subtitles LAST → out.
+    """Final pass: base → overlays (PTS-shifted) → [gameplay strip] → subtitles LAST → out.
 
     If there are no overlays and no subtitles, just copy base to out.
     """
@@ -726,6 +811,12 @@ def build_final_composite(
         return
 
     inputs: list[str] = ["-i", str(base_path)]
+    # Optional brainrot gameplay strip (EP27-29 user request: "subway surfer / minecraft
+    # parkour gameplay"). Sits ABOVE the overlays (so takeovers do not swallow it) and BELOW
+    # the captions, in a bottom strip that only ever covers the presenter's shirt.
+    #   edl["gameplay"] = {"file": "...", "src_start": 12.0, "y": 1300, "h": 620,
+    #                      "crop": {"x": 0, "y": 900, "w": 1080, "h": 620}}
+    gp = gameplay or {}
     for ov in overlays:
         ov_path = resolve_path(ov["file"], edit_dir)
         if ov_path.suffix.lower() == ".webm":
@@ -754,9 +845,34 @@ def build_final_composite(
         )
         current = next_label
 
+    # Gameplay strip above the overlays, below the captions
+    if gp:
+        gidx = len(overlays) + 1
+        gp_path = resolve_path(gp["file"], edit_dir)
+        inputs += ["-stream_loop", "-1", "-i", str(gp_path)]
+        c = gp.get("crop") or {}
+        crop = (f"crop={c['w']}:{c['h']}:{c['x']}:{c['y']}," if c else "")
+        y, h = int(gp.get("y", 1300)), int(gp.get("h", 620))
+        filter_parts.append(
+            f"[{gidx}:v]trim=start={float(gp.get('src_start', 0)):.3f},setpts=PTS-STARTPTS,"
+            f"{crop}scale=1080:{h}:flags=lanczos,format=yuv420p[gp]"
+        )
+        filter_parts.append(f"{current}[gp]overlay=0:{y}:shortest=1[vg]")
+        current = "[vg]"
+        has_overlays = True
+
     # Subtitles LAST — Rule 1
     if has_subs:
-        subs_abs = str(subtitles_path.resolve()).replace(":", r"\:").replace("'", r"\'")
+        # Normalize separators BEFORE escaping: on Windows, Path.resolve() yields
+        # backslashes, which ffmpeg's filtergraph parser reads as escape characters
+        # (C:\Users\... -> \U, \g, \v are eaten), so the subtitles filter fails to
+        # open the file. ffmpeg accepts forward slashes on Windows. No-op on POSIX.
+        subs_abs = (
+            str(subtitles_path.resolve())
+            .replace("\\", "/")
+            .replace(":", r"\:")
+            .replace("'", r"\'")
+        )
         if subtitles_path.suffix.lower() == ".ass":
             # .ass carries its own complete style (incl. word-highlight color
             # overrides) — force_style would only override what it already declares.
@@ -789,7 +905,8 @@ def build_final_composite(
         str(out_path),
     ]
     print(f"compositing → {out_path.name}")
-    print(f"  overlays: {len(overlays)}, subtitles: {'yes' if has_subs else 'no'}")
+    print(f"  overlays: {len(overlays)}, subtitles: {'yes' if has_subs else 'no'}, "
+          f"gameplay: {gp.get('file') if gp else 'no'}")
     subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
 
 
@@ -843,6 +960,13 @@ def main() -> None:
              "and more centered instead of spanning near-full-width).",
     )
     ap.add_argument(
+        "--subtitles-out",
+        default=None,
+        help="Filename (relative to the EDL's directory) for --build-subtitles output. "
+             "Defaults to master.ass/master.srt. Use a distinct name per A/B variant so "
+             "two cuts of the same episode cannot share (and misalign) one caption file.",
+    )
+    ap.add_argument(
         "--no-subtitles",
         action="store_true",
         help="Skip subtitles even if the EDL references one",
@@ -858,7 +982,7 @@ def main() -> None:
     if not edl_path.exists():
         sys.exit(f"edl not found: {edl_path}")
 
-    edl = json.loads(edl_path.read_text())
+    edl = json.loads(edl_path.read_text(encoding="utf-8"))
     edit_dir = edl_path.parent
     out_path = args.output.resolve()
 
@@ -881,11 +1005,17 @@ def main() -> None:
     subs_path: Path | None = None
     if not args.no_subtitles:
         if args.build_subtitles:
+            # --subtitles-out keeps A/B hook variants from sharing one caption file.
+            # EP18/EP19 ship two cuts that differ only in the intro take, so every
+            # caption after it is offset (0.417s on EP18, 0.833s on EP19). Both used
+            # to build to a hardcoded master.ass, which is only safe while every
+            # render rebuilds it -- recompositing one variant against the other's
+            # leftover file would misalign every caption in the episode.
             if args.caption_format == "ass-karaoke":
-                subs_path = edit_dir / "master.ass"
+                subs_path = edit_dir / (args.subtitles_out or "master.ass")
                 build_master_ass(edl, edit_dir, subs_path, margin_v=args.caption_margin_v, font_size=args.caption_font_size, margin_lr=args.caption_margin_lr)
             else:
-                subs_path = edit_dir / "master.srt"
+                subs_path = edit_dir / (args.subtitles_out or "master.srt")
                 build_master_srt(edl, edit_dir, subs_path)
         elif edl.get("subtitles"):
             subs_path = resolve_path(edl["subtitles"], edit_dir)
@@ -897,11 +1027,11 @@ def main() -> None:
     overlays = edl.get("overlays") or []
     if args.no_loudnorm:
         # Composite directly to final output
-        build_final_composite(base_path, overlays, subs_path, out_path, edit_dir)
+        build_final_composite(base_path, overlays, subs_path, out_path, edit_dir, edl.get("gameplay"))
     else:
         # Composite to a temp file, then run loudnorm → final output
         tmp_composite = out_path.with_suffix(".prenorm.mp4")
-        build_final_composite(base_path, overlays, subs_path, tmp_composite, edit_dir)
+        build_final_composite(base_path, overlays, subs_path, tmp_composite, edit_dir, edl.get("gameplay"))
         print("loudness normalization → social-ready (-14 LUFS / -1 dBTP / LRA 11)")
         apply_loudnorm_two_pass(tmp_composite, out_path, preview=args.draft)
         tmp_composite.unlink(missing_ok=True)

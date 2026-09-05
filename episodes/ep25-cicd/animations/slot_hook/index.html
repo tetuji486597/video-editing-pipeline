@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP25 hook — deploys-today ticker (transparent)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;  /* TRANSPARENT format: runs simultaneously with the
+                                     title sticker (skill rule 10); live footage visible */
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* LAYOUT (absolute canvas px, HOOK shot measured: hair top ~350, brow ~730,
+         eyes ~800, chin ~1180, face x 360-860; title sticker (other comp) occupies
+         x 113-847, y 250-619 until abs 6.20 = local 0.75):
+           #col          x  90-310, y 660-1240  (left of the face; below the title,
+                                                 vertical gap to title = 660-619 = 41px)
+           #counter-chip x 250-710, y 310-560   (enters local 0.90, AFTER the title's
+                                                 last frame at local 0.75 -- never
+                                                 co-visible with the sticker)
+           #failed-chip  x centred ~340-620, y 600-660 (gap to chip = 40px; brow 730
+                                                 clearance = 70px)
+         All text/UI within x 60-860, y 180-1280. No push-in on this comp (footage
+         zoom runs underneath; content carries its own ambient motion instead). */
+
+      #col {
+        position: absolute;
+        left: 90px;
+        top: 660px;
+        width: 220px;
+        height: 580px;
+        opacity: 0.55;            /* frame-0 state from CSS; entrance tween at t=0 */
+        -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 12%, #000 85%, transparent 100%);
+        mask-image: linear-gradient(to bottom, transparent 0%, #000 12%, #000 85%, transparent 100%);
+      }
+      .chk {
+        position: absolute;
+        width: 44px;
+        height: 44px;
+        opacity: 0.9;
+        filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.55));
+      }
+      /* per-check hard-coded x/start-y (deterministic scatter, no Math.random) */
+      #c1 { left: 40px;  top: 1160px; }
+      #c2 { left: 130px; top: 1160px; }
+      #c3 { left: 75px;  top: 1160px; }
+      #c4 { left: 160px; top: 1160px; }
+      #c5 { left: 20px;  top: 1160px; }
+      /* .chk top is relative to #col (top 660) -> abs start y = 660+1160? NO:
+         #col is 580 tall; children at top 1160 would overflow. See below: tops are
+         set to 520 (bottom of column, abs 1180) and tween y 0 -> -470. */
+      #c1, #c2, #c3, #c4, #c5 { top: 520px; }
+
+      #counter-chip {
+        position: absolute;
+        left: 250px;
+        top: 310px;
+        width: 460px;
+        height: 250px;
+        border-radius: 20px;
+        background: rgba(6, 12, 10, 0.30);   /* translucent -- rule 11, sits over hair */
+        border: 1.5px solid rgba(34, 197, 94, 0.65);
+        box-shadow: 0 0 12px rgba(34, 197, 94, 0.30);  /* reach 1.6*12=19px: top 291>180 */
+        opacity: 0;               /* enters at local 0.90 via fromTo (immediateRender:false) */
+      }
+      #counter-label {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 30px;
+        text-align: center;
+        color: #d1fae5;
+        font-size: 34px;
+        font-weight: 700;
+        letter-spacing: 5px;
+        text-shadow: 0 2px 12px rgba(0, 0, 0, 0.85), 0 0 4px rgba(0, 0, 0, 0.6);
+      }
+      #digits {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 96px;
+        height: 130px;
+        filter: blur(0px);        /* explicit identity filter -- never tween from none */
+      }
+      .val {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        text-align: center;
+        color: #4ade80;
+        font-size: 118px;
+        line-height: 124px;
+        font-weight: 700;
+        opacity: 0;               /* stacked value spans; only the live one visible */
+        text-shadow: 0 2px 14px rgba(0, 0, 0, 0.9), 0 0 22px rgba(34, 197, 94, 0.45);
+      }
+      .val.v0 { opacity: 1; }     /* frame-0 state from CSS, not tl.set at 0 */
+
+      #failed-chip {
+        position: absolute;
+        left: 0;
+        right: 120px;             /* centred on x=480 like the counter chip */
+        top: 600px;
+        text-align: center;
+        color: #a7f3d0;
+        font-size: 34px;
+        font-weight: 700;
+        letter-spacing: 3px;
+        opacity: 0;               /* enters local 3.0 via fromTo (immediateRender:false) */
+        text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9), 0 0 4px rgba(0, 0, 0, 0.65);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="5.0"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="5.0"
+        data-track-index="1"
+      >
+        <!-- ACT 1: a stream of green deploy checks flows up the left column (texture,
+             uncharged) while the counter climbs.  TURN: the counter blurs past 1,000.
+             ACT 2: the stream keeps flowing, zero red among it — "FAILED TODAY: 0". -->
+        <div id="col">
+          <svg id="c1" class="chk" viewBox="0 0 44 44"><circle cx="22" cy="22" r="20" fill="rgba(20,83,45,0.55)" stroke="#4ade80" stroke-width="2.5"/><path d="M13 23l6 6 12-13" fill="none" stroke="#bbf7d0" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg id="c2" class="chk" viewBox="0 0 44 44"><circle cx="22" cy="22" r="20" fill="rgba(20,83,45,0.55)" stroke="#4ade80" stroke-width="2.5"/><path d="M13 23l6 6 12-13" fill="none" stroke="#bbf7d0" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg id="c3" class="chk" viewBox="0 0 44 44"><circle cx="22" cy="22" r="20" fill="rgba(20,83,45,0.55)" stroke="#4ade80" stroke-width="2.5"/><path d="M13 23l6 6 12-13" fill="none" stroke="#bbf7d0" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg id="c4" class="chk" viewBox="0 0 44 44"><circle cx="22" cy="22" r="20" fill="rgba(20,83,45,0.55)" stroke="#4ade80" stroke-width="2.5"/><path d="M13 23l6 6 12-13" fill="none" stroke="#bbf7d0" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg id="c5" class="chk" viewBox="0 0 44 44"><circle cx="22" cy="22" r="20" fill="rgba(20,83,45,0.55)" stroke="#4ade80" stroke-width="2.5"/><path d="M13 23l6 6 12-13" fill="none" stroke="#bbf7d0" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+
+        <div id="counter-chip">
+          <div id="counter-label" class="mono">DEPLOYS TODAY</div>
+          <div id="digits" class="mono">
+            <div class="val v0">12</div>
+            <div class="val" id="v1">38</div>
+            <div class="val" id="v2">71</div>
+            <div class="val" id="v3">113</div>
+            <div class="val" id="v4">164</div>
+            <div class="val" id="v5">226</div>
+            <div class="val" id="v6">301</div>
+            <div class="val" id="v7">389</div>
+            <div class="val" id="v8">472</div>
+            <div class="val" id="v9">551</div>
+            <div class="val" id="v10">637</div>
+            <div class="val" id="v11">719</div>
+            <div class="val" id="v12">806</div>
+            <div class="val" id="v13">1,013</div>
+            <div class="val" id="v14">1,094</div>
+            <div class="val" id="v15">1,151</div>
+            <div class="val" id="v16">1,187</div>
+            <div class="val" id="v17">1,204</div>
+            <div class="val" id="v18">1,208</div>
+          </div>
+        </div>
+
+        <div id="failed-chip" class="mono">FAILED TODAY: 0</div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ---------- entrance at local t=0 (column already half-visible from CSS) ----------
+      tl.fromTo("#col", { opacity: 0.55 }, { opacity: 1, duration: 0.3, ease: "power3.out" }, 0);
+
+      // ---------- check stream: scripted passes, no repeats (all end <= fade start 4.7) ----
+      // Each pass: y 0 -> -470 (abs 1180 -> 710), constant drift (stream physics).
+      const passes = [
+        ["#c1", 0.20], ["#c2", 0.62], ["#c3", 1.05], ["#c4", 1.50], ["#c5", 1.95],
+        ["#c1", 2.40], ["#c2", 2.85], ["#c3", 3.15], ["#c4", 3.30],
+      ]; // each dur 1.40 -> last ends 4.70, exactly at fade start; none outlives the fade
+      passes.forEach(([sel, t]) => {
+        tl.fromTo(sel, { y: 0 }, { y: -470, duration: 1.4, ease: "none", immediateRender: false }, t);
+      });
+
+      // ---------- counter chip lands AFTER the title sticker's last frame ----------
+      // Title (separate comp) is gone at abs 6.20 = local 0.75; chip enters 0.90.
+      tl.fromTo(
+        "#counter-chip",
+        { opacity: 0, scale: 0.92, transformOrigin: "50% 50%" },
+        { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(1.4)", immediateRender: false },
+        0.9
+      );
+
+      // ---------- stacked-digit swaps: outgoing/incoming only, never innerText ----------
+      // abs "thousands of times a day" = local 1.17-2.49; blur past 1,000 at ~2.4.
+      const swaps = [
+        [1.12, "v1"], [1.32, "v2"], [1.50, "v3"], [1.66, "v4"], [1.80, "v5"],
+        [1.92, "v6"], [2.02, "v7"], [2.11, "v8"], [2.19, "v9"], [2.26, "v10"],
+        [2.32, "v11"], [2.37, "v12"], [2.41, "v13"], [2.45, "v14"], [2.49, "v15"],
+        [2.53, "v16"], [2.58, "v17"], [2.64, "v18"],
+      ];
+      const ids = ["v1","v2","v3","v4","v5","v6","v7","v8","v9","v10","v11","v12","v13","v14","v15","v16","v17","v18"];
+      swaps.forEach(([t, id], i) => {
+        const prev = i === 0 ? ".v0" : "#" + ids[i - 1];
+        tl.set(prev, { opacity: 0 }, t);        // hide OUTGOING …
+        tl.set("#" + id, { opacity: 1 }, t);    // … show incoming (different targets)
+      });
+
+      // ---------- TURN: motion-blur burst as it breaks 1,000 (local 2.33-2.60) ----------
+      tl.fromTo("#digits", { filter: "blur(0px)" },
+        { filter: "blur(5px)", duration: 0.12, ease: "power2.in", immediateRender: false }, 2.33);
+      tl.to("#digits", { filter: "blur(0px)", duration: 0.15, ease: "power2.out" }, 2.45);
+      tl.fromTo("#digits", { scale: 1 },
+        { scale: 1.06, duration: 0.12, ease: "power2.out", immediateRender: false }, 2.35);
+      tl.to("#digits", { scale: 1, duration: 0.22, ease: "power3.out" }, 2.47);
+
+      // ---------- ACT 2: all-green hold — "rarely break" (abs 8.28-8.94 = local 2.83-3.49)
+      tl.fromTo(
+        "#failed-chip",
+        { opacity: 0, y: 10 },
+        { opacity: 1, y: 0, duration: 0.4, ease: "power3.out", immediateRender: false },
+        3.0
+      );
+      // ambient: one breathing pulse on the chip border glow (odd repeat, ends 4.55<4.70)
+      tl.fromTo(
+        "#counter-chip",
+        { boxShadow: "0 0 12px rgba(34,197,94,0.30)" },
+        { boxShadow: "0 0 22px rgba(34,197,94,0.55)", duration: 0.55, ease: "sine.inOut",
+          yoyo: true, repeat: 1, immediateRender: false },
+        3.45
+      );
+
+      // ---------- fade: FINISHES at exactly 5.000 (4.70 + 0.30), zero buffer ----------
+      // Per-leaf fades (no nesting except #digits inside the chip; its multiplied curve
+      // still lands at 0 by the boundary and this is a transparent comp over live footage).
+      ["#col", "#counter-chip", "#digits", "#failed-chip"].forEach((sel) => {
+        tl.fromTo(sel, { opacity: 1 },
+          { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 4.7);
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* ------------------------------------------------------------------
+         PANEL CLIPPER  --  abs x 40..1040, y 196..730
+         Everything in the composition lives inside this box. It provides the
+         hard bound for the y=180 / y=1280 limits AND lets the notification
+         slide in from off the top edge the way a real push notification does,
+         without ever painting a pixel above y=196.
+         ------------------------------------------------------------------ */
+      #panel-clip {
+        position: absolute;
+        left: 40px;
+        top: 196px;
+        width: 1000px;
+        height: 534px;
+        overflow: hidden;
+        transform-origin: 50% 50%;
+      }
+
+      /* localized glows -- NOT full frame */
+      .glow {
+        position: absolute;
+        left: 40px;
+        top: 0px;
+        width: 920px;
+        height: 480px;
+        pointer-events: none;
+        z-index: 1;
+      }
+      #glow-red {
+        background: radial-gradient(
+          ellipse 460px 250px at 50% 32%,
+          rgba(220, 38, 38, 0.34) 0%,
+          rgba(160, 20, 30, 0.16) 45%,
+          rgba(0, 0, 0, 0) 72%
+        );
+        opacity: 0.55;
+      }
+      #glow-cyan {
+        background: radial-gradient(
+          ellipse 470px 260px at 50% 70%,
+          rgba(34, 211, 238, 0.30) 0%,
+          rgba(14, 116, 144, 0.14) 46%,
+          rgba(0, 0, 0, 0) 74%
+        );
+        opacity: 0;
+      }
+
+      /* static deterministic grain */
+      #grain {
+        position: absolute;
+        inset: 0;
+        opacity: 0.045;
+        pointer-events: none;
+        z-index: 5;
+      }
+
+      /* ------------------------------------------------------------------
+         ACT 1 -- lock-screen push notification
+         abs x 110..970, y 205..485 (h 280 -> collapses to 182)
+         ------------------------------------------------------------------ */
+      #note {
+        position: absolute;
+        left: 70px;   /* abs 110 */
+        top: 9px;     /* abs 205 */
+        width: 860px;
+        height: 280px;
+        overflow: hidden;
+        border-radius: 26px;
+        padding: 36px 40px;
+        background: linear-gradient(
+          158deg,
+          rgba(22, 25, 33, 0.90) 0%,
+          rgba(11, 13, 18, 0.94) 100%
+        );
+        border: 1.5px solid rgba(248, 113, 113, 0.45);
+        box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55);
+        z-index: 4;
+        transform: translateY(-160px);
+        opacity: 0.62;
+      }
+
+      #n-head {
+        display: flex;
+        align-items: center;
+        height: 48px;
+      }
+      #n-icon { width: 48px; height: 48px; flex: 0 0 48px; }
+      #n-bank {
+        margin-left: 18px;
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: rgba(226, 232, 240, 0.74);
+      }
+      #n-now {
+        margin-left: auto;
+        font-size: 24px;
+        font-weight: 500;
+        color: rgba(148, 163, 184, 0.72);
+      }
+      #n-title {
+        margin-top: 30px;
+        font-size: 52px;
+        line-height: 60px;
+        font-weight: 700;
+        letter-spacing: -0.6px;
+        color: #f8fafc;
+      }
+      #n-body {
+        margin-top: 16px;
+        font-size: 36px;
+        line-height: 42px;
+        font-weight: 500;
+        color: rgba(203, 213, 225, 0.88);
+      }
+      #n-body .sep { color: rgba(148, 163, 184, 0.6); }
+
+      /* ------------------------------------------------------------------
+         TURN -- scan sweep line
+         ------------------------------------------------------------------ */
+      #scan {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1000px;
+        height: 3px;
+        background: linear-gradient(
+          90deg,
+          rgba(34, 211, 238, 0) 0%,
+          rgba(103, 232, 249, 0.95) 22%,
+          rgba(165, 243, 252, 1) 50%,
+          rgba(103, 232, 249, 0.95) 78%,
+          rgba(34, 211, 238, 0) 100%
+        );
+        box-shadow: 0 0 22px rgba(34, 211, 238, 0.7);
+        opacity: 0;
+        z-index: 9;
+        transform: translateY(6px);
+      }
+
+      /* ------------------------------------------------------------------
+         ACT 2 -- timing track  abs x 150..930, y 436..496
+         ------------------------------------------------------------------ */
+      #track {
+        position: absolute;
+        left: 110px;  /* abs 150 */
+        top: 240px;   /* abs 436 */
+        width: 780px;
+        height: 60px;
+        z-index: 6;
+      }
+      #rail {
+        position: absolute;
+        left: 0;
+        top: 28px;    /* abs 464 */
+        width: 780px;
+        height: 4px;
+        border-radius: 2px;
+        background: rgba(148, 163, 184, 0.34);
+        opacity: 0;
+      }
+      #fill {
+        position: absolute;
+        left: 0;
+        top: 27px;    /* abs 463 */
+        width: 780px;
+        height: 6px;
+        border-radius: 3px;
+        background: linear-gradient(
+          90deg,
+          rgba(103, 232, 249, 0.95) 0%,
+          rgba(34, 211, 238, 0.75) 100%
+        );
+        transform-origin: 100% 50%;
+        transform: scaleX(0);
+      }
+      .tick {
+        position: absolute;
+        top: 16px;    /* abs 452 */
+        width: 4px;
+        height: 28px;
+        border-radius: 2px;
+        transform-origin: 50% 50%;
+        opacity: 0;
+      }
+      #tick-a { left: 0px;   background: #67e8f9; }
+      #tick-b { left: 776px; background: rgba(226, 232, 240, 0.6); }
+      #head {
+        position: absolute;
+        left: 0px;
+        top: 12px;    /* abs 448 */
+        width: 5px;
+        height: 36px;
+        border-radius: 3px;
+        background: #e2e8f0;
+        box-shadow: 0 0 16px rgba(226, 232, 240, 0.75);
+        opacity: 0;
+        transform: translateX(776px);
+      }
+
+      /* ------------------------------------------------------------------
+         ACT 2 HERO -- abs y 546..718, centred
+         ------------------------------------------------------------------ */
+      #readout {
+        position: absolute;
+        left: 0;
+        top: 350px;   /* abs 546 */
+        width: 1000px;
+        height: 172px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        z-index: 7;
+      }
+      #readout-inner {
+        display: inline-flex;
+        align-items: baseline;
+        transform-origin: 50% 50%;
+      }
+      #vstack { position: relative; width: 206px; height: 172px; }
+      .val {
+        width: 206px;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 168px;
+        line-height: 172px;
+        font-weight: 700;
+        text-align: center;
+        letter-spacing: -2px;
+        color: #cbd5e1;
+        text-shadow: 0 3px 12px rgba(0, 0, 0, 0.9), 0 0 18px rgba(0, 0, 0, 0.75);
+      }
+      #v0 { position: relative; display: block; }
+      .val-abs { position: absolute; left: 0; top: 0; opacity: 0; }
+      #v6 {
+        color: #67e8f9;
+        text-shadow: 0 3px 12px rgba(0, 0, 0, 0.9),
+          0 0 18px rgba(34, 211, 238, 0.55), 0 0 30px rgba(0, 0, 0, 0.8);
+      }
+      #unit {
+        margin-left: 20px;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 76px;
+        line-height: 1;
+        font-weight: 600;
+        letter-spacing: 1px;
+        color: rgba(226, 232, 240, 0.9);
+        text-shadow: 0 3px 12px rgba(0, 0, 0, 0.9), 0 0 16px rgba(0, 0, 0, 0.8);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="6.00"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="6.00"
+        data-track-index="1"
+      >
+        <div id="panel-clip">
+          <div id="glow-red" class="glow"></div>
+          <div id="glow-cyan" class="glow"></div>
+
+          <!-- ACT 1 : the push notification -->
+          <div id="note" data-layout-allow-overflow="true">
+            <div id="n-head">
+              <div id="n-icon">
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                  <defs>
+                    <linearGradient id="icg" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stop-color="#f05252" />
+                      <stop offset="1" stop-color="#8f1717" />
+                    </linearGradient>
+                  </defs>
+                  <rect x="0" y="0" width="48" height="48" rx="12" fill="url(#icg)" />
+                  <rect
+                    x="10" y="15" width="28" height="19" rx="3.5"
+                    fill="none" stroke="#ffffff" stroke-width="2.6" opacity="0.95"
+                  />
+                  <rect x="10" y="20.5" width="28" height="3.6" fill="#ffffff" opacity="0.95" />
+                  <line
+                    x1="11.5" y1="37" x2="36.5" y2="12"
+                    stroke="#ffffff" stroke-width="3.4" stroke-linecap="round"
+                  />
+                </svg>
+              </div>
+              <div id="n-bank" data-layout-allow-occlusion="true">Quorvale Bank</div>
+              <div id="n-now" class="mono" data-layout-allow-occlusion="true">now</div>
+            </div>
+            <div id="n-title" data-layout-allow-occlusion="true">Transaction declined</div>
+            <div id="n-body" data-layout-allow-occlusion="true">
+              <span class="mono">$248.60</span><span class="sep"> &middot; </span><span>Lisbon</span>
+            </div>
+          </div>
+
+          <div id="grain">
+            <svg width="1000" height="534" viewBox="0 0 1000 534">
+              <filter id="grainf" x="0" y="0" width="100%" height="100%">
+                <feTurbulence
+                  type="fractalNoise" baseFrequency="0.85"
+                  numOctaves="3" stitchTiles="stitch" seed="7"
+                />
+                <feColorMatrix type="saturate" values="0" />
+              </filter>
+              <rect width="1000" height="534" filter="url(#grainf)" />
+            </svg>
+          </div>
+
+          <!-- ACT 2 : the timing track -->
+          <div id="track">
+            <div id="rail"></div>
+            <div id="fill"></div>
+            <div id="tick-a" class="tick"></div>
+            <div id="tick-b" class="tick"></div>
+            <div id="head"></div>
+          </div>
+
+          <!-- ACT 2 : the hero readout -->
+          <div id="readout">
+            <div id="readout-inner">
+              <div id="vstack">
+                <span class="val" id="v0">08</span>
+                <span class="val val-abs" id="v1">17</span>
+                <span class="val val-abs" id="v2">25</span>
+                <span class="val val-abs" id="v3">31</span>
+                <span class="val val-abs" id="v4">36</span>
+                <span class="val val-abs" id="v5">39</span>
+                <span class="val val-abs" id="v6">40</span>
+              </div>
+              <span id="unit">ms</span>
+            </div>
+          </div>
+
+          <!-- TURN : scan sweep -->
+          <div id="scan" data-layout-allow-overflow="true"></div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      /* =============================================================
+         CONTINUOUS -- slow push-in on the panel clipper.
+         clip y 196..730, centre 463, half-height 267.
+         at scale 1.03 -> 463 +/- 275.0 -> 188.0 .. 738.0  (>180, <1280)
+         ============================================================= */
+      tl.to("#panel-clip", { scale: 1.03, duration: 5.7, ease: "sine.inOut" }, 0);
+
+      /* =============================================================
+         ACT 1 -- the notification slides down and lands on "declined"
+         (local 0.33). Frame 0 is NOT blank: the card starts at
+         translateY(-160px) / opacity .62 from CSS, so 129px of it is
+         already inside the clip rect on the first frame.
+         ============================================================= */
+      tl.fromTo(
+        "#note",
+        { y: -160, opacity: 0.62 },
+        { y: 0, opacity: 1, duration: 0.4, ease: "power3.out" },
+        0
+      );
+
+      /* ambient life -- red alert glow breathes. repeat:1 (odd) ends 2.25 */
+      tl.to(
+        "#glow-red",
+        { opacity: 0.85, duration: 0.75, ease: "sine.inOut", yoyo: true, repeat: 1 },
+        0.75
+      );
+
+      /* =============================================================
+         THE TURN (local 2.60 -> 3.40)
+         amount retires -> card collapses + dims -> cyan scan sweep
+         ============================================================= */
+      tl.fromTo(
+        "#n-body",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.28, ease: "power3.out", immediateRender: false },
+        2.6
+      );
+
+      tl.to("#note", { height: 182, duration: 0.52, ease: "power3.out" }, 2.72);
+      tl.fromTo(
+        "#note",
+        { opacity: 1 },
+        { opacity: 0.34, duration: 0.55, ease: "power3.out", immediateRender: false },
+        2.8
+      );
+      tl.to(
+        "#note",
+        { borderColor: "rgba(148,163,184,0.30)", duration: 0.55, ease: "power3.out" },
+        2.8
+      );
+
+      /* transition beat: a cyan scan line sweeps the panel top to bottom */
+      tl.fromTo(
+        "#scan",
+        { opacity: 0 },
+        { opacity: 0.9, duration: 0.1, ease: "power3.out", immediateRender: false },
+        2.98
+      );
+      tl.fromTo(
+        "#scan",
+        { y: 6 },
+        { y: 528, duration: 0.42, ease: "power2.inOut", immediateRender: false },
+        2.98
+      );
+      tl.fromTo(
+        "#scan",
+        { opacity: 0.9 },
+        { opacity: 0, duration: 0.12, ease: "power3.out", immediateRender: false },
+        3.28
+      );
+
+      /* colour phase-shift: red -> cyan */
+      tl.fromTo(
+        "#glow-red",
+        { opacity: 0.55 },
+        { opacity: 0, duration: 0.45, ease: "power3.out", immediateRender: false },
+        3.05
+      );
+      tl.fromTo(
+        "#glow-cyan",
+        { opacity: 0 },
+        { opacity: 0.6, duration: 0.55, ease: "power3.out", immediateRender: false },
+        3.1
+      );
+
+      /* =============================================================
+         ACT 2 -- the timing track appears (3.28), then the readout
+         scrubs backward from the decline to the decision (3.95 -> 4.97)
+         ============================================================= */
+      ["#rail", "#tick-a", "#tick-b", "#head"].forEach(function (sel, i) {
+        tl.fromTo(
+          sel,
+          { opacity: 0 },
+          { opacity: 1, duration: 0.3, ease: "power3.out", immediateRender: false },
+          3.28 + i * 0.03
+        );
+      });
+
+      tl.fromTo(
+        "#readout",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.22, ease: "power3.out", immediateRender: false },
+        3.9
+      );
+
+      /* playhead scrubs right -> left (backward in time); the measured
+         span grows leftward from the decline marker */
+      tl.fromTo(
+        "#head",
+        { x: 776 },
+        { x: 0, duration: 1.02, ease: "power2.inOut", immediateRender: false },
+        3.95
+      );
+      tl.fromTo(
+        "#fill",
+        { scaleX: 0 },
+        { scaleX: 1, duration: 1.02, ease: "power2.inOut", immediateRender: false },
+        3.95
+      );
+
+      /* stacked digit swaps -- zero-duration sets on DISJOINT id pairs.
+         Never a class-wide hide. "40" first exists at local 4.97, which is
+         output 12.47 == "forty milliseconds". */
+      const swaps = [
+        [0.0, "#v0", "#v1"],
+        [0.0, "#v1", "#v2"],
+        [0.0, "#v2", "#v3"],
+        [0.0, "#v3", "#v4"],
+        [0.0, "#v4", "#v5"],
+        [0.0, "#v5", "#v6"],
+      ];
+      const swapTimes = [4.18, 4.34, 4.5, 4.65, 4.81, 4.97];
+      swaps.forEach(function (s, i) {
+        tl.set(s[1], { opacity: 0 }, swapTimes[i]);
+        tl.set(s[2], { opacity: 1 }, swapTimes[i]);
+      });
+
+      /* the lock at 4.97 */
+      tl.to("#readout-inner", { scale: 1.09, duration: 0.1, ease: "power4.out" }, 4.97);
+      tl.to("#readout-inner", { scale: 1, duration: 0.3, ease: "power3.out" }, 5.07);
+      tl.to("#tick-a", { scaleY: 1.7, duration: 0.12, ease: "power4.out" }, 4.97);
+      tl.to("#tick-a", { scaleY: 1, duration: 0.34, ease: "power3.out" }, 5.09);
+      /* repeat:1 (odd) -> lands back on 0.6; ends 4.98+2*0.34 = 5.66 < 5.70 */
+      tl.to(
+        "#glow-cyan",
+        { opacity: 0.85, duration: 0.34, ease: "sine.inOut", yoyo: true, repeat: 1 },
+        4.98
+      );
+      /* the playhead has arrived -- retire it so it does not sit on tick-a */
+      tl.fromTo(
+        "#head",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.16, ease: "power3.out", immediateRender: false },
+        4.99
+      );
+
+      /* =============================================================
+         FINAL FADE -- leaves only, explicit from-opacity, finishes at
+         exactly 6.000. Excluded because they are already at opacity 0
+         by 5.70: #v0..#v5, #n-body, #scan, #glow-red, #head.
+         ============================================================= */
+      const fadeLeaves = [
+        ["#note", 0.34],
+        ["#n-icon", 1],
+        ["#n-bank", 1],
+        ["#n-now", 1],
+        ["#n-title", 1],
+        ["#glow-cyan", 0.6],
+        ["#grain", 0.045],
+        ["#rail", 1],
+        ["#tick-a", 1],
+        ["#tick-b", 1],
+        ["#fill", 1],
+        ["#v6", 1],
+        ["#unit", 1],
+      ];
+      fadeLeaves.forEach(function (f) {
+        tl.fromTo(
+          f[0],
+          { opacity: f[1] },
+          { opacity: 0, duration: 0.3, ease: "power3.out", immediateRender: false },
+          5.7
+        );
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

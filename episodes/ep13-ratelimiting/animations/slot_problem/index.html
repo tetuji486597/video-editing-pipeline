@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>ep13 — problem</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      #content-all { position: absolute; inset: 0; }
+      #push { position: absolute; inset: 0; transform-origin: 50% 50%; }
+      #shake { position: absolute; inset: 0; }
+
+      /* ---------- full-bleed atmosphere (exempt from the 180/1280 band) ---------- */
+      #bg-fill {
+        position: absolute; inset: 0;
+        background: radial-gradient(ellipse 900px 1000px at 50% 40%, #131a26 0%, #0a0e16 52%, #060305 100%);
+      }
+      #bg-photo { position: absolute; inset: 0; opacity: 0.30; filter: brightness(0.35) saturate(0.5) blur(3px); }
+      #bg-photo img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 45%; }
+
+      #glow-green {
+        position: absolute; left: 50%; top: 700px; width: 1500px; height: 1500px;
+        transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(34,197,94,0.16) 0%, rgba(59,130,246,0.09) 38%, rgba(34,197,94,0) 66%);
+      }
+      #glow-red {
+        position: absolute; left: 50%; top: 700px; width: 1600px; height: 1600px;
+        transform: translate(-50%, -50%); opacity: 0;
+        background: radial-gradient(circle, rgba(239,68,68,0.34) 0%, rgba(249,115,22,0.16) 40%, rgba(239,68,68,0) 68%);
+      }
+      #vignette {
+        position: absolute; inset: 0;
+        background: radial-gradient(ellipse 760px 980px at 50% 44%,
+          rgba(0,0,0,0) 0%, rgba(0,0,0,0) 46%, rgba(3,2,4,0.58) 78%, rgba(2,1,3,0.94) 100%);
+      }
+      #flash { position: absolute; inset: 0; background: #ffffff; opacity: 0; }
+      #grain { position: absolute; inset: 0; opacity: 1; }
+
+      /* ---------- kicker : x 240..840, y 280..328 ---------- */
+      #kicker {
+        position: absolute; left: 240px; top: 280px; width: 600px; height: 48px;
+        line-height: 48px; text-align: center;
+        font-size: 38px; font-weight: 800; letter-spacing: 8px;
+        color: #9ca3af; opacity: 0;
+      }
+
+      /* ---------- request streaks ---------- */
+      .arw {
+        position: absolute; width: 112px; height: 12px; border-radius: 6px; opacity: 0;
+      }
+      .arw::after {
+        content: ""; position: absolute; top: -6px;
+        width: 0; height: 0; border-top: 12px solid transparent; border-bottom: 12px solid transparent;
+      }
+      .arw-l { left: 0px; background: linear-gradient(90deg, rgba(239,68,68,0) 0%, rgba(239,68,68,0.85) 62%, #f97316 100%); box-shadow: 0 0 22px 3px rgba(239,68,68,0.55); }
+      .arw-l::after { right: -6px; border-left: 14px solid #f97316; }
+      .arw-r { left: 968px; background: linear-gradient(270deg, rgba(239,68,68,0) 0%, rgba(239,68,68,0.85) 62%, #f97316 100%); box-shadow: 0 0 22px 3px rgba(239,68,68,0.55); }
+      .arw-r::after { left: -6px; border-right: 14px solid #f97316; }
+
+      .arw-calm { box-shadow: 0 0 18px 2px rgba(34,197,94,0.45); }
+      #cL { background: linear-gradient(90deg, rgba(34,197,94,0) 0%, rgba(34,197,94,0.8) 62%, #22c55e 100%); }
+      #cL::after { border-left-color: #22c55e; }
+      #cR { background: linear-gradient(270deg, rgba(34,197,94,0) 0%, rgba(34,197,94,0.8) 62%, #22c55e 100%); }
+      #cR::after { border-right-color: #22c55e; }
+
+      /* ---------- server card : x 190..890, y 400..1000 ---------- */
+      #card {
+        position: absolute; left: 190px; top: 400px; width: 700px; height: 600px;
+        border-radius: 28px; padding: 44px 48px;
+        background: linear-gradient(160deg, rgba(18,26,38,0.95), rgba(8,11,17,0.97));
+        border: 2px solid rgba(34,197,94,0.42);
+        box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 60px 4px rgba(34,197,94,0.20);
+        opacity: 0;
+      }
+      #hit-l, #hit-r {
+        position: absolute; top: 0; width: 7px; height: 100%;
+        background: #f97316; opacity: 0; box-shadow: 0 0 34px 8px rgba(249,115,22,0.9);
+      }
+      #hit-l { left: 0; border-radius: 26px 0 0 26px; }
+      #hit-r { right: 0; border-radius: 0 26px 26px 0; }
+
+      /* card row 1 : endpoint  y 444..478 */
+      #endpoint {
+        position: absolute; left: 48px; top: 44px; width: 380px; height: 34px; line-height: 34px;
+        color: #9ca3af; font-size: 26px; font-weight: 600; letter-spacing: 1px;
+      }
+      /* status chip : card-rel x 412..652 -> abs 602..842 ; y 440..494 */
+      #chip {
+        position: absolute; left: 412px; top: 40px; width: 240px; height: 54px;
+        line-height: 50px; text-align: center; border-radius: 27px;
+        font-size: 24px; font-weight: 800; letter-spacing: 2px;
+        color: #22c55e; background: rgba(34,197,94,0.14); border: 2px solid rgba(34,197,94,0.55);
+        opacity: 0;
+      }
+      /* divider y 542..544 */
+      #divider {
+        position: absolute; left: 48px; top: 142px; width: 604px; height: 2px;
+        background: linear-gradient(90deg, rgba(148,163,184,0.05), rgba(148,163,184,0.35), rgba(148,163,184,0.05));
+      }
+      /* hero readout y 590..720 */
+      #rate-line {
+        position: absolute; left: 48px; top: 190px; width: 604px; height: 130px;
+        font-size: 120px; font-weight: 800; line-height: 130px; letter-spacing: -3px;
+        color: #22c55e; white-space: nowrap; font-variant-numeric: tabular-nums;
+        text-shadow: 0 0 34px rgba(34,197,94,0.45);
+      }
+      #rate-unit { font-size: 42px; font-weight: 700; letter-spacing: 0; margin-left: 16px; }
+      /* label y 762..790 */
+      #rate-label {
+        position: absolute; left: 48px; top: 362px; width: 604px; height: 28px; line-height: 28px;
+        color: #7d8590; font-size: 22px; font-weight: 700; letter-spacing: 4px;
+      }
+      /* load bar y 838..870 */
+      #bar-track {
+        position: absolute; left: 48px; top: 438px; width: 604px; height: 32px;
+        border-radius: 16px; background: rgba(255,255,255,0.06); border: 1px solid rgba(148,163,184,0.22);
+        overflow: hidden;
+      }
+      #bar-fill { position: absolute; left: 0; top: 0; height: 100%; width: 12%; border-radius: 16px; background: #22c55e; }
+      /* rack led strip y 912..952 : 10 bars @18px, 47.1px gaps */
+      #leds {
+        position: absolute; left: 48px; top: 512px; width: 604px; height: 40px;
+        display: flex; justify-content: space-between; align-items: center;
+      }
+      .led { width: 18px; height: 40px; border-radius: 5px; background: rgba(148,163,184,0.16); opacity: 0; }
+
+      #dead-veil { position: absolute; inset: 0; border-radius: 26px; background: #04060a; opacity: 0; }
+
+      /* ---------- status strip : x 240..840, y 1100..1184 ---------- */
+      #status-strip {
+        position: absolute; left: 240px; top: 1100px; width: 600px; height: 84px;
+        line-height: 80px; text-align: center; border-radius: 18px;
+        font-size: 32px; font-weight: 800; letter-spacing: 2px;
+        color: #fca5a5; background: rgba(69,10,10,0.72); border: 2px solid rgba(239,68,68,0.65);
+        box-shadow: 0 0 46px 4px rgba(239,68,68,0.35);
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="5.8"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="5.8"
+        data-track-index="1"
+      >
+        <div id="content-all">
+          <div id="push">
+            <div id="bg-fill"></div>
+
+            <div id="bg-photo" data-layout-allow-overflow="true">
+              <img src="assets/server.jpg" alt="" />
+            </div>
+
+            <div id="glow-green" data-layout-allow-overflow="true"></div>
+            <div id="glow-red" data-layout-allow-overflow="true"></div>
+            <div id="vignette" data-layout-allow-overflow="true"></div>
+
+            <div id="shake">
+              <div id="kicker">NO RATE LIMIT</div>
+
+              <!-- calm phase-1 traffic -->
+              <div class="arw arw-l arw-calm" id="cL" data-layout-allow-overflow="true" style="top: 640px"></div>
+              <div class="arw arw-r arw-calm" id="cR" data-layout-allow-overflow="true" style="top: 690px"></div>
+
+              <!-- phase-2 firehose -->
+              <div class="arw arw-l" id="aL1" data-layout-allow-overflow="true" style="top: 440px"></div>
+              <div class="arw arw-l" id="aL2" data-layout-allow-overflow="true" style="top: 540px"></div>
+              <div class="arw arw-l" id="aL3" data-layout-allow-overflow="true" style="top: 640px"></div>
+              <div class="arw arw-l" id="aL4" data-layout-allow-overflow="true" style="top: 740px"></div>
+              <div class="arw arw-l" id="aL5" data-layout-allow-overflow="true" style="top: 840px"></div>
+              <div class="arw arw-r" id="aR1" data-layout-allow-overflow="true" style="top: 490px"></div>
+              <div class="arw arw-r" id="aR2" data-layout-allow-overflow="true" style="top: 590px"></div>
+              <div class="arw arw-r" id="aR3" data-layout-allow-overflow="true" style="top: 690px"></div>
+              <div class="arw arw-r" id="aR4" data-layout-allow-overflow="true" style="top: 790px"></div>
+              <div class="arw arw-r" id="aR5" data-layout-allow-overflow="true" style="top: 890px"></div>
+
+              <div id="card">
+                <div id="endpoint" data-layout-allow-occlusion="true">POST /v1/orders</div>
+                <div id="chip" data-layout-allow-occlusion="true">HEALTHY</div>
+                <div id="divider"></div>
+                <div id="rate-line" data-layout-allow-occlusion="true"><span id="rate-num">42</span><span id="rate-unit">req/s</span></div>
+                <div id="rate-label" data-layout-allow-occlusion="true">REQUESTS PER SECOND</div>
+                <div id="bar-track"><div id="bar-fill"></div></div>
+                <div id="leds">
+                  <div class="led" id="d0"></div>
+                  <div class="led" id="d1"></div>
+                  <div class="led" id="d2"></div>
+                  <div class="led" id="d3"></div>
+                  <div class="led" id="d4"></div>
+                  <div class="led" id="d5"></div>
+                  <div class="led" id="d6"></div>
+                  <div class="led" id="d7"></div>
+                  <div class="led" id="d8"></div>
+                  <div class="led" id="d9"></div>
+                </div>
+                <div id="hit-l"></div>
+                <div id="hit-r"></div>
+                <div id="dead-veil"></div>
+              </div>
+
+              <div id="status-strip">503 SERVICE UNAVAILABLE</div>
+            </div>
+
+            <div id="flash" data-layout-allow-overflow="true"></div>
+
+            <svg width="0" height="0" style="position: absolute">
+              <filter id="grain-filter-ep13-problem">
+                <feTurbulence type="fractalNoise" baseFrequency="0.82" numOctaves="2" stitchTiles="stitch" seed="7" result="noise" />
+                <feColorMatrix in="noise" type="matrix"
+                  values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.042 0" />
+              </filter>
+            </svg>
+            <div id="grain" data-layout-allow-overflow="true"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      document.getElementById("grain").style.filter = "url(#grain-filter-ep13-problem)";
+
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      const FR = 1 / 30; // render is 30fps — shake steps land on frame boundaries
+
+      const rateNum = document.getElementById("rate-num");
+      const chipEl = document.getElementById("chip");
+      const LEDS = ["#d0", "#d1", "#d2", "#d3", "#d4", "#d5", "#d6", "#d7", "#d8", "#d9"];
+
+      function fmt(n) {
+        const s = String(Math.round(n));
+        return s.length > 3 ? s.slice(0, s.length - 3) + "," + s.slice(-3) : s;
+      }
+
+      // ---------- initial states ----------
+      gsap.set("#card", { opacity: 0, scale: 0.94, y: 16, rotation: 0, transformOrigin: "50% 50%" });
+      gsap.set("#kicker", { opacity: 0, y: -14 });
+      gsap.set("#chip", { opacity: 0, scale: 0.9, transformOrigin: "50% 50%" });
+      gsap.set("#status-strip", { opacity: 0, y: 18 });
+      gsap.set("#bar-fill", { width: "0%" });
+      gsap.set(LEDS, { opacity: 0 });
+      gsap.set(".arw", { opacity: 0, x: -360 });
+      gsap.set(".arw-r", { x: 360 });
+      gsap.set("#shake", { x: 0, y: 0 });
+
+      // ================= camera push-in, underneath everything =================
+      tl.fromTo("#push", { scale: 1 }, { scale: 1.07, duration: 5.8, ease: "sine.inOut" }, 0);
+
+      // ================= PHASE 1 (0 -> 1.90) : calm =================
+      // primary entrance at local t = 0
+      tl.to("#card", { opacity: 1, scale: 1, y: 0, duration: 0.55, ease: "power3.out" }, 0);
+      tl.to("#kicker", { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 0.10);
+      tl.to("#chip", { opacity: 1, scale: 1, duration: 0.35, ease: "power3.out" }, 0.30);
+      tl.to("#bar-fill", { width: "12%", duration: 0.6, ease: "power3.out" }, 0.35);
+      // ambient breathing on the load bar : 1.05 + 0.42*2 = 1.89  (< 5.8)
+      tl.to("#bar-fill", { width: "15%", duration: 0.42, ease: "sine.inOut", yoyo: true, repeat: 1 }, 1.05);
+
+      // rack LEDs come up green, staggered
+      LEDS.forEach(function (sel, i) {
+        tl.to(sel, { opacity: 1, backgroundColor: "#22c55e", duration: 0.22, ease: "power3.out" }, 0.45 + i * 0.045);
+      });
+      // gentle ambient shimmer on two LEDs : 1.20 + 0.34*2 = 1.88
+      tl.to(["#d3", "#d7"], { opacity: 0.45, duration: 0.34, ease: "sine.inOut", yoyo: true, repeat: 1 }, 1.20);
+
+      // calm traffic streaks — both repeating tweens must FULLY complete before the
+      // fade starts, otherwise the repeating tween's final render wins and leaves the
+      // green streak stuck on screen through phase 2.
+      // #cL: 0.60 + 0.42 + 0.26 + 0.42 = 1.70 ; #cR: 0.66 + 0.42 + 0.20 + 0.42 = 1.70
+      tl.fromTo("#cL", { x: -360, opacity: 0 }, { x: 0, opacity: 1, duration: 0.42, ease: "power3.out", repeat: 1, repeatDelay: 0.26 }, 0.60);
+      tl.fromTo("#cR", { x: 360, opacity: 0 }, { x: 0, opacity: 1, duration: 0.42, ease: "power3.out", repeat: 1, repeatDelay: 0.20 }, 0.66);
+      tl.to(["#cL", "#cR"], { opacity: 0, duration: 0.14, ease: "power3.out" }, 1.74);
+
+      // ================= TRANSITION (1.90) : the flood hits =================
+      const T = 1.90;
+
+      // shutter flash : rise 0.03, hold 0.06 at 0.5, then decay
+      tl.to("#flash", { opacity: 0.5, duration: 0.03, ease: "power4.out" }, T);
+      tl.to("#flash", { opacity: 0, duration: 0.30, ease: "power3.out" }, T + 0.09);
+
+      // hard colour shift to red
+      tl.to("#glow-green", { opacity: 0, duration: 0.30, ease: "power4.out" }, T);
+      tl.to("#glow-red", { opacity: 1, duration: 0.35, ease: "power4.out" }, T + 0.02);
+      tl.to("#card", {
+        borderColor: "rgba(239,68,68,0.9)",
+        boxShadow: "0 30px 80px rgba(0,0,0,0.6), 0 0 90px 8px rgba(239,68,68,0.5)",
+        duration: 0.14, ease: "power4.out"
+      }, T);
+      tl.to("#rate-line", { color: "#ef4444", textShadow: "0 0 44px rgba(239,68,68,0.7)", duration: 0.16, ease: "power4.out" }, T);
+      tl.to("#kicker", { color: "#ef4444", duration: 0.20, ease: "power4.out" }, T);
+      tl.to("#chip", {
+        color: "#ef4444", backgroundColor: "rgba(239,68,68,0.16)", borderColor: "rgba(239,68,68,0.75)",
+        duration: 0.16, ease: "power4.out"
+      }, T);
+      tl.to("#bar-fill", { backgroundColor: "#ef4444", duration: 0.14, ease: "power4.out" }, T);
+
+      // chip label swap, driven by a tweened scalar so it is seek-safe
+      const chipState = { v: 0 };
+      function paintChip() { chipEl.textContent = chipState.v < 0.5 ? "HEALTHY" : "OVERLOADED"; }
+      tl.to(chipState, { v: 1, duration: 0.12, ease: "power4.out", onUpdate: paintChip }, T);
+
+      // ---- SCREEN-SHAKE A : decaying, hard-coded literal offsets, 15 frames = 0.5s ----
+      const SHAKE_A = [
+        [18, -13], [-16, 12], [15, -11], [-13, 10], [12, -9],
+        [-10, 8], [9, -6], [-7, 5], [6, -4], [-5, 3],
+        [4, -3], [-3, 2], [2, -1], [-1, 1], [0, 0]
+      ];
+      SHAKE_A.forEach(function (o, i) {
+        tl.set("#shake", { x: o[0], y: o[1] }, T + i * FR);
+      });
+
+      // ================= PHASE 2 (1.95 -> 5.80) : the flood =================
+
+      // ---- firehose of request streaks ----
+      // [selector, startOffset, repeatDelay] — all literal, no randomness
+      const STREAKS = [
+        ["#aL1", 0.00, 0.20], ["#aL2", 0.09, 0.26], ["#aL3", 0.05, 0.18],
+        ["#aL4", 0.14, 0.24], ["#aL5", 0.02, 0.28],
+        ["#aR1", 0.07, 0.19], ["#aR2", 0.12, 0.25], ["#aR3", 0.03, 0.27],
+        ["#aR4", 0.17, 0.16], ["#aR5", 0.10, 0.22]
+      ];
+      const STREAK_T0 = 1.98;
+      STREAKS.forEach(function (s) {
+        const isLeft = s[0].indexOf("aL") > 0;
+        tl.fromTo(s[0],
+          { x: isLeft ? -360 : 360, opacity: 0 },
+          { x: 0, opacity: 1, duration: 0.34, ease: "power4.out", repeat: 3, repeatDelay: s[2] },
+          STREAK_T0 + s[1]
+        );
+      });
+      // longest streak run: 1.98 + 0.17 + 4*0.34 + 3*0.28 = 4.35s  (< 4.70)
+      tl.to(".arw", { opacity: 0, duration: 0.35, ease: "power3.out" }, 4.70);
+
+      // ---- card takes the hits: edge glow + micro scale pulses (rotation still 0 here) ----
+      [2.05, 2.35, 2.65, 2.95].forEach(function (t0, i) {
+        const side = i % 2 === 0 ? "#hit-l" : "#hit-r";
+        tl.to(side, { opacity: 0.95, duration: 0.06, ease: "power4.out" }, t0);
+        tl.to(side, { opacity: 0, duration: 0.24, ease: "power3.out" }, t0 + 0.06);
+        tl.to("#card", { scale: 1.012, duration: 0.07, ease: "power4.out" }, t0);
+        tl.to("#card", { scale: 1, duration: 0.22, ease: "power3.out" }, t0 + 0.07);
+      });
+
+      // ---- counter spins up : 42 -> 1,200 -> 18,000 -> 48,210 (frozen at 4.30) ----
+      const rate = { v: 42 };
+      function paintRate() { rateNum.textContent = fmt(rate.v); }
+      tl.to(rate, { v: 1200, duration: 0.50, ease: "power2.in", onUpdate: paintRate }, 1.95);
+      tl.to(rate, { v: 18000, duration: 0.80, ease: "power2.inOut", onUpdate: paintRate }, 2.45);
+      tl.to(rate, { v: 48210, duration: 1.05, ease: "power3.out", onUpdate: paintRate }, 3.25);
+
+      // ---- load bar pins ----
+      tl.to("#bar-fill", { width: "100%", duration: 0.85, ease: "power3.out" }, 1.98);
+      // saturated bar strobes : 2.90 + 0.16*4 = 3.54
+      tl.to("#bar-fill", { opacity: 0.5, duration: 0.16, ease: "sine.inOut", yoyo: true, repeat: 3 }, 2.90);
+
+      // ---- rack LEDs flip red, then start dying out ----
+      LEDS.forEach(function (sel, i) {
+        tl.to(sel, { backgroundColor: "#ef4444", duration: 0.18, ease: "power4.out" }, 2.10 + i * 0.035);
+      });
+      LEDS.forEach(function (sel, i) {
+        tl.to(sel, { opacity: 0.18, backgroundColor: "#5a1111", duration: 0.30, ease: "power3.out" }, 4.05 + i * 0.05);
+      });
+
+      // ---- red glow swells : 2.40 + 0.55*4 = 4.60 ----
+      tl.to("#glow-red", { opacity: 0.62, duration: 0.55, ease: "sine.inOut", yoyo: true, repeat: 3 }, 2.40);
+      tl.to("#glow-red", { opacity: 0.30, duration: 0.70, ease: "power3.out" }, 4.75);
+
+      // ---- the card destabilises and tips over ----
+      tl.to("#card", { rotation: 3.6, y: 22, duration: 0.90, ease: "power4.out" }, 3.30);
+
+      // ---- SCREEN-SHAKE B : smaller, as the card tips. 9 frames = 0.3s ----
+      const SHAKE_B = [
+        [9, -6], [-8, 5], [7, -4], [-6, 4], [4, -3],
+        [-3, 2], [2, -1], [-1, 1], [0, 0]
+      ];
+      SHAKE_B.forEach(function (o, i) {
+        tl.set("#shake", { x: o[0], y: o[1] }, 3.30 + i * FR);
+      });
+
+      // ---- consequence strip ----
+      tl.to("#status-strip", { opacity: 1, y: 0, duration: 0.40, ease: "power3.out" }, 3.40);
+      // strip pulses : 3.95 + 0.30*4 = 5.15
+      tl.to("#status-strip", { opacity: 0.55, duration: 0.30, ease: "sine.inOut", yoyo: true, repeat: 3 }, 3.95);
+
+      // ---- the card goes dark / dead ----
+      tl.to("#dead-veil", { opacity: 0.52, duration: 0.65, ease: "power3.out" }, 4.55);
+      tl.to("#card", {
+        borderColor: "rgba(120,25,25,0.55)",
+        boxShadow: "0 30px 80px rgba(0,0,0,0.75), 0 0 40px 2px rgba(239,68,68,0.18)",
+        duration: 0.70, ease: "power3.out"
+      }, 4.55);
+      tl.to("#rate-line", { color: "#e06a6a", textShadow: "0 0 16px rgba(239,68,68,0.25)", duration: 0.65, ease: "power3.out" }, 4.60);
+      tl.to("#chip", { opacity: 0.35, duration: 0.60, ease: "power3.out" }, 4.60);
+      // dying flicker : 4.62 + 0.15*4 = 5.22
+      tl.to("#kicker", { opacity: 0.35, duration: 0.15, ease: "sine.inOut", yoyo: true, repeat: 3 }, 4.62);
+
+      // ================= final fade : 5.5 + 0.3 = 5.800 exactly =================
+      tl.to("#content-all", { opacity: 0, duration: 0.3, ease: "power3.out" }, 5.5);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

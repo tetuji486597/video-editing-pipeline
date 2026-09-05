@@ -1,0 +1,69 @@
+{
+  "video": "final_nosfx_B.mp4",
+  "out": "final_B.mp4",
+  "cues": [
+    {
+      "at": 8.957,
+      "sfx": "tt_bubble_pop",
+      "vol": 0.447,
+      "why": "HOOK: the like heart filling on the post card"
+    },
+    {
+      "at": 9.542,
+      "sfx": "tt_record_scratch",
+      "vol": 0.517,
+      "why": "HOOK: the counter stuttering and forking on 'isn't exact'"
+    },
+    {
+      "at": 19.637,
+      "sfx": "tt_metal_pipe",
+      "vol": 0.42,
+      "why": "PROBLEM: the gridlock seizing the single row on 'bottleneck'"
+    },
+    {
+      "at": 21.767,
+      "sfx": "tt_error_glitch",
+      "vol": 0.539,
+      "why": "PROBLEM: the write swarm jamming against the one row"
+    },
+    {
+      "at": 28.967,
+      "sfx": "tt_whoosh",
+      "vol": 0.503,
+      "why": "BUILD: the summation sweep gathering the six shards"
+    },
+    {
+      "at": 36.407,
+      "sfx": "tt_sparkle_trim",
+      "vol": 0.72,
+      "why": "NEW_COMPONENT: convergence on 'converges to correct in seconds'"
+    },
+    {
+      "at": 44.087,
+      "sfx": "tt_we_do_not_care",
+      "vol": 0.45,
+      "why": "APPROX_OK: the narration is literally 'nobody cares if it briefly says a million instead of a million three' -- the meme says the line"
+    },
+    {
+      "at": 48.667,
+      "sfx": "tt_swoosh",
+      "vol": 0.503,
+      "why": "TRADEOFF: the LIKES slider snapping hard to SPEED"
+    },
+    {
+      "at": 51.297,
+      "sfx": "tt_vine_boom",
+      "vol": 0.3,
+      "why": "TRADEOFF: the bank slider pinned to ACCURACY -- the punchline contrast"
+    },
+    {
+      "at": 53.167,
+      "sfx": "tt_bass_drop",
+      "vol": 0.22,
+      "why": "PAYOFF: the crowd push-in as 'close enough' lands"
+    }
+  ],
+  "_note": "Variant B: every cue after the intro shifted -0.833s vs A (B's intro take is shorter).",
+  "_vol_note": "Volumes derived from each file's measured mean level, partially normalised (k=0.6) toward -18 dB so a 32 dB spread across the set does not make hot files dominate and quiet ones vanish. sparkle/vine_boom/bass_drop carry stated manual overrides.",
+  "_meme_note": "Voice meme tt_we_do_not_care placed at 44.087 in place of tt_click_trim, per request. One per episode, on the beat whose narration the meme actually matches."
+}

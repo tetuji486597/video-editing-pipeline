@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP26 robot voice — on time beats complete</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; }
+      .fill { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* ---------- background (TAKEOVER) ---------- */
+      #bg-fill { background: radial-gradient(120% 90% at 50% 12%, #0e161c 0%, #090e13 45%, #05070a 80%, #030405 100%); }
+      #glow-cyan {
+        position: absolute; left: 50%; top: 34%; width: 1450px; height: 1250px;
+        transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(34, 211, 238, 0.13) 0%, rgba(34, 211, 238, 0) 62%);
+      }
+      #glow-amber {
+        position: absolute; left: 50%; top: 74%; width: 1500px; height: 1300px;
+        transform: translate(-50%, -50%); opacity: 0;
+        background: radial-gradient(circle, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0) 60%);
+      }
+      #vignette {
+        background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 13%, rgba(0,0,0,0) 80%, rgba(0,0,0,0.6) 100%);
+      }
+
+      #scene { transform-origin: 480px 760px; } /* push-in 1 -> 1.06 */
+
+      /* ---------- the live waveform (bars) ---------- */
+      #wave { position: absolute; inset: 0; }
+      .bar {
+        position: absolute; width: 10px; border-radius: 5px;
+        background: #22d3ee; transform-origin: 50% 50%;
+        box-shadow: 0 0 8px rgba(34, 211, 238, 0.35);
+      }
+      #gap-box {
+        /* gap bars b18-b23 occupy x 446-541; box 441-544 clears b17 (ends 439) and
+           b24 (starts 548) with 2px/4px -- one assembly outlining the gap */
+        position: absolute; left: 441px; top: 716px; width: 103px; height: 168px;
+        border: 2px dashed rgba(239, 68, 68, 0.8); border-radius: 10px;
+        opacity: 0;
+      }
+      #synth-tag {
+        position: absolute; left: 431px; top: 645px; width: 122px; text-align: center;
+        font-size: 22px; color: #fbbf24; letter-spacing: 3px;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85); opacity: 0;
+      }
+
+      /* ---------- the return lane that stays dark ---------- */
+      #ret-svg { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: visible; }
+      #ret-path {
+        fill: none; stroke: rgba(148, 163, 184, 0.4); stroke-width: 4;
+        stroke-linecap: round; stroke-dasharray: 6 12; opacity: 0;
+      }
+      #ret-arrow { opacity: 0; }
+      #noreq-chip {
+        position: absolute; left: 300px; top: 1005px; padding: 12px 20px 14px 20px;
+        border-radius: 12px; background: rgba(20, 24, 30, 0.55);
+        border: 2px solid rgba(100, 116, 139, 0.6);
+        font-size: 30px; color: #94a3b8; letter-spacing: 2px;
+        display: flex; align-items: center; gap: 12px; opacity: 0;
+      }
+      #noreq-chip .x { color: #64748b; font-weight: 900; font-size: 32px; }
+
+      /* ---------- glitch bands (full-frame effect layers, exempt) ---------- */
+      .glitch { position: absolute; left: 0; width: 1080px; opacity: 0; }
+      #gl1 { top: 742px; height: 20px; background: rgba(34, 211, 238, 0.35); }
+      #gl2 { top: 822px; height: 14px; background: rgba(239, 68, 68, 0.3); }
+      #gl3 { top: 898px; height: 26px; background: rgba(245, 158, 11, 0.3); }
+
+      /* ---------- ACT 2: the balance ---------- */
+      #balance { position: absolute; inset: 0; opacity: 0; }
+      #post {
+        position: absolute; left: 471px; top: 1108px; width: 18px; height: 64px;
+        background: rgba(148, 163, 184, 0.55); border-radius: 6px;
+      }
+      #base {
+        position: absolute; left: 405px; top: 1168px; width: 150px; height: 12px;
+        background: rgba(148, 163, 184, 0.55); border-radius: 6px;
+      }
+      #balance-group {
+        position: absolute; left: 240px; top: 1084px; width: 480px; height: 110px;
+        transform-origin: 240px 12px; /* the pivot: canvas (480, 1096) */
+      }
+      #beam { position: absolute; left: 0; top: 6px; width: 480px; height: 12px; background: rgba(226, 232, 240, 0.8); border-radius: 6px; }
+      #pivot-dot { position: absolute; left: 230px; top: 0px; width: 20px; height: 20px; border-radius: 50%; background: #e2e8f0; }
+      .pan-rod { position: absolute; top: 16px; width: 4px; height: 26px; background: rgba(148, 163, 184, 0.7); }
+      #rod-l { left: 88px; }
+      #rod-r { left: 388px; }
+      .pan {
+        position: absolute; top: 42px; width: 220px; height: 64px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 900; letter-spacing: 2px;
+      }
+      #pan-l {
+        left: -20px; background: rgba(45, 26, 4, 0.85);
+        border: 3px solid #f59e0b; color: #fbbf24; font-size: 46px;
+        box-shadow: 0 0 18px rgba(245, 158, 11, 0.4);
+      }
+      #pan-r {
+        left: 280px; background: rgba(20, 24, 30, 0.7);
+        border: 2px solid rgba(100, 116, 139, 0.7); color: #94a3b8; font-size: 34px;
+      }
+
+      #dither { opacity: 1; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="9.0" data-width="1080" data-height="1920">
+      <section id="main-clip" class="clip fill" data-start="0" data-duration="9.0" data-track-index="1">
+        <div id="content-all" class="fill">
+          <div id="bg-fill" class="fill">
+            <div id="glow-cyan"></div>
+            <div id="glow-amber"></div>
+            <div id="vignette" class="fill"></div>
+          </div>
+
+          <div id="scene" class="fill">
+            <div id="wave"></div>
+            <div id="gap-box"></div>
+            <div id="synth-tag" class="mono">SYNTHETIC</div>
+
+            <svg id="ret-svg" viewBox="0 0 1080 1920">
+              <path id="ret-path" d="M700,975 C620,940 340,940 260,975" />
+              <path id="ret-arrow" d="M275,955 L253,977 L280,985" fill="none" stroke="rgba(148,163,184,0.4)" stroke-width="4" stroke-linecap="round" />
+            </svg>
+            <div id="noreq-chip" class="mono"><span>NO RE-REQUEST</span><span class="x">&#10007;</span></div>
+
+            <div id="balance">
+              <div id="post"></div>
+              <div id="base"></div>
+              <div id="balance-group">
+                <div id="beam"></div>
+                <div id="pivot-dot"></div>
+                <div class="pan-rod" id="rod-l"></div>
+                <div class="pan-rod" id="rod-r"></div>
+                <div class="pan" id="pan-l">ON TIME</div>
+                <div class="pan" id="pan-r">COMPLETE</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="glitch" id="gl1"></div>
+          <div class="glitch" id="gl2"></div>
+          <div class="glitch" id="gl3"></div>
+          <div id="dither" class="fill"></div>
+        </div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter" x="0%" y="0%" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.04 0" />
+      </filter>
+    </svg>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      document.getElementById("dither").style.filter = "url(#grain-filter)";
+
+      // ---------- build the 40-bar waveform (literal heights, deterministic) ----------
+      const H = [56, 88, 40, 120, 72, 96, 52, 140, 64, 108, 84, 48, 128, 70, 92, 58, 116, 76,
+                 100, 62, 86, 118, 54, 94, 132, 66, 44, 102, 80, 124, 60, 90, 50, 112, 74, 98,
+                 68, 136, 46, 82];
+      const QUANT = H.map((h) => Math.max(48, Math.round(h / 48) * 48)); // robotic steps
+      const wave = document.getElementById("wave");
+      const GAP = [18, 19, 20, 21, 22, 23]; // x 446-541: the lost moment
+      for (let i = 0; i < 40; i++) {
+        const d = document.createElement("div");
+        d.className = "bar";
+        d.id = "b" + i;
+        d.style.left = (140 + i * 17) + "px";
+        d.style.top = (800 - H[i] / 2) + "px";
+        d.style.height = H[i] + "px";
+        wave.appendChild(d);
+      }
+
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.06, duration: 9.0, ease: "sine.inOut" }, 0);
+
+      // ---------- entrance: the wave is alive from frame 0 ----------
+      tl.fromTo("#wave", { opacity: 0.55 }, { opacity: 1, duration: 0.35, ease: "power3.out" }, 0);
+      // ambient breathing on non-gap bars -- ends by 3.41, BEFORE the serration takes
+      // over scaleY at 4.0 (two live tweens on one property would fight)
+      for (let i = 0; i < 40; i++) {
+        if (GAP.includes(i)) continue;
+        const t0 = 0.2 + (i % 7) * 0.085;
+        tl.fromTo("#b" + i, { scaleY: 1 }, { scaleY: 1.18, duration: 0.45, ease: "sine.inOut", yoyo: true, repeat: 5, immediateRender: false }, t0);
+      }
+
+      // ---------- ACT 1 @0.7 ("isn't re-requested" 0.64-1.48): the gap opens ----------
+      GAP.forEach((i, k) => {
+        tl.fromTo("#b" + i, { scaleY: 1 }, { scaleY: 0.06, duration: 0.22, ease: "power3.out", immediateRender: false }, 0.7 + k * 0.03);
+        tl.to("#b" + i, { backgroundColor: "rgba(100,116,139,0.5)", boxShadow: "0 0 4px rgba(100,116,139,0.2)", duration: 0.22, ease: "power2.out" }, 0.7 + k * 0.03);
+      });
+      tl.fromTo("#gap-box", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out", immediateRender: false }, 0.95);
+      // the return lane appears -- and STAYS dark grey (the whole point)
+      tl.to("#ret-path", { opacity: 1, duration: 0.35, ease: "power2.out" }, 1.0);
+      tl.to("#ret-arrow", { opacity: 1, duration: 0.35, ease: "power2.out" }, 1.15);
+      tl.fromTo("#noreq-chip", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 1.05);
+
+      // ---------- @2.2 ("skipped or papered over"): the synthetic patch snaps in ----------
+      // scaleY only (bars have 50% 50% origin, so height stays centred on y=800);
+      // never tween top/height -- layout props snap to device pixels (lint error)
+      GAP.forEach((i, k) => {
+        tl.fromTo("#b" + i, { scaleY: 0.06 }, { scaleY: 56 / H[i], duration: 0.18, ease: "power4.out", immediateRender: false }, 2.2 + k * 0.04);
+        tl.to("#b" + i, { backgroundColor: "rgba(245,158,11,0.9)", borderRadius: "2px", boxShadow: "0 0 10px rgba(245,158,11,0.45)", duration: 0.18, ease: "power2.out" }, 2.2 + k * 0.04);
+      });
+      tl.fromTo("#synth-tag", { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.28, ease: "power3.out", immediateRender: false }, 2.5);
+
+      // ---------- TURN @3.94 ("robot voice"): the whole wave serrates; colour shifts ----------
+      // glitch bands flash (full-frame effect layers)
+      [["#gl1", 3.94], ["#gl2", 4.02], ["#gl3", 4.1]].forEach(([g, t]) => {
+        tl.fromTo(g, { opacity: 0, x: -40 }, { opacity: 0.85, x: 0, duration: 0.08, ease: "power2.out", immediateRender: false }, t);
+        tl.to(g, { opacity: 0, x: 36, duration: 0.22, ease: "power2.out" }, t + 0.1);
+      });
+      // every bar snaps to a quantized height via scaleY (breathing already ended at
+      // 3.41, so scaleY is free; centre-origin keeps the wave centred on y=800)
+      for (let i = 0; i < 40; i++) {
+        if (GAP.includes(i)) continue;
+        tl.to("#b" + i, {
+          scaleY: QUANT[i] / H[i], borderRadius: "2px",
+          backgroundColor: "rgba(245,158,11,0.85)",
+          boxShadow: "0 0 8px rgba(245,158,11,0.35)",
+          duration: 0.16, ease: "power3.out",
+        }, 4.0 + (i % 8) * 0.03);
+        // robotic micro-pulse after the snap (odd repeats; 4.6 + 12*0.3 = 8.2 < 8.7)
+        tl.to("#b" + i, {
+          scaleY: (QUANT[i] / H[i]) * 1.06, duration: 0.3, ease: "sine.inOut",
+          yoyo: true, repeat: 11,
+        }, 4.6 + (i % 4) * 0.02);
+      }
+      tl.to("#glow-cyan", { opacity: 0.15, duration: 1.0, ease: "sine.inOut" }, 3.94);
+      tl.to("#glow-amber", { opacity: 1, duration: 1.0, ease: "sine.inOut" }, 3.94);
+
+      // ---------- ACT 2 @5.6: the deliberate trade ----------
+      // the grey chip exits before the balance region lights (no co-visibility issues)
+      tl.to("#noreq-chip", { opacity: 0, duration: 0.3, ease: "power2.out" }, 5.3);
+      tl.to("#ret-path", { opacity: 0, duration: 0.3, ease: "power2.out" }, 5.3);
+      tl.to("#ret-arrow", { opacity: 0, duration: 0.3, ease: "power2.out" }, 5.3);
+      tl.fromTo("#balance", { opacity: 0 }, { opacity: 1, duration: 0.45, ease: "power3.out", immediateRender: false }, 5.6);
+      // gentle pre-tilt sway while he sets up the line (wrapper has real 480x110 bounds)
+      tl.fromTo("#balance-group", { rotation: 0 }, { rotation: -2, duration: 0.8, ease: "sine.inOut", immediateRender: false }, 5.9);
+      tl.to("#balance-group", { rotation: 1.2, duration: 0.7, ease: "sine.inOut" }, 6.7);
+      // ---------- settles ON "on time beats being complete" (7.42-8.83) ----------
+      tl.to("#balance-group", { rotation: -8.5, duration: 0.4, ease: "power3.in" }, 7.42);
+      tl.to("#balance-group", { rotation: -6.4, duration: 0.25, ease: "power2.out" }, 7.82);
+      tl.to("#balance-group", { rotation: -7, duration: 0.25, ease: "power2.out" }, 8.07);
+      tl.to("#pan-l", { boxShadow: "0 0 30px rgba(245,158,11,0.75)", duration: 0.35, ease: "power2.out" }, 7.6);
+      tl.to("#glow-amber", { opacity: 0.7, duration: 0.5, ease: "sine.inOut", yoyo: true, repeat: 1 }, 7.6);
+
+      // ---------- fade: finishes at EXACTLY 9.0 (8.7 + 0.3), zero buffer ----------
+      tl.fromTo("#content-all", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 8.7);
+      // transformed layers fade in the same window so none strands
+      ["#scene", "#balance", "#balance-group", "#wave"].forEach((s) => {
+        tl.to(s, { opacity: 0, duration: 0.3, ease: "power2.out" }, 8.7);
+      });
+      for (let i = 0; i < 40; i++) {
+        tl.to("#b" + i, { opacity: 0, duration: 0.3, ease: "power2.out" }, 8.7);
+      }
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

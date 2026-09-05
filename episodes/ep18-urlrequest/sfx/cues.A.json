@@ -1,0 +1,69 @@
+{
+  "video": "final_nosfx_A.mp4",
+  "out": "final_A.mp4",
+  "cues": [
+    {
+      "at": 9.85,
+      "sfx": "tt_swoosh",
+      "vol": 0.503,
+      "why": "HOOK: the baton taking off along the relay track"
+    },
+    {
+      "at": 17.82,
+      "sfx": "tt_hold_up",
+      "vol": 0.19,
+      "why": "PROBLEM: the turn -- your computer does not actually know where google.com lives"
+    },
+    {
+      "at": 18.72,
+      "sfx": "tt_correct_ding",
+      "vol": 0.75,
+      "why": "PROBLEM: the real IP resolving"
+    },
+    {
+      "at": 23.0,
+      "sfx": "tt_keyboard_trim",
+      "vol": 0.95,
+      "why": "DNS: nslookup typing itself into the terminal"
+    },
+    {
+      "at": 28.67,
+      "sfx": "tt_vine_boom",
+      "vol": 0.3,
+      "why": "DNS: the real address landing on 'gets back an address'"
+    },
+    {
+      "at": 35.24,
+      "sfx": "tt_click_trim",
+      "vol": 0.95,
+      "why": "TCP_TLS: the padlock closing on 'that's the HTTP lock'"
+    },
+    {
+      "at": 39.6,
+      "sfx": "tt_whoosh",
+      "vol": 0.503,
+      "why": "RESPONSE: the request travelling out via CDN and load balancer"
+    },
+    {
+      "at": 43.2,
+      "sfx": "tt_bubble_pop",
+      "vol": 0.447,
+      "why": "RESPONSE: the HTML landing and spawning child requests"
+    },
+    {
+      "at": 47.1,
+      "sfx": "tt_sparkle_trim",
+      "vol": 0.72,
+      "why": "RESPONSE: the page painting in a fraction of a second"
+    },
+    {
+      "at": 50.4,
+      "sfx": "tt_swoosh",
+      "vol": 0.503,
+      "why": "PAYOFF: the relay track ghosting in over the server rack"
+    }
+  ],
+  "_note": "Variant A: every cue after the intro shifted +0.000s vs A (B's intro take is longer).",
+  "_vol_note": "Volumes derived from each file's measured mean level, partially normalised (k=0.6) toward -18 dB so a 32 dB spread across the set does not make hot files dominate and quiet ones vanish. sparkle/vine_boom/bass_drop carry stated manual overrides.",
+  "_meme_note": "Voice meme tt_hold_up placed at 17.82 in place of tt_camera_shutter, per request. One per episode, on the beat whose narration the meme actually matches."
+}

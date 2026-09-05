@@ -307,6 +307,243 @@ it before building anything:
     opaque composition, and check it by eye against a real rendered frame — "nothing else
     is there" is not the same as "it looks right."
 
+## Measure it on the rendered file. Do not trust CSS, and do not trust the linter.
+
+Everything below was learned by shipping wrong overlays that passed every check. The single
+highest-value habit in this skill is: **decode the rendered `.webm` and measure pixels.**
+CSS arithmetic and `npx hyperframes check` both pass compositions that are visibly broken.
+
+**VP9 alpha lives in a side channel, and this bites everyone exactly once.**
+`ffprobe` reports `pix_fmt=yuv420p` on every overlay in this series, including ones that are
+provably transparent. The real signal is the stream tag `alpha_mode=1`. And you **must**
+decode with `-c:v libvpx-vp9` — the default decoder silently drops the alpha plane, so a
+transparent overlay measures as fully opaque and a working fade measures as a hard cut.
+Three separate sub-agents reached the wrong conclusion from `pix_fmt` in one batch.
+
+```
+ffprobe -v error -select_streams v:0 -show_entries stream_tags=alpha_mode -of default=nw=1:nk=1 render.webm
+ffmpeg -v error -c:v libvpx-vp9 -i render.webm -vf "alphaextract,signalstats,\
+metadata=print:key=lavfi.signalstats.YMAX:file=-" -f null -
+```
+
+Note `file=-` — `metadata=print` writes to the log, which `-v error` suppresses. Without it
+you get an empty result and conclude the file is unreadable.
+
+**The colour plane is garbage where alpha is 0.** To ask "what does this overlay actually put
+behind the captions", composite it over black first (`color=black` + `overlay`), which weights
+colour by alpha. Measuring the colour plane directly reports every transparent overlay as a
+blinding white wash.
+
+**A format is what it MEASURES as, not what you called it.** A "photo card" or "panel" whose
+stacked background wash + glow blobs + vignette push rendered alpha near 1.0 across the frame
+IS a takeover, and it silently breaks the episode's format mix and takeover cap. No lint
+catches it — every individual rule is satisfied. Measure mean alpha; a genuine non-takeover
+shows live footage at 25-40% in the open areas. Corollary: once footage really shows through,
+type that used to sit on a wash now sits on live video — strengthen its `text-shadow` in the
+same pass.
+
+**Distinguish a shutter flash from a sustained wash by DURATION, not peak.** A 2-5 frame white
+flash is EP4's own transition technique and legitimately whites out the caption band. A peak
+measurement alone cannot tell it from a defect; count how many frames exceed the threshold.
+
+**Check junctions, not just slots.** Per-slot fade checks miss rule 12's actual failure, which
+lives at `this.start + this.duration` vs `next.start` in the COMPOSITED output. Export every
+frame across each boundary at the output frame rate and confirm none is bare footage or
+near-black:
+`ffmpeg -ss <t-0.15> -t 0.5 -i final.mp4 -vf fps=24 j_%02d.png`. Spot samples every 50-100ms
+miss a 3-6 frame gap entirely.
+
+**Beware metrics that under-report what you are looking for.** Two real own-goals in one batch:
+a fade check using max-alpha flagged three healthy slots as "hard cuts" (the 30fps overlay is
+resampled to 24fps, so the final high-alpha frame is often never sampled); and an SFX
+audibility check run at 8 kHz declared a shimmer inaudible because everything above 4 kHz had
+been discarded — the same cue measured 0.80x baseline at 8 kHz and 3.27x at 32 kHz. When a
+check says something is wrong, confirm the check before rebuilding the thing.
+
+## Renderer traps (in addition to rules 13-14)
+
+- **A `box-shadow`/glow reaches ~1.6x its blur radius past the element edge**, not half and not
+  1.0x. `reach = edge + offset - 1.6*blur`. A 14px blur at `top:190px` puts non-zero alpha on
+  row 178. Budget the whole thing near y=180/y=1280 and verify on decoded pixels.
+- **Tweening `filter` from a computed `none` renders the element SOLID BLACK** for its first
+  frames — GSAP reads the from-value as `brightness(0)`. Declare an explicit identity filter in
+  CSS (`filter: grayscale(0) brightness(1)`) and repeat it in the `fromTo` from-vars. Live risk
+  on any desaturate/contrast-cut/blur transition.
+- **An SVG `<filter>` defaults to `x=-10% y=-10% width=120% height=120%`, and `feTurbulence`
+  is a GENERATOR that fills the whole region regardless of input.** A panel-confined grain
+  layer therefore paints noise ~20% past its element on every side — one shipped grain into the
+  caption band, invisible to CSS arithmetic. Pin the region: `x="0%" y="0%" width="100%"
+  height="100%"` or `filterUnits="userSpaceOnUse"`.
+- **Nesting fading ancestors MULTIPLIES their opacities**, so a three-layer fade squares or
+  cubes the curve and reaches zero early, leaving dead frames. Fade one layer per visible leaf.
+- **But a transformed child can keep compositing at full strength while its faded ancestor
+  blacks out** — ancestor opacity is not applied uniformly to transformed descendants. So fade
+  the leaf that carries the transform, never a wrapper above it.
+- **Per-leaf fading composites as `1-(1-a)^n`.** With n opaque leaves, a tween at 21% renders at
+  60-76% on screen. A back-loaded ease (`power*.in`) therefore strands the overlay visibly high
+  at the enable-window cut; front-load it (`power*.out`) so the last stored frame is near zero.
+  This is the direct consequence of the "one fade per leaf" rule and the two must be read
+  together.
+
+## This shoot's framing: "land it on the chest" is often impossible
+
+Grid-measure every beat, but expect: mid shots have the brow ~y=760 and chin ~y=1215; tight
+close-ups have the chin at **y=1370-1430**, i.e. BELOW the y=1280 content limit, with the
+shirt line inside the caption band. On those there is no chest band at all. Options, in order:
+a side column (x>=850 or x<=330), an upper band above the brow, converting to a takeover if the
+episode's budget of 2 has room, or an argued minimal overlap — stated in the report, never
+silent. An honest overlap beats a silent one.
+
+## A/B hook variants
+
+When one episode ships two cuts differing only by the intro take: build every composition
+ONCE and share it; only the EDL `start_in_output` values and the SFX cue times differ, by the
+delta between the two intro takes. **Give each variant its own caption file** — `render.py
+--subtitles-out master.A.ass` — because `--build-subtitles` otherwise writes a hardcoded
+`master.ass` and recompositing one variant against the other's leftover file misaligns every
+caption in the episode without changing its duration.
+
+## TikTok-native title box (the intro treatment)
+
+The intro of each episode carries a TikTok-style text sticker instead of the house title
+card. Reference implementation:
+`episodes/ep19-likecounts/animations/slot_tiktok_title/` — copy it rather than rebuilding.
+
+**It REPLACES `slot_title`, it does not join it.** The boxes occupy the same top-left region
+as the house card's accent-bar block; running both collides. Swap the EDL entry, leave
+`slot_title/` on disk, and note the swap so it can be reverted in one line.
+
+**Wording is fixed per hook variant. Use verbatim:**
+
+| spoken hook | title text | boxes |
+|---|---|---|
+| "prepping/preparing you for your system design interview" | `MASTERING SYSTEM` / `DESIGN:` / `EPISODE X` | 3 |
+| "exploring really cool tech" | `RLLY COOL TECH:` / `EPISODE X` | 2 |
+
+Note the cool-tech line is **abbreviated — "RLLY", no leading "EXPLORING"**. EP19-B shipped
+with the older longer wording (`EXPLORING / REALLY COOL TECH:`) and was deliberately not
+re-rendered, so it is the one file that does not match this table.
+
+**The title must match that variant's SPOKEN hook.** On episodes with A/B cuts, each variant
+needs its own composition — one shared title would contradict the narration on screen and
+defeat the point of testing the hooks against each other.
+
+**Construction:**
+
+- **Each wrapped line is its own white rounded box**, not one box behind the block. That
+  per-line raggedness is the single thing that makes it read as a native sticker rather than
+  a broadcast lower-third. Author the line breaks; `white-space: nowrap` so they can never
+  re-wrap.
+- 82px Inter 800, black on white, `border-radius: 18px`, padding ~26/34px, `gap: 14px`,
+  centred via a flex column with `align-items: center` so each box hugs its own text.
+- **Placement: measure, then sit over the hair and the background, clear of the face.** On
+  EP19's intro (hair top ~490, brow ~883, chin ~1279) the stack at y=250-680 overlaps the
+  neon sign and hair exactly like the reference while clearing the brow by ~200px. A solid
+  box over hair is fine here and is what the reference does; over facial features it is not.
+- Hold it through the intro narration and fade before the hook beat (EP19: 0.000-7.400, with
+  the hook at 9.000/8.167 — comfortably clear in both variants).
+
+**Two checker traps this format hits specifically:**
+
+- A genuinely static sticker — which is what a real TikTok text box is — makes the motion
+  linter report **"Timeline did not advance under seek; every green verdict on this run is
+  unreliable."** Give the hold an imperceptible drift (scale 1.000 -> 1.010 over the hold,
+  `ease:"none"`); ~9px across the widest box, invisible at 1x, and it restores every other
+  verdict on the run.
+- CSS `transform: scale()` on the stack plus a GSAP **`.to()`** on scale trips
+  `gsap_css_transform_conflict` — GSAP overwrites the whole CSS transform. `fromTo` is
+  exempt, so write the drift as a `fromTo` with an explicit start.
+
+
+## TikTok's UI safe zone — the horizontal limit
+
+The `y=180-1280` band protects against OUR burned-in captions. It says nothing about
+TikTok's own chrome, which is drawn over the video at playback and which no render of ours
+can show. **Full detail, sources and the shipped-batch audit: `SAFE_ZONE.md`.**
+
+| | zone | status |
+|---|---|---|
+| **DANGER** | `x >= 900`, `x <= 60`, `y >= 1600`, `y <= 140` | every source agrees |
+| **CAUTION** | `x >= 800`, `y >= 1400` | source-dependent; a coin flip across devices |
+
+**Usable content band: `x=60-900, y=180-1280` — 840 x 1100, centred at `x=480`, NOT
+`x=540`.** Design to `x <= 860`. Same exemptions as the y-band: `#bg-fill`, `#vignette`,
+full-bleed photos and full-frame effect layers may cross; text, UI and graphics may not.
+A push-in expands x too, and about x=480 now — resolve the composed worst case on BOTH axes.
+
+**Two phrasings that put the entire EP14-19 batch into the rail. Do not reintroduce them:**
+
+- *"the main graphic should occupy the centre 780-900px of the 1080px width"* — centred on
+  540 that is x=90-990 or x=140-940, both under the rail. **Always state an x-band, never a
+  width plus an implied centre**; a width hides its own bounds.
+- *"a tall narrow side column at x>=850 or x<=330"* — this was the recommended escape hatch
+  for tight close-ups with no chest band, and `x>=850` IS the action rail. **Side columns go
+  LEFT (x=60-330) only.** A right column would have to end by x=860, which leaves too little
+  width to be worth it; prefer an upper band, a takeover, or an argued minimal overlap.
+
+**The captions are the bigger encroachment, and no overlay check can see them** — they are
+composited last by ffmpeg. At the EP14-19 settings (font 74 / lr 190 / MarginV 350) the band
+is `x 190-890`, bottom `y=1570` always, and 3-line chunks occur in 7 of 8 episodes — so it
+runs 50-170px into the bottom UI zone in every episode. The knobs are coupled: widening the
+margins forces more wraps, which pushes the band top up into the y<=1280 overlay floor.
+Burned across all 8 EP14-19 caption files and measured clean on all three constraints:
+**`--caption-font-size 60 --caption-margin-lr 220 --caption-margin-v 400`** (text x 220-860).
+`64/190/400` also measures clean if bigger text matters more than the x<=860 target.
+**Burn any candidate before adopting it** — estimation picked `64/220/400`, which looks
+identical on paper to `64/190/400` and actually breaches: the narrower box wraps a chunk to
+four lines and puts 17 frames above y=1280 on EP17. It changes the caption look, so confirm
+before switching.
+
+**Verify on the rendered file:** `tool/helpers/check_safe_zone.py <render.webm>`. It
+composites over black (VP9 keeps colour where alpha is 0, so raw-alpha checks lie) and
+judges by DURATION, not peak — a 2-5 frame shutter flash whitens the whole frame, and both a
+peak test and a `cropdetect` pass will call every takeover a full-frame violation.
+
+
+## Talking-head zoom
+
+Gradual centered drift, not a punch: `zoom: {mode:"slow", from, to, focal_x:540, focal_y:960}`.
+Two things that make it read as intentional rather than cheap:
+
+- **Alternate direction per segment** (`+-+-`), so each range starts at the scale the previous
+  one ended on. The drift is then continuous across every cut instead of snapping back to 1.0
+  at each edit.
+- **Cap the magnitude against the overlays' measured clearances.** A centered zoom displaces a
+  point by `distance_from_centre * (Z-1)`. With overlays placed against measured face positions
+  at clearances as tight as 40px, **1.045 is about the ceiling** — it costs the tightest case
+  ~13px, where render.py's 1.12 default would cost ~35px and push graphics into the face.
+  Verify segment durations are unchanged afterward; if they are, every overlay cue and caption
+  still lands.
+
+## SFX
+
+- **Every file must be trimmed of leading silence.** `build_sfx.py` hard-refuses anything over
+  20ms and will kill the whole render pass. `silenceremove=start_periods=1:start_threshold=
+  -45dB:start_silence=0:detection=peak`. This is separate from `impact_offset`, which handles
+  sounds whose peak arrives after their onset.
+- **Set volume from measured loudness, not by ear-guessing.** A sourced set can span 30+ dB
+  mean level, so a flat per-cue volume buries the quiet ones and lets the bass hits dominate.
+  Partially normalise (k~0.6) toward a target, then override deliberately.
+- **Voice memes are wanted on this channel.** One per episode, placed where the meme's words
+  match the narration rather than merely where a hit belongs. Trim hard — they download as
+  12-18s clips and some peak a full second in, which would start them inside the previous beat.
+  Give them a ~1.25x volume bump (speech competing with speech). Crude clips are out.
+- **Verify audibility by differencing the mixed track against the no-SFX track with a fitted
+  gain, at 32 kHz.** Comparing peak levels between the two proves nothing — `loudnorm`
+  renormalises the whole mix, so peaks go DOWN after adding SFX.
+
+## Helper tools (in `tool/helpers/`)
+
+Use these instead of re-deriving them:
+`words.py` (word-level lookup for cut edges and payoff-word sync) · `find_dead_air.py`
+(acoustic range ends — ASR word boxes overrun the audio badly on this shoot) ·
+`fix_windows.py` (output-timeline beat windows on render.py's real 24fps grid,
+`ceil(nominal*24)/24`) · `check_overlay_timing.py` (overlay vs its beat) ·
+`check_overlay_files.py` (existence / declared-vs-actual duration / staleness) ·
+`check_fade.py` (entrance + fade on the rendered alpha plane) · `check_caption_band.py`
+(what each overlay actually composites behind the captions) · `build_sfx.py`.
+
+
 ## Workflow
 
 1. Read the EDL. Compute each beat's output-timeline start/end from the cumulative sum of
@@ -324,6 +561,11 @@ it before building anything:
    it sensibly within its beat (starts shortly after the beat begins; doesn't need to run
    to the beat's end — see rule 1).
 5. Composite + remix per the normal `render.py` pipeline.
+6. Run the tool suite: `check_overlay_files.py`, `check_fade.py`, `check_caption_band.py`,
+   `check_overlay_timing.py`. Then check the JUNCTIONS on the composited output.
+7. Re-run the freshness check (rule 9) IMMEDIATELY before the final render, not once at the
+   start — it caught a composite built against an overlay that had re-rendered 12 minutes
+   earlier, in this batch.
 
 ## Self-check before calling it done (run this, report the findings)
 
@@ -388,4 +630,14 @@ it before building anything:
   mid-sweep (a `hyperframes snapshot` at 3-4 timestamps across the rotation's active
   window) and look at them directly. If it warps or vanishes, switch to the trig/onUpdate
   pattern in rule 13 rather than tweaking transformOrigin values and hoping.
+- **Format-is-measured audit:** for every non-takeover slot, measure mean alpha on the
+  rendered file and confirm live footage is genuinely visible. A stack of "subtle" full-frame
+  layers adds up to an opaque one.
+- **Junction audit:** export every frame at the output frame rate across each overlay
+  boundary in the COMPOSITED file and confirm none is bare footage or near-black.
+- **Tease-chip grep by ELEMENT** (`class="tease`, `id="tease`, `<span>Next`) across every
+  composition — the words never appear literally (`&mdash;` + CSS uppercase).
+- **SFX audibility** by gain-fitted difference at 32 kHz, never by comparing peaks.
+- Before concluding a check has found a defect, confirm the CHECK is sound — a max-alpha fade
+  test and an 8 kHz audibility test each produced false failures in this batch.
 - Report all findings before presenting the result — if something's off, fix it first.

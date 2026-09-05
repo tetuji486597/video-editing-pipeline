@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "sources": {
+    "12": "C:/Users/gordo/Downloads/12.mp4"
+  },
+  "ranges": [
+    {
+      "source": "12", "start": 3.29, "end": 10.00,
+      "beat": "HOOK",
+      "quote": "In two milliseconds, Google searches a billion rows. That shouldn't be possible until you understand indexes.",
+      "reason": "Take 2 of 2. Take 1 (1.48) is a one-word false start ('In,'). This take runs continuously into the 'That shouldn't be possible' line with a natural 0.70s beat between the two sentences, so hook + turn come from one unbroken delivery."
+    },
+    {
+      "source": "12", "start": 16.45, "end": 24.76,
+      "beat": "PROBLEM",
+      "quote": "Here's the problem. Without an index, the database does a full scan. It reads every single row to find matches. At a billion rows, it's hopeless.",
+      "reason": "Single clean take, only delivery. The 0.56s gap before 'it's hopeless' is a deliberate rhetorical beat and is kept. Trailing air verified acoustically: speech stops at 24.698, only 18ms before this padded end."
+    },
+    {
+      "source": "12", "start": 36.21, "end": 43.76,
+      "beat": "BUILD",
+      "quote": "An index is a separate sorted structure, usually a B-tree, that points to where data lives, like the index at the back of a book.",
+      "reason": "Take 2 of 2. Take 1 (30.92) stops after 'a separate sorted structure' without reaching the B-tree or the book analogy. This take is complete and clean."
+    },
+    {
+      "source": "12", "start": 50.67, "end": 67.12,
+      "beat": "NEW_COMPONENT",
+      "quote": "Instead of reading every page, the database does a few quick comparisons to jump straight to the rows that it needs. The trade-off is that indexes take space and slightly slow down writes because every insert must update the index too. So you index what you search, not everything.",
+      "reason": "Take 2 of 2. Take 1 (45.40) flubs the opening as 'Instead of RE-reading every page' and aborts. This take is one continuous 16.45s delivery covering the mechanism, the trade-off AND the rule of thumb, so no splice is needed. Longest beat in the episode, matching the script's own 0:20-0:38 allocation."
+    },
+    {
+      "source": "12", "start": 98.07, "end": 107.63,
+      "beat": "AI_ANGLE",
+      "quote": "Vector databases extend this exact idea with specialized indexes like HNSW, so AI can do nearest neighbor search over billions of embeddings just as fast.",
+      "reason": "Take 4 of 4, and the only complete one. Take 1 (68.74) stops at 'extend this exact idea'; take 2 (74.20) is a stumble ('Vector databases, vector databases.'); take 3 (78.72-90.52) repeats 'nearest neighbor search' twice across a break. END TRIMMED: Scribe boxes the final word 'fast.' to 107.94 but speech stops acoustically at 107.553, so ending at 107.63 removes 0.31s of trailing air while leaving ~80ms after the final consonant. Same ASR-box-vs-audio issue that produced the reported dead silence in EP13."
+    },
+    {
+      "source": "12", "start": 128.03, "end": 135.27,
+      "beat": "PAYOFF",
+      "quote": "An index is just a table of contents that your database reads first. Next episode, we'll talk about why you get too many requests.",
+      "reason": "Take 2 of 2, and the only one that lands both halves in a single unbroken delivery. The earlier attempt is fragmented across three pieces (113.32 payoff line, 117.84 'Next,', 118.88 'we'll talk about how--' flub, 120.32 recovery) and would need a splice. This take needs none. Says 'just a table of contents' and 'Next episode' vs the script's 'a table of contents' / 'Next' — kept as delivered."
+    }
+  ],
+  "grade": "eq=contrast=1.15:saturation=1.05,colorbalance=rs=-0.04:gs=0.02:bs=0.05:rm=0.01:gm=0.0:bm=-0.01:rh=0.06:gh=0.02:bh=-0.06,vignette=angle=0.7,unsharp=5:5",
+  "overlays": [
+    {"file": "animations/slot_title/render.webm",          "start_in_output":  0.000, "duration": 2.766},
+    {"file": "animations/slot_hook/render.webm",           "start_in_output":  2.800, "duration": 3.500},
+    {"file": "animations/slot_problem/render.webm",        "start_in_output":  7.600, "duration": 5.800},
+    {"file": "animations/slot_build/render.webm",          "start_in_output": 15.900, "duration": 4.800},
+    {"file": "animations/slot_new_component/render.webm",  "start_in_output": 23.500, "duration": 8.700},
+    {"file": "animations/slot_ai_angle/render.webm",       "start_in_output": 40.000, "duration": 6.000},
+    {"file": "animations/slot_payoff/render.webm",         "start_in_output": 49.500, "duration": 4.500}
+  ],
+  "subtitles": "master.ass",
+  "total_duration_s": 56.06,
+  "_beat_windows_output_timeline": {
+    "HOOK":           [0.000,  6.750],
+    "PROBLEM":        [6.750, 15.083],
+    "BUILD":         [15.083, 22.667],
+    "NEW_COMPONENT": [22.667, 39.125],
+    "AI_ANGLE":      [39.125, 48.708],
+    "PAYOFF":        [48.708, 55.958]
+  },
+  "_overlay_gap_audit": "title->hook +0.034 (the identical handoff shipped in ep4/ep5/ep6/ep13); hook->problem +1.300; problem->build +2.500; build->new_component +2.800; new_component->ai_angle +7.800; ai_angle->payoff +3.500. No small accidental gaps (rule 12's EP11 bug was 170ms); every other gap is deliberate breathing room. Coverage 36.07/56.06 = 64%.",
+  "_format_mix": "5 distinct formats, assigned at planning stage per rule 7: HOOK full-screen counter takeover · PROBLEM full-screen table-scan takeover · BUILD real-photo-anchored (book) · NEW_COMPONENT data-viz B-tree takeover · AI_ANGLE embedding point-cloud takeover · PAYOFF transparent two-band overlay over live footage. Signature colour violet #8b5cf6, distinct from EP13 amber, EP6 teal, EP4 red/orange, EP1 blue.",
+  "_dead_air_audit": "Every range end checked acoustically with silencedetect, not trusted from ASR word boxes (the EP13 lesson). HOOK +0.050s, PROBLEM +0.018s, BUILD +0.020s, NEW_COMPONENT +0.001s, PAYOFF none (speech runs to the end). Only AI_ANGLE carried real trailing air (+0.387s) and was trimmed. Internal gaps of 0.46-0.80s in HOOK/PROBLEM/BUILD/NEW_COMPONENT/PAYOFF are natural rhetorical beats and are kept.",
+  "_face_measurement": "Grid-measured on THIS footage, which is framed higher than EP13's: hair tips ~60, hairline ~560, eyes ~700, mouth ~1010-1060, chin ~1150, chest 1200+. Caption zone 1330-1570. Unlike EP13 (chin at ~1300, zero clearance), EP12 has a usable ~180px band between chin and captions, so a transparent lower-third is viable here in addition to the over-the-hair band (y=180-560)."
+}

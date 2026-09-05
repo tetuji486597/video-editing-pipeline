@@ -1,0 +1,760 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+
+      :root {
+        --violet: #8b5cf6;
+        --violet-lt: #a78bfa;
+        --amber: #f59e0b;
+        --amber-lt: #fbbf24;
+        --ghost: #64748b;
+        --ghost-deep: #475569;
+        --text: #f3f4f6;
+        --dim: #7d8590;
+        --bg: #0a0e16;
+      }
+
+      #root { position: relative; }
+      .fill { position: absolute; inset: 0; }
+      .mono { font-family: ui-monospace, Menlo, monospace; }
+
+      /* ================= background ================= */
+      #bg-fill {
+        background: radial-gradient(122% 92% at 50% 30%, #141a26 0%, #0d1220 40%, #0a0e16 74%, #05070c 100%);
+      }
+      #bg-glow-violet {
+        position: absolute;
+        left: 540px; top: 700px;
+        width: 1500px; height: 1500px;
+        margin-left: -750px; margin-top: -750px;
+        background: radial-gradient(circle, rgba(139, 92, 246, 0.17) 0%, rgba(139, 92, 246, 0) 62%);
+      }
+      #bg-glow-amber {
+        position: absolute;
+        left: 540px; top: 900px;
+        width: 1600px; height: 1600px;
+        margin-left: -800px; margin-top: -800px;
+        background: radial-gradient(circle, rgba(245, 158, 11, 0.16) 0%, rgba(245, 158, 11, 0) 60%);
+        opacity: 0;
+      }
+      #vignette {
+        background: linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0.6) 0%,
+          rgba(0, 0, 0, 0) 13%,
+          rgba(0, 0, 0, 0) 76%,
+          rgba(0, 0, 0, 0.72) 100%
+        );
+      }
+
+      /* ================= camera ================= */
+      #scene { transform-origin: 540px 722px; }
+      #phase1 { transform-origin: 540px 722px; }
+
+      /* ================= shared kicker ================= */
+      .kicker {
+        position: absolute;
+        left: 0; top: 218px;
+        width: 1080px; height: 52px;
+        text-align: center;
+        font-size: 42px;
+        font-weight: 800;
+        letter-spacing: 9px;
+        line-height: 52px;
+        white-space: nowrap;
+      }
+      #p1-kicker { color: var(--violet-lt); text-shadow: 0 0 26px rgba(139, 92, 246, 0.5); }
+      #p2-kicker { color: var(--amber-lt); text-shadow: 0 0 26px rgba(245, 158, 11, 0.5); opacity: 0; }
+
+      /* ================= phase 1 : query token ================= */
+      #query-token {
+        position: absolute;
+        left: 0; top: 313px;
+        width: 1080px; height: 84px;
+        text-align: center;
+        opacity: 0;
+      }
+      #query-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 22px;
+        height: 84px;
+        padding: 0 34px;
+        border-radius: 16px;
+        background: rgba(20, 16, 38, 0.86);
+        border: 1.5px solid rgba(139, 92, 246, 0.55);
+        box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5), 0 0 30px rgba(139, 92, 246, 0.22);
+        white-space: nowrap;
+      }
+      #query-pill .qlabel {
+        font-size: 20px;
+        font-weight: 800;
+        letter-spacing: 4px;
+        color: var(--violet-lt);
+      }
+      #query-pill .qkey {
+        font-size: 40px;
+        font-weight: 700;
+        color: var(--text);
+        letter-spacing: 1px;
+      }
+
+      /* ================= phase 1 : tree ================= */
+      #tree { position: absolute; left: 90px; top: 440px; width: 900px; height: 578px; }
+      #tree-cam { position: absolute; inset: 0; transform-origin: 50% 50%; }
+      #tree-svg { position: absolute; inset: 0; width: 900px; height: 578px; overflow: visible; }
+
+      .node-box {
+        fill: rgba(17, 22, 36, 0.94);
+        stroke: rgba(139, 92, 246, 0.3);
+        stroke-width: 1.5;
+      }
+      .node-tag {
+        fill: #9aa4b3;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 3px;
+        font-family: Inter, sans-serif;
+        text-anchor: middle;
+      }
+      .cell-box {
+        fill: rgba(139, 92, 246, 0.08);
+        stroke: rgba(139, 92, 246, 0.24);
+        stroke-width: 1;
+      }
+      .cell-key {
+        fill: #cbd5e1;
+        font-family: ui-monospace, Menlo, monospace;
+        text-anchor: middle;
+      }
+      .row-box {
+        fill: rgba(139, 92, 246, 0.06);
+        stroke: rgba(139, 92, 246, 0.18);
+        stroke-width: 1;
+      }
+      .row-key {
+        fill: #b6c2d4;
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 18px;
+      }
+      .row-wire { stroke: rgba(139, 92, 246, 0.42); stroke-width: 2; }
+      .row-ptr { fill: rgba(139, 92, 246, 0.55); }
+
+      .edge {
+        fill: none;
+        stroke: rgba(139, 92, 246, 0.32);
+        stroke-width: 2;
+        stroke-linecap: round;
+      }
+      .edge-hot {
+        fill: none;
+        stroke: var(--violet-lt);
+        stroke-width: 4.5;
+        stroke-linecap: round;
+        filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.9));
+      }
+
+      .cmp-flash {
+        fill: rgba(148, 163, 184, 0.22);
+        stroke: #94a3b8;
+        stroke-width: 2;
+        opacity: 0;
+      }
+      .hit-flash {
+        fill: rgba(139, 92, 246, 0.34);
+        stroke: var(--violet-lt);
+        stroke-width: 2.5;
+        opacity: 0;
+        filter: drop-shadow(0 0 12px rgba(139, 92, 246, 0.8));
+      }
+      .hit-outline {
+        fill: none;
+        stroke: var(--violet-lt);
+        stroke-width: 3;
+        opacity: 0;
+        filter: drop-shadow(0 0 14px rgba(139, 92, 246, 0.7));
+      }
+
+      #found-chip { opacity: 0; }
+      #found-chip rect {
+        fill: rgba(139, 92, 246, 0.24);
+        stroke: var(--violet-lt);
+        stroke-width: 2;
+      }
+      #found-chip text {
+        fill: #ede9fe;
+        font-family: Inter, sans-serif;
+        font-size: 24px;
+        font-weight: 800;
+        letter-spacing: 5px;
+        text-anchor: middle;
+      }
+      #found-chip path { stroke: var(--violet-lt); stroke-width: 3.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      #found-wire { stroke: rgba(139, 92, 246, 0.55); stroke-width: 2; }
+
+      /* ================= phase 1 : counter ================= */
+      #counter-panel {
+        position: absolute;
+        left: 90px; top: 1061px;
+        width: 900px; height: 154px;
+        padding: 0 30px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-radius: 16px;
+        background: rgba(13, 17, 28, 0.55);
+        border: 1px solid rgba(139, 92, 246, 0.18);
+        opacity: 0;
+      }
+      .cnt-left { display: flex; flex-direction: column; gap: 8px; }
+      .cnt-label {
+        font-size: 26px; font-weight: 800; letter-spacing: 5px;
+        color: var(--dim); height: 30px; line-height: 30px; white-space: nowrap;
+      }
+      #cnt-num {
+        position: relative;
+        width: 84px; height: 92px;
+      }
+      #cnt-num .d {
+        position: absolute; left: 0; top: 0;
+        width: 84px; height: 92px;
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 84px; font-weight: 700; line-height: 92px;
+        text-align: center;
+        color: var(--violet-lt);
+        text-shadow: 0 0 30px rgba(139, 92, 246, 0.6);
+        opacity: 0;
+      }
+      #cnt-num .d.on { opacity: 1; }
+
+      .cnt-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+      .ghost-num {
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 40px; font-weight: 700; line-height: 46px;
+        color: var(--ghost); white-space: nowrap;
+      }
+      .ghost-label {
+        font-size: 22px; font-weight: 700; letter-spacing: 2px; line-height: 26px;
+        color: var(--ghost); white-space: nowrap;
+      }
+
+      /* ================= phase 2 : balance scale ================= */
+      #scale-graphic {
+        position: absolute;
+        left: 60px; top: 313px;
+        width: 960px; height: 234px;
+        opacity: 0;
+      }
+      #scale-svg { position: absolute; inset: 0; width: 960px; height: 234px; overflow: visible; }
+      #beam-line { stroke: #d1a05a; stroke-width: 12; stroke-linecap: round; }
+      .rod { stroke: rgba(245, 158, 11, 0.55); stroke-width: 3; }
+      #fulcrum { fill: rgba(30, 24, 12, 0.95); stroke: rgba(245, 158, 11, 0.5); stroke-width: 2; }
+      #fulcrum-plate { fill: rgba(245, 158, 11, 0.45); }
+      #pivot-dot { fill: var(--amber-lt); }
+      #ref-line { stroke: rgba(245, 158, 11, 0.22); stroke-width: 2; stroke-dasharray: 8 10; }
+
+      #pan-left rect { fill: rgba(48, 32, 6, 0.92); stroke: var(--amber); stroke-width: 2.5; }
+      #pan-left text { fill: var(--amber-lt); font-family: Inter, sans-serif; font-size: 34px; font-weight: 800; letter-spacing: 3px; text-anchor: middle; }
+      #pan-left path { fill: var(--amber-lt); }
+
+      #pan-right rect { fill: rgba(20, 24, 32, 0.92); stroke: #64748b; stroke-width: 2; }
+      #pan-right text { fill: #a3aebf; font-family: Inter, sans-serif; font-size: 25px; font-weight: 700; letter-spacing: 2px; text-anchor: middle; }
+      #pan-right path { fill: #8595a8; }
+
+      /* ================= phase 2 : cost chips ================= */
+      #cost-chips {
+        position: absolute;
+        left: 0; top: 590px;
+        width: 1080px; height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 40px;
+      }
+      .cost-chip {
+        height: 80px;
+        padding: 0 32px;
+        display: inline-flex;
+        align-items: center;
+        border-radius: 14px;
+        background: rgba(34, 24, 6, 0.7);
+        border: 1.5px solid rgba(245, 158, 11, 0.5);
+        box-shadow: 0 16px 38px rgba(0, 0, 0, 0.5);
+        font-size: 34px;
+        font-weight: 800;
+        letter-spacing: 2px;
+        color: var(--amber-lt);
+        white-space: nowrap;
+        opacity: 0;
+      }
+
+      /* ================= phase 2 : hero line ================= */
+      #hero-wrap { position: absolute; left: 0; top: 713px; width: 1080px; height: 514px; }
+      #hero-glow {
+        position: absolute;
+        left: 140px; top: 0;
+        width: 800px; height: 514px;
+        background: radial-gradient(ellipse at 50% 50%, rgba(245, 158, 11, 0.34) 0%, rgba(245, 158, 11, 0) 66%);
+        opacity: 0;
+      }
+      #hero-text { position: absolute; left: 90px; top: 17px; width: 900px; text-align: center; }
+      .hero-line {
+        font-size: 110px;
+        line-height: 120px;
+        font-weight: 900;
+        letter-spacing: -1px;
+        white-space: nowrap;
+        color: var(--text);
+        text-shadow: 0 0 28px rgba(245, 158, 11, 0.4);
+        opacity: 0;
+      }
+      .hero-line.hl-amber { color: var(--amber-lt); text-shadow: 0 0 30px rgba(245, 158, 11, 0.55); }
+
+      /* ================= overlays ================= */
+      #flash { background: #ffffff; opacity: 0; pointer-events: none; }
+      #grain { opacity: 1; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="8.7"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="main-clip" class="clip" data-start="0" data-duration="8.7" data-track-index="1">
+        <div id="content-all" class="fill">
+          <!-- ============ background (opaque from frame 0) ============ -->
+          <div id="bg-fill" class="fill">
+            <div id="bg-glow-violet"></div>
+            <div id="bg-glow-amber"></div>
+            <div id="vignette" class="fill"></div>
+          </div>
+
+          <!-- ============ camera ============ -->
+          <div id="scene" class="fill">
+            <!-- ---------- PHASE 1 : JUMP, DON'T SCAN ---------- -->
+            <div id="phase1" class="fill">
+              <div id="p1-kicker" class="kicker">JUMP, DON'T SCAN</div>
+
+              <div id="query-token">
+                <div id="query-pill">
+                  <span class="qlabel">QUERY</span>
+                  <span class="qkey mono">id = 847</span>
+                </div>
+              </div>
+
+              <div id="tree">
+                <div id="tree-cam">
+                  <svg id="tree-svg" viewBox="0 0 900 578">
+                    <!-- edges: root -> internal -->
+                    <path class="edge edge-l1" id="e1" d="M336,96 L150,210" />
+                    <path class="edge edge-l1" id="e2" d="M450,96 L450,210" />
+                    <path class="edge edge-l1" id="e3" d="M564,96 L750,210" />
+
+                    <!-- edges: internal -> leaves -->
+                    <path class="edge edge-l2" id="f1" d="M94.5,298 L65,410" />
+                    <path class="edge edge-l2" id="f2" d="M205.5,298 L219,410" />
+                    <path class="edge edge-l2" id="f3" d="M394.5,298 L373,410" />
+                    <path class="edge edge-l2" id="f4" d="M505.5,298 L527,410" />
+                    <path class="edge edge-l2" id="f5" d="M694.5,298 L681,410" />
+                    <path class="edge edge-l2" id="f6" d="M805.5,298 L835,410" />
+
+                    <!-- hot path edges (drawn on match) -->
+                    <path class="edge-hot" id="h1" d="M564,96 L750,210" />
+                    <path class="edge-hot" id="h2" d="M694.5,298 L681,410" />
+
+                    <!-- ---- ROOT ---- -->
+                    <g id="g-root" opacity="0">
+                      <rect class="node-box" x="270" y="0" width="360" height="96" rx="14" />
+                      <text class="node-tag" x="450" y="26">ROOT</text>
+                    </g>
+                    <g class="root-cell" opacity="0">
+                      <rect class="cell-box" x="282" y="38" width="108" height="44" rx="8" />
+                      <text class="cell-key" x="336" y="66" font-size="20">&lt; 400</text>
+                    </g>
+                    <g class="root-cell" opacity="0">
+                      <rect class="cell-box" x="396" y="38" width="108" height="44" rx="8" />
+                      <text class="cell-key" x="450" y="66" font-size="20">400-799</text>
+                    </g>
+                    <g class="root-cell" opacity="0">
+                      <rect class="cell-box" x="510" y="38" width="108" height="44" rx="8" />
+                      <text class="cell-key" x="564" y="66" font-size="20">800+</text>
+                    </g>
+                    <rect class="cmp-flash" id="rc0-cmp" x="282" y="38" width="108" height="44" rx="8" />
+                    <rect class="cmp-flash" id="rc1-cmp" x="396" y="38" width="108" height="44" rx="8" />
+                    <rect class="cmp-flash" id="rc2-cmp" x="510" y="38" width="108" height="44" rx="8" />
+                    <rect class="hit-flash" id="rc2-hit" x="510" y="38" width="108" height="44" rx="8" />
+
+                    <!-- ---- INTERNAL LEVEL ---- -->
+                    <g class="n1node" opacity="0">
+                      <rect class="node-box" x="30" y="210" width="240" height="88" rx="14" />
+                      <text class="node-tag" x="150" y="232">INDEX PAGE</text>
+                      <rect class="cell-box" x="42" y="244" width="105" height="42" rx="8" />
+                      <text class="cell-key" x="94.5" y="272" font-size="19">&lt; 200</text>
+                      <rect class="cell-box" x="153" y="244" width="105" height="42" rx="8" />
+                      <text class="cell-key" x="205.5" y="272" font-size="19">200-399</text>
+                    </g>
+                    <g class="n1node" opacity="0">
+                      <rect class="node-box" x="330" y="210" width="240" height="88" rx="14" />
+                      <text class="node-tag" x="450" y="232">INDEX PAGE</text>
+                      <rect class="cell-box" x="342" y="244" width="105" height="42" rx="8" />
+                      <text class="cell-key" x="394.5" y="272" font-size="19">400-599</text>
+                      <rect class="cell-box" x="453" y="244" width="105" height="42" rx="8" />
+                      <text class="cell-key" x="505.5" y="272" font-size="19">600-799</text>
+                    </g>
+                    <g class="n1node" opacity="0">
+                      <rect class="node-box" x="630" y="210" width="240" height="88" rx="14" />
+                      <text class="node-tag" x="750" y="232">INDEX PAGE</text>
+                      <rect class="cell-box" x="642" y="244" width="105" height="42" rx="8" />
+                      <text class="cell-key" x="694.5" y="272" font-size="19">800-899</text>
+                      <rect class="cell-box" x="753" y="244" width="105" height="42" rx="8" />
+                      <text class="cell-key" x="805.5" y="272" font-size="19">900+</text>
+                    </g>
+                    <rect class="hit-outline" id="n3-hit" x="630" y="210" width="240" height="88" rx="14" />
+                    <rect class="cmp-flash" id="n3c0-cmp" x="642" y="244" width="105" height="42" rx="8" />
+                    <rect class="cmp-flash" id="n3c1-cmp" x="753" y="244" width="105" height="42" rx="8" />
+                    <rect class="hit-flash" id="n3c0-hit" x="642" y="244" width="105" height="42" rx="8" />
+
+                    <!-- ---- LEAF LEVEL ---- -->
+                    <g class="leafnode" opacity="0">
+                      <rect class="node-box" x="2" y="410" width="126" height="114" rx="12" />
+                      <rect class="row-box" x="10" y="418" width="110" height="28" rx="6" />
+                      <text class="row-key" x="20" y="438">104</text>
+                      <line class="row-wire" x1="60" y1="432" x2="88" y2="432" />
+                      <rect class="row-ptr" x="96" y="427" width="10" height="10" rx="2" />
+                      <rect class="row-box" x="10" y="450" width="110" height="28" rx="6" />
+                      <text class="row-key" x="20" y="470">152</text>
+                      <line class="row-wire" x1="60" y1="464" x2="88" y2="464" />
+                      <rect class="row-ptr" x="96" y="459" width="10" height="10" rx="2" />
+                      <rect class="row-box" x="10" y="482" width="110" height="28" rx="6" />
+                      <text class="row-key" x="20" y="502">187</text>
+                      <line class="row-wire" x1="60" y1="496" x2="88" y2="496" />
+                      <rect class="row-ptr" x="96" y="491" width="10" height="10" rx="2" />
+                    </g>
+                    <g class="leafnode" opacity="0">
+                      <rect class="node-box" x="156" y="410" width="126" height="114" rx="12" />
+                      <rect class="row-box" x="164" y="418" width="110" height="28" rx="6" />
+                      <text class="row-key" x="174" y="438">210</text>
+                      <line class="row-wire" x1="214" y1="432" x2="242" y2="432" />
+                      <rect class="row-ptr" x="250" y="427" width="10" height="10" rx="2" />
+                      <rect class="row-box" x="164" y="450" width="110" height="28" rx="6" />
+                      <text class="row-key" x="174" y="470">288</text>
+                      <line class="row-wire" x1="214" y1="464" x2="242" y2="464" />
+                      <rect class="row-ptr" x="250" y="459" width="10" height="10" rx="2" />
+                      <rect class="row-box" x="164" y="482" width="110" height="28" rx="6" />
+                      <text class="row-key" x="174" y="502">341</text>
+                      <line class="row-wire" x1="214" y1="496" x2="242" y2="496" />
+                      <rect class="row-ptr" x="250" y="491" width="10" height="10" rx="2" />
+                    </g>
+                    <g class="leafnode" opacity="0">
+                      <rect class="node-box" x="310" y="410" width="126" height="114" rx="12" />
+                      <rect class="row-box" x="318" y="418" width="110" height="28" rx="6" />
+                      <text class="row-key" x="328" y="438">402</text>
+                      <line class="row-wire" x1="368" y1="432" x2="396" y2="432" />
+                      <rect class="row-ptr" x="404" y="427" width="10" height="10" rx="2" />
+                      <rect class="row-box" x="318" y="450" width="110" height="28" rx="6" />
+                      <text class="row-key" x="328" y="470">455</text>
+                      <line class="row-wire" x1="368" y1="464" x2="396" y2="464" />
+                      <rect class="row-ptr" x="404" y="459" width="10" height="10" rx="2" />
+                      <rect class="row-box" x="318" y="482" width="110" height="28" rx="6" />
+                      <text class="row-key" x="328" y="502">511</text>
+                      <line class="row-wire" x1="368" y1="496" x2="396" y2="496" />
+                      <rect class="row-ptr" x="404" y="491" width="10" height="10" rx="2" />
+                    </g>
+                    <g class="leafnode" opacity="0">
+                      <rect class="node-box" x="464" y="410" width="126" height="114" rx="12" />
+                      <rect class="row-box" x="472" y="418" width="110" height="28" rx="6" />
+                      <text class="row-key" x="482" y="438">604</text>
+                      <line class="row-wire" x1="522" y1="432" x2="550" y2="432" />
+                      <rect class="row-ptr" x="558" y="427" width="10" height="10" rx="2" />
+                      <rect class="row-box" x="472" y="450" width="110" height="28" rx="6" />
+                      <text class="row-key" x="482" y="470">663</text>
+                      <line class="row-wire" x1="522" y1="464" x2="550" y2="464" />
+                      <rect class="row-ptr" x="558" y="459" width="10" height="10" rx="2" />
+                      <rect class="row-box" x="472" y="482" width="110" height="28" rx="6" />
+                      <text class="row-key" x="482" y="502">720</text>
+                      <line class="row-wire" x1="522" y1="496" x2="550" y2="496" />
+                      <rect class="row-ptr" x="558" y="491" width="10" height="10" rx="2" />
+                    </g>
+                    <g class="leafnode" opacity="0">
+                      <rect class="node-box" x="618" y="410" width="126" height="114" rx="12" />
+                      <rect class="row-box" x="626" y="418" width="110" height="28" rx="6" />
+                      <text class="row-key" x="636" y="438">812</text>
+                      <line class="row-wire" x1="676" y1="432" x2="704" y2="432" />
+                      <rect class="row-ptr" x="712" y="427" width="10" height="10" rx="2" />
+                      <rect class="row-box" x="626" y="450" width="110" height="28" rx="6" />
+                      <text class="row-key" x="636" y="470">847</text>
+                      <line class="row-wire" x1="676" y1="464" x2="704" y2="464" />
+                      <rect class="row-ptr" x="712" y="459" width="10" height="10" rx="2" />
+                      <rect class="row-box" x="626" y="482" width="110" height="28" rx="6" />
+                      <text class="row-key" x="636" y="502">883</text>
+                      <line class="row-wire" x1="676" y1="496" x2="704" y2="496" />
+                      <rect class="row-ptr" x="712" y="491" width="10" height="10" rx="2" />
+                    </g>
+                    <g class="leafnode" opacity="0">
+                      <rect class="node-box" x="772" y="410" width="126" height="114" rx="12" />
+                      <rect class="row-box" x="780" y="418" width="110" height="28" rx="6" />
+                      <text class="row-key" x="790" y="438">905</text>
+                      <line class="row-wire" x1="830" y1="432" x2="858" y2="432" />
+                      <rect class="row-ptr" x="866" y="427" width="10" height="10" rx="2" />
+                      <rect class="row-box" x="780" y="450" width="110" height="28" rx="6" />
+                      <text class="row-key" x="790" y="470">941</text>
+                      <line class="row-wire" x1="830" y1="464" x2="858" y2="464" />
+                      <rect class="row-ptr" x="866" y="459" width="10" height="10" rx="2" />
+                      <rect class="row-box" x="780" y="482" width="110" height="28" rx="6" />
+                      <text class="row-key" x="790" y="502">978</text>
+                      <line class="row-wire" x1="830" y1="496" x2="858" y2="496" />
+                      <rect class="row-ptr" x="866" y="491" width="10" height="10" rx="2" />
+                    </g>
+
+                    <rect class="hit-outline" id="l4-hit" x="618" y="410" width="126" height="114" rx="12" />
+                    <rect class="cmp-flash" id="r0-cmp" x="626" y="418" width="110" height="28" rx="6" />
+                    <rect class="cmp-flash" id="r2-cmp" x="626" y="482" width="110" height="28" rx="6" />
+                    <rect class="hit-flash" id="r1-hit" x="626" y="450" width="110" height="28" rx="6" />
+
+                    <!-- ---- FOUND chip ---- -->
+                    <g id="found-chip">
+                      <line id="found-wire" x1="681" y1="524" x2="681" y2="532" />
+                      <rect x="586" y="532" width="190" height="44" rx="12" />
+                      <path d="M608,555 L616,563 L630,545" />
+                      <text x="706" y="563">FOUND</text>
+                    </g>
+                  </svg>
+                </div>
+              </div>
+
+              <div id="counter-panel">
+                <div class="cnt-left">
+                  <div class="cnt-label">COMPARISONS</div>
+                  <div id="cnt-num" data-layout-allow-overlap="true">
+                    <span class="d on" id="d0" data-layout-allow-overlap="true">0</span>
+                    <span class="d" id="d1" data-layout-allow-overlap="true">1</span>
+                    <span class="d" id="d2" data-layout-allow-overlap="true">2</span>
+                    <span class="d" id="d3" data-layout-allow-overlap="true">3</span>
+                  </div>
+                </div>
+                <div class="cnt-right">
+                  <div class="ghost-num">vs 1,000,000,000</div>
+                  <div class="ghost-label">ROWS SCANNED WITHOUT AN INDEX</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ---------- PHASE 2 : WHAT IT COSTS ---------- -->
+            <div id="phase2" class="fill">
+              <div id="p2-kicker" class="kicker">THE TRADE-OFF</div>
+
+              <div id="scale-graphic">
+                <svg id="scale-svg" viewBox="0 0 820 200">
+                  <line id="ref-line" x1="130" y1="50" x2="690" y2="50" />
+                  <polygon id="fulcrum" points="366,144 454,144 410,56" />
+                  <rect id="fulcrum-plate" x="336" y="144" width="148" height="9" rx="4" />
+
+                  <line class="rod" id="rod-left" x1="170" y1="50" x2="170" y2="82" />
+                  <line class="rod" id="rod-right" x1="650" y1="50" x2="650" y2="82" />
+                  <line id="beam-line" x1="170" y1="50" x2="650" y2="50" />
+                  <circle id="pivot-dot" cx="410" cy="50" r="9" />
+
+                  <g id="pan-left" transform="translate(170,82)">
+                    <rect x="-100" y="0" width="200" height="64" rx="12" />
+                    <path d="M-78,24 L-58,24 L-68,42 Z" />
+                    <text x="14" y="42">READS</text>
+                  </g>
+                  <g id="pan-right" transform="translate(650,82)">
+                    <rect x="-100" y="0" width="200" height="64" rx="12" />
+                    <path d="M-80,40 L-60,40 L-70,22 Z" />
+                    <text x="18" y="27">WRITES +</text>
+                    <text x="18" y="53">SPACE</text>
+                  </g>
+                </svg>
+              </div>
+
+              <div id="cost-chips">
+                <div class="cost-chip" id="chip-1">+ DISK SPACE</div>
+                <div class="cost-chip" id="chip-2">SLOWER INSERTS</div>
+              </div>
+
+              <div id="hero-wrap">
+                <div id="hero-glow"></div>
+                <div id="hero-text">
+                  <div class="hero-line">INDEX WHAT</div>
+                  <div class="hero-line">YOU SEARCH,</div>
+                  <div class="hero-line hl-amber">NOT</div>
+                  <div class="hero-line hl-amber">EVERYTHING</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="flash" class="fill"></div>
+          <div id="grain" class="fill"></div>
+        </div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter">
+        <feTurbulence type="fractalNoise" baseFrequency="0.82" numOctaves="2" stitchTiles="stitch" result="noise" />
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.042 0" />
+      </filter>
+    </svg>
+
+    <script>
+      document.getElementById("grain").style.filter = "url(#grain-filter)";
+
+      /* ---------- deterministic SVG line-draw setup ---------- */
+      var EDGE_IDS = ["e1", "e2", "e3", "f1", "f2", "f3", "f4", "f5", "f6", "h1", "h2"];
+      EDGE_IDS.forEach(function (id) {
+        var el = document.getElementById(id);
+        var len = el.getTotalLength();
+        el.style.strokeDasharray = String(len);
+        el.style.strokeDashoffset = String(len);
+      });
+
+      /* ---------- balance-scale beam (numeric angle -> endpoint coords) ---------- */
+      var PIVX = 410, PIVY = 50, HALF = 240, ROD = 32;
+      var beamLine = document.getElementById("beam-line");
+      var rodLeft = document.getElementById("rod-left");
+      var rodRight = document.getElementById("rod-right");
+      var panLeft = document.getElementById("pan-left");
+      var panRight = document.getElementById("pan-right");
+      var beamState = { a: 0 };
+
+      function applyBeam() {
+        var r = (beamState.a * Math.PI) / 180;
+        var dx = HALF * Math.cos(r);
+        var dy = HALF * Math.sin(r);
+        var lx = PIVX - dx, ly = PIVY + dy;
+        var rx = PIVX + dx, ry = PIVY - dy;
+        beamLine.setAttribute("x1", lx);
+        beamLine.setAttribute("y1", ly);
+        beamLine.setAttribute("x2", rx);
+        beamLine.setAttribute("y2", ry);
+        rodLeft.setAttribute("x1", lx);
+        rodLeft.setAttribute("y1", ly);
+        rodLeft.setAttribute("x2", lx);
+        rodLeft.setAttribute("y2", ly + ROD);
+        rodRight.setAttribute("x1", rx);
+        rodRight.setAttribute("y1", ry);
+        rodRight.setAttribute("x2", rx);
+        rodRight.setAttribute("y2", ry + ROD);
+        panLeft.setAttribute("transform", "translate(" + lx + "," + (ly + ROD) + ")");
+        panRight.setAttribute("transform", "translate(" + rx + "," + (ry + ROD) + ")");
+      }
+      applyBeam();
+
+      /* ================= TIMELINE ================= */
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+
+      /* ---- continuous camera push-in (1.00 -> 1.06 about 540,722) ---- */
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.06, duration: 8.7, ease: "sine.inOut" }, 0);
+
+      /* =========== PHASE 1 : JUMP, DON'T SCAN (0 -> 4.0) =========== */
+      /* primary entrance at local t=0, starts at 0.5 opacity (no black flash) */
+      tl.fromTo("#p1-kicker", { opacity: 0.7, y: -16 }, { opacity: 1, y: 0, duration: 0.42, ease: "power3.out" }, 0);
+      tl.fromTo("#query-token", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.40, ease: "power3.out" }, 0.10);
+      tl.fromTo("#g-root", { opacity: 0 }, { opacity: 1, duration: 0.34, ease: "power3.out" }, 0.26);
+      tl.fromTo(".root-cell", { opacity: 0 }, { opacity: 1, duration: 0.24, ease: "power3.out", stagger: 0.06 }, 0.54);
+      tl.to(".edge-l1", { strokeDashoffset: 0, duration: 0.30, ease: "power3.out", stagger: 0.07 }, 0.72);
+      tl.fromTo(".n1node", { opacity: 0 }, { opacity: 1, duration: 0.28, ease: "power3.out", stagger: 0.075 }, 0.90);
+      tl.to(".edge-l2", { strokeDashoffset: 0, duration: 0.26, ease: "power3.out", stagger: 0.045 }, 1.10);
+      tl.fromTo(".leafnode", { opacity: 0 }, { opacity: 1, duration: 0.26, ease: "power3.out", stagger: 0.05 }, 1.28);
+      tl.fromTo("#counter-panel", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.38, ease: "power3.out" }, 1.50);
+
+      /* ambient: violet bg glow breathes (scale only; opacity reserved for the phase swap) */
+      tl.fromTo("#bg-glow-violet", { scale: 1 }, { scale: 1.12, duration: 0.90, ease: "sine.inOut", yoyo: true, repeat: 1 }, 2.10);
+
+      /* ---- the query token enters at the root (deliberate merge, fades to 0) ---- */
+      tl.to("#query-token", { y: 86, opacity: 0, duration: 0.30, ease: "power4.out" }, 1.85);
+
+      /* ---- HOP 1 : root comparisons -> match "800+" ---- */
+      tl.fromTo("#rc0-cmp", { opacity: 0 }, { opacity: 0.95, duration: 0.10, ease: "power4.out" }, 1.88);
+      tl.to("#rc0-cmp", { opacity: 0, duration: 0.16, ease: "power3.out" }, 2.00);
+      tl.fromTo("#rc1-cmp", { opacity: 0 }, { opacity: 0.95, duration: 0.10, ease: "power4.out" }, 1.98);
+      tl.to("#rc1-cmp", { opacity: 0, duration: 0.16, ease: "power3.out" }, 2.10);
+      tl.fromTo("#rc2-cmp", { opacity: 0 }, { opacity: 0.95, duration: 0.10, ease: "power4.out" }, 2.08);
+      tl.to("#rc2-cmp", { opacity: 0, duration: 0.14, ease: "power3.out" }, 2.18);
+      tl.fromTo("#rc2-hit", { opacity: 0 }, { opacity: 1, duration: 0.16, ease: "power4.out" }, 2.18);
+      tl.to("#h1", { strokeDashoffset: 0, duration: 0.24, ease: "power4.out" }, 2.22);
+      tl.fromTo("#d0", { opacity: 1 }, { opacity: 0, duration: 0.10, ease: "power4.out" }, 2.30);
+      tl.fromTo("#d1", { opacity: 0 }, { opacity: 1, duration: 0.10, ease: "power4.out" }, 2.30);
+      tl.to("#tree-cam", { scale: 1.038, y: -29, duration: 0.16, ease: "power4.out" }, 2.36);
+
+      /* ---- HOP 2 : internal-page comparisons -> match "800-899" ---- */
+      tl.fromTo("#n3-hit", { opacity: 0 }, { opacity: 1, duration: 0.14, ease: "power4.out" }, 2.46);
+      tl.fromTo("#n3c0-cmp", { opacity: 0 }, { opacity: 0.95, duration: 0.10, ease: "power4.out" }, 2.54);
+      tl.to("#n3c0-cmp", { opacity: 0, duration: 0.14, ease: "power3.out" }, 2.66);
+      tl.fromTo("#n3c1-cmp", { opacity: 0 }, { opacity: 0.95, duration: 0.10, ease: "power4.out" }, 2.64);
+      tl.to("#n3c1-cmp", { opacity: 0, duration: 0.14, ease: "power3.out" }, 2.76);
+      tl.fromTo("#n3c0-hit", { opacity: 0 }, { opacity: 1, duration: 0.16, ease: "power4.out" }, 2.76);
+      tl.to("#h2", { strokeDashoffset: 0, duration: 0.24, ease: "power4.out" }, 2.80);
+      tl.fromTo("#d1", { opacity: 1 }, { opacity: 0, duration: 0.10, ease: "power4.out" }, 2.88);
+      tl.fromTo("#d2", { opacity: 0 }, { opacity: 1, duration: 0.10, ease: "power4.out" }, 2.88);
+      tl.to("#tree-cam", { scale: 1.076, y: -58, duration: 0.16, ease: "power4.out" }, 2.94);
+
+      /* ---- HOP 3 : leaf-row comparisons -> match id 847 ---- */
+      tl.fromTo("#l4-hit", { opacity: 0 }, { opacity: 1, duration: 0.14, ease: "power4.out" }, 3.04);
+      tl.fromTo("#r0-cmp", { opacity: 0 }, { opacity: 0.95, duration: 0.10, ease: "power4.out" }, 3.12);
+      tl.to("#r0-cmp", { opacity: 0, duration: 0.14, ease: "power3.out" }, 3.24);
+      tl.fromTo("#r2-cmp", { opacity: 0 }, { opacity: 0.95, duration: 0.10, ease: "power4.out" }, 3.22);
+      tl.to("#r2-cmp", { opacity: 0, duration: 0.14, ease: "power3.out" }, 3.34);
+      tl.fromTo("#r1-hit", { opacity: 0 }, { opacity: 1, duration: 0.16, ease: "power4.out" }, 3.34);
+      tl.fromTo("#d2", { opacity: 1 }, { opacity: 0, duration: 0.10, ease: "power4.out" }, 3.42);
+      tl.fromTo("#d3", { opacity: 0 }, { opacity: 1, duration: 0.10, ease: "power4.out" }, 3.42);
+      tl.to("#tree-cam", { scale: 1.115, y: -88, duration: 0.16, ease: "power4.out" }, 3.48);
+      tl.fromTo("#found-chip", { opacity: 0 }, { opacity: 1, duration: 0.30, ease: "power3.out" }, 3.62);
+      /* target-row glow pulse: 3.66 + 2*0.18 = 4.02, well before the 8.40 fade */
+      tl.to("#r1-hit", { opacity: 0.55, duration: 0.18, ease: "sine.inOut", yoyo: true, repeat: 1 }, 3.66);
+
+      /* =========== TRANSITION : THE TRADE-OFF (~4.0) =========== */
+      tl.fromTo("#flash", { opacity: 0 }, { opacity: 0.92, duration: 0.06, ease: "power3.out" }, 3.98);
+      tl.to("#flash", { opacity: 0, duration: 0.26, ease: "power3.out" }, 4.04);
+      /* the B-tree dims and recedes (scale down only -> bounds contract) */
+      tl.to("#phase1", { opacity: 0, scale: 0.86, y: -44, duration: 0.55, ease: "power3.out" }, 4.02);
+      /* colour shift violet -> amber */
+      tl.to("#bg-glow-violet", { opacity: 0.14, duration: 0.60, ease: "power3.out" }, 4.02);
+      tl.fromTo("#bg-glow-amber", { opacity: 0 }, { opacity: 1, duration: 0.70, ease: "power3.out" }, 4.06);
+
+      /* =========== PHASE 2 : WHAT IT COSTS (4.05 -> 8.7) =========== */
+      tl.fromTo("#p2-kicker", { opacity: 0, y: -16 }, { opacity: 1, y: 0, duration: 0.40, ease: "power3.out" }, 4.30);
+      tl.fromTo("#scale-graphic", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.50, ease: "power3.out" }, 4.52);
+
+      /* balance beam: swing in, finite yoyo wobble, settle. Ends 7.49 (< 8.40). */
+      tl.to(beamState, { a: 9, duration: 0.40, ease: "power3.out", onUpdate: applyBeam }, 4.85);
+      tl.to(beamState, { a: 6.4, duration: 0.44, ease: "sine.inOut", yoyo: true, repeat: 3, onUpdate: applyBeam }, 5.25);
+      tl.to(beamState, { a: 7.5, duration: 0.48, ease: "sine.inOut", onUpdate: applyBeam }, 7.01);
+
+      /* staggered cost chips */
+      tl.fromTo("#chip-1", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.38, ease: "back.out(1.4)" }, 5.28);
+      tl.fromTo("#chip-2", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.38, ease: "back.out(1.4)" }, 5.58);
+
+      /* closing hero line */
+      tl.fromTo(".hero-line", { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.42, ease: "power3.out", stagger: 0.13 }, 6.00);
+      tl.fromTo("#hero-glow", { opacity: 0 }, { opacity: 0.30, duration: 0.40, ease: "power3.out" }, 6.10);
+      /* steady glow breathe: 6.85 + 4*0.34 = 8.21, completes before the 8.40 fade */
+      tl.to("#hero-glow", { opacity: 0.55, duration: 0.34, ease: "sine.inOut", yoyo: true, repeat: 3 }, 6.85);
+
+      /* =========== TAIL : fade finishes at exactly 8.700 =========== */
+      tl.to("#content-all", { opacity: 0, duration: 0.30, ease: "power3.out" }, 8.40);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

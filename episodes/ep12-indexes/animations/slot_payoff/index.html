@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP12 Payoff — Table of Contents</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      /* TRANSPARENT overlay over live talking-head footage.
+         No #bg-fill, no #vignette — the presenter stays fully visible. */
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      #content-all { position: absolute; inset: 0; }
+
+      /* ================================================================
+         UPPER BAND — y = 180..540 (over the hair, above the hairline).
+         #toc-card  ...... abs y 180..296
+         #hero-1/2  ...... abs y 336..524   (40px gap below the card)
+         Shadow blur radii are budgeted so no soft falloff crosses y=540 into
+         the face zone: hero ink bottom 516 + max shadow extent 22 = 538.
+         ================================================================ */
+
+      /* Translucent outlined "table of contents" motif.
+         Rule 11 (lightened linework): fill 0.12 alpha, definition comes
+         from the 2px border + glow. No solid backing panel. */
+      #toc-card {
+        position: absolute;
+        left: 60px;
+        top: 180px;
+        width: 600px;
+        height: 116px;
+        border: 2px solid rgba(167, 139, 250, 0.62);
+        border-radius: 12px;
+        background: rgba(139, 92, 246, 0.12);
+        padding: 12px 20px 12px 44px;
+        overflow: hidden;
+        box-shadow:
+          0 0 24px 3px rgba(139, 92, 246, 0.45),
+          inset 0 0 26px rgba(139, 92, 246, 0.16),
+          0 4px 14px rgba(0, 0, 0, 0.55);
+        will-change: opacity, transform;
+      }
+
+      #toc-rows {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        height: 88px;
+      }
+
+      .toc-row {
+        display: flex;
+        align-items: center;
+        height: 24px;
+        will-change: opacity, transform;
+      }
+
+      /* the "entry" — a short horizontal line (thin linework, kept bright) */
+      .entry-bar {
+        height: 8px;
+        border-radius: 4px;
+        background: rgba(196, 181, 253, 0.92);
+        box-shadow: 0 0 12px rgba(167, 139, 250, 0.75), 0 2px 6px rgba(0, 0, 0, 0.75);
+        flex-shrink: 0;
+      }
+      #bar-1 { width: 220px; }
+      #bar-2 { width: 170px; }
+      #bar-3 { width: 250px; }
+
+      /* trailing dotted leader */
+      .leader {
+        flex: 1;
+        margin: 0 14px;
+        border-bottom: 3px dotted rgba(196, 181, 253, 0.62);
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8));
+      }
+
+      .pnum {
+        width: 44px;
+        flex-shrink: 0;
+        text-align: right;
+        font-size: 22px;
+        font-weight: 700;
+        color: #c4b5fd;
+        letter-spacing: 1px;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.92), 0 0 18px rgba(0, 0, 0, 0.7);
+      }
+
+      /* transition-beat highlight behind entry 1 (abs x 98..646, y 189..223) */
+      #row1-hl {
+        position: absolute;
+        left: 36px;
+        right: 12px;
+        top: 7px;
+        height: 34px;
+        border-radius: 8px;
+        background: rgba(139, 92, 246, 0.30);
+        box-shadow: 0 0 24px 2px rgba(139, 92, 246, 0.55);
+        opacity: 0;
+        will-change: opacity;
+      }
+
+      /* small marker that jumps from entry 1 downward (abs y 199..213 -> 263..277) */
+      #marker {
+        position: absolute;
+        left: 16px;
+        top: 17px;
+        width: 14px;
+        height: 14px;
+        opacity: 0;
+        filter: drop-shadow(0 0 10px rgba(167, 139, 250, 0.95));
+        will-change: opacity, transform;
+      }
+
+      /* soft violet pulse travelling DOWN — deliberately contained inside the
+         TOC card (abs y 184..292); it must never cross into the face zone. */
+      #pulse {
+        position: absolute;
+        left: 44px;
+        top: 2px;
+        width: 532px;
+        height: 44px;
+        border-radius: 22px;
+        background: radial-gradient(
+          ellipse at center,
+          rgba(167, 139, 250, 0.55) 0%,
+          rgba(139, 92, 246, 0.22) 45%,
+          rgba(139, 92, 246, 0) 75%
+        );
+        opacity: 0;
+        will-change: opacity, transform;
+      }
+
+      /* Hero lines — both phases occupy the identical box and hand off
+         sequentially (never superimposed). */
+      .hero {
+        position: absolute;
+        left: 60px;
+        top: 336px;
+        width: 960px;
+        height: 188px;
+        opacity: 0;
+        will-change: opacity, transform;
+      }
+      .hero-line {
+        display: block;
+        font-size: 96px;
+        line-height: 94px;
+        font-weight: 800;
+        letter-spacing: -3px;
+        color: #ffffff;
+        /* nowrap: an overwide line overflows horizontally (visible, harmless)
+           instead of silently wrapping to a 3rd line down into the face zone. */
+        white-space: nowrap;
+        /* Blur budget: max downward extent = max(3+12, 22) = 22px.
+           Ink bottom 516 + 22 = 538 < 540 — no bleed into the face zone. */
+        text-shadow:
+          0 3px 12px rgba(0, 0, 0, 0.95),
+          0 1px 3px rgba(0, 0, 0, 0.95),
+          0 0 22px rgba(0, 0, 0, 0.62);
+      }
+
+      /* ================================================================
+         LOWER BAND — y = 1190..1310 (chest, below chin, above captions).
+         #next-strip ..... abs y 1206..1294
+         #accent-bar ..... abs y 1222..1278
+         ================================================================ */
+      #next-strip {
+        position: absolute;
+        left: 60px;
+        top: 1206px;
+        width: 960px;
+        height: 88px;
+        display: flex;
+        align-items: center;
+        padding-right: 20px;
+        border: 2px solid rgba(167, 139, 250, 0.6);
+        border-radius: 10px;
+        background: rgba(139, 92, 246, 0.14);
+        /* Blur budget: extent 16px up/down. Strip 1206..1294 ->
+           falloff spans 1190..1310 exactly, never leaving the lower band
+           and never reaching the burned-in captions at y=1330. */
+        box-shadow:
+          0 0 14px 2px rgba(139, 92, 246, 0.5),
+          inset 0 0 24px rgba(139, 92, 246, 0.14),
+          0 4px 12px rgba(0, 0, 0, 0.5);
+        opacity: 0;
+        will-change: opacity, transform;
+      }
+
+      #accent-bar {
+        width: 10px;
+        height: 56px;
+        flex-shrink: 0;
+        border-radius: 5px;
+        background: #8b5cf6;
+        box-shadow: 0 0 18px 2px rgba(139, 92, 246, 0.75);
+        will-change: transform, box-shadow;
+      }
+
+      #next-text {
+        margin-left: 40px;
+        font-size: 34px;
+        font-weight: 700;
+        letter-spacing: 1.2px;
+        color: #ffffff;
+        white-space: nowrap;
+        text-shadow:
+          0 2px 10px rgba(0, 0, 0, 0.95),
+          0 0 26px rgba(0, 0, 0, 0.7);
+      }
+      #next-text .lede { color: #c4b5fd; }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="4.5"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="4.5"
+        data-track-index="1"
+      >
+        <div id="content-all">
+          <!-- ---------- UPPER BAND ---------- -->
+          <div id="toc-card">
+            <!-- Decorations are children of #toc-card (the absolutely-positioned
+                 ancestor), so their containing block is the card's padding box
+                 with origin (62, 182) — not the flex row container. -->
+            <div id="row1-hl"></div>
+
+            <svg id="marker" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">
+              <polygon points="1,1 13,7 1,13" fill="#a78bfa" />
+            </svg>
+
+            <div id="pulse"></div>
+
+            <div id="toc-rows">
+              <div class="toc-row" id="row-1">
+                <div class="entry-bar" id="bar-1"></div>
+                <div class="leader"></div>
+                <div class="pnum">01</div>
+              </div>
+              <div class="toc-row" id="row-2">
+                <div class="entry-bar" id="bar-2"></div>
+                <div class="leader"></div>
+                <div class="pnum">02</div>
+              </div>
+              <div class="toc-row" id="row-3">
+                <div class="entry-bar" id="bar-3"></div>
+                <div class="leader"></div>
+                <div class="pnum">03</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="hero" id="hero-1">
+            <span class="hero-line">A TABLE OF</span>
+            <span class="hero-line">CONTENTS</span>
+          </div>
+
+          <div class="hero" id="hero-2">
+            <span class="hero-line">&hellip;YOUR DATABASE</span>
+            <span class="hero-line">READS FIRST</span>
+          </div>
+
+          <!-- ---------- LOWER BAND ---------- -->
+          <div id="next-strip">
+            <div id="accent-bar"></div>
+            <div id="next-text">
+              <span class="lede">NEXT &mdash;</span> WHY YOU GET &lsquo;TOO MANY REQUESTS&rsquo;
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // Initial states via gsap.set (no fromTo anywhere, so the
+      // immediateRender:true trap cannot strand anything visible).
+      // Upper-band entrances move HORIZONTALLY only, so #toc-card's bottom is
+      // pinned at 308 and the heroes' top is pinned at 350 for the entire
+      // composition — the card->hero gap is unconditionally 42px, never a
+      // transient sub-40px dip during the entrance.
+      gsap.set("#toc-card", { opacity: 0, x: -24 });
+      gsap.set(".toc-row", { opacity: 0, y: 12 });
+      gsap.set("#row1-hl", { opacity: 0 });
+      gsap.set("#marker", { opacity: 0, y: 0 });
+      gsap.set("#pulse", { opacity: 0, y: 0 });
+      // Heroes slide horizontally (phase 1 from the left, phase 2 from the
+      // right) — zero vertical travel, so their box is always y 350..538.
+      // The strip's 14px rise keeps it inside 1190..1310 even un-animated
+      // (pre-entry 1220..1308).
+      gsap.set("#hero-1", { opacity: 0, x: -30 });
+      gsap.set("#hero-2", { opacity: 0, x: 24 });
+      gsap.set("#next-strip", { opacity: 0, y: 14 });
+      gsap.set("#accent-bar", { scaleY: 0, transformOrigin: "50% 50%" });
+
+      /* ---------- PHASE 1 (0 - 2.0s) "A TABLE OF CONTENTS" ---------- */
+      // Primary entrance at local t=0, no 0.05-0.15s lead-in.
+      tl.to("#toc-card", { opacity: 1, x: 0, duration: 0.55, ease: "power3.out" }, 0);
+      tl.to(
+        ".toc-row",
+        { opacity: 1, y: 0, duration: 0.5, ease: "power3.out", stagger: 0.14 },
+        0.18
+      ); // last row ends 0.18 + 0.28 + 0.5 = 0.96
+      tl.to("#hero-1", { opacity: 1, x: 0, duration: 0.6, ease: "power3.out" }, 0.2);
+
+      /* ---------- TRANSITION (~2.0s) ---------- */
+      // entry 1 highlights violet
+      tl.to("#row1-hl", { opacity: 1, duration: 0.25, ease: "power3.out" }, 1.9);
+      // a small marker jumps from it and travels down to entry 3 (206 -> 270 = +64px)
+      tl.to("#marker", { opacity: 1, duration: 0.15, ease: "power3.out" }, 1.95);
+      tl.to("#marker", { y: 64, duration: 0.38, ease: "power3.out" }, 2.0);
+      // soft violet pulse travels down, contained inside the card
+      tl.to("#pulse", { opacity: 0.6, duration: 0.16, ease: "power3.out" }, 2.02);
+      tl.to("#pulse", { y: 64, duration: 0.4, ease: "power3.out" }, 2.02);
+      tl.to("#pulse", { opacity: 0, duration: 0.22, ease: "power3.out" }, 2.2);
+      tl.to("#row1-hl", { opacity: 0.35, duration: 0.3, ease: "power3.out" }, 2.25);
+
+      /* ---------- PHASE 2 (2.05 - 4.5s) "YOUR DATABASE READS FIRST" ---------- */
+      // Sequential hand-off: hero-1 is fully gone (2.30) before hero-2 starts (2.32),
+      // so the two 96px strings are never superimposed.
+      tl.to("#hero-1", { opacity: 0, duration: 0.25, ease: "power1.in" }, 2.05);
+      tl.to("#hero-2", { opacity: 1, x: 0, duration: 0.48, ease: "power3.out" }, 2.32);
+
+      // lower band lights up simultaneously
+      tl.to("#next-strip", { opacity: 1, y: 0, duration: 0.65, ease: "power3.out" }, 2.2);
+      tl.to("#accent-bar", { scaleY: 1, duration: 0.5, ease: "power3.out" }, 2.3);
+
+      // one-shot dim on the TOC card so the upper band stays populated
+      tl.to("#toc-card", { opacity: 0.5, duration: 0.5, ease: "power3.out" }, 2.45);
+
+      // Steady violet glow breathe on the accent bar.
+      // True end = 2.95 + (repeat+1)*duration + repeatDelay*repeat
+      //          = 2.95 + 3*0.4 + 0 = 4.15  <  4.2 (fade start). Fully complete first.
+      tl.to(
+        "#accent-bar",
+        {
+          // extent 29px: bar 1222..1278 -> glow 1193..1307, stays in the band
+          boxShadow: "0 0 26px 3px rgba(139, 92, 246, 0.95)",
+          duration: 0.4,
+          ease: "sine.inOut",
+          repeat: 2,
+          yoyo: true
+        },
+        2.95
+      );
+
+      /* ---------- FADE OUT — finishes at EXACTLY 4.500, zero buffer ---------- */
+      // 4.2 + 0.3 = 4.500. Writes opacity on the ancestor #content-all, a
+      // different element from the breathe target, so nothing can be stranded.
+      tl.to("#content-all", { opacity: 0, duration: 0.3, ease: "power1.in" }, 4.2);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

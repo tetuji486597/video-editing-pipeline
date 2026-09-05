@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+
+      :root {
+        --cyan: #22d3ee;
+        --cyan-deep: #0e7490;
+        --amber: #fbbf24;
+      }
+
+      #root { position: relative; }
+      .fill { position: absolute; inset: 0; }
+
+      /* camera push-in wrapper — origin is the CONTENT BAND centre, not the frame centre */
+      #scene {
+        position: absolute;
+        inset: 0;
+        transform-origin: 540px 505px;
+      }
+
+      /* ------------------------------------------------------------------ */
+      /* HEADLINE  ·  abs y 210-252                                          */
+      /* ------------------------------------------------------------------ */
+      #headline {
+        position: absolute;
+        left: 0;
+        top: 210px;
+        width: 1080px;
+        height: 42px;
+        line-height: 42px;
+        text-align: center;
+        font-size: 34px;
+        font-weight: 800;
+        letter-spacing: 5px;
+        color: #dff6fb;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95), 0 1px 3px rgba(0, 0, 0, 0.92);
+        opacity: 0;
+        white-space: nowrap;
+      }
+
+      /* ------------------------------------------------------------------ */
+      /* SHARD ROW  ·  abs x 120-960, y 296-386                              */
+      /* frame 0 = six contiguous full bars = ONE SOLID SLAB (x 210-870)     */
+      /* ------------------------------------------------------------------ */
+      #shards {
+        position: absolute;
+        left: 0;
+        top: 296px;
+        width: 1080px;
+        height: 90px;
+        transform-origin: 540px 45px;
+      }
+      .shard {
+        position: absolute;
+        top: 0;
+        width: 110px;
+        height: 90px;
+      }
+      #sh1 { left: 120px; transform: translateX(90px); }
+      #sh2 { left: 266px; transform: translateX(54px); }
+      #sh3 { left: 412px; transform: translateX(18px); }
+      #sh4 { left: 558px; transform: translateX(-18px); }
+      #sh5 { left: 704px; transform: translateX(-54px); }
+      #sh6 { left: 850px; transform: translateX(-90px); }
+
+      .trk {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 110px;
+        height: 90px;
+        border-radius: 0;
+        border: 1px solid rgba(34, 211, 238, 0.34);
+        background: rgba(34, 211, 238, 0.07);
+        box-shadow: 0 0 14px rgba(34, 211, 238, 0.22);
+        opacity: 0.5;
+      }
+      .fil {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 110px;
+        height: 90px;
+        border-radius: 0;
+        transform: scaleY(1);
+        transform-origin: 50% 100%;
+        background-color: #22d3ee;
+        background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0) 58%);
+        opacity: 0.5;
+      }
+
+      /* summation sweep · abs y 292-390 */
+      #sweep {
+        position: absolute;
+        left: 0;
+        top: 292px;
+        width: 7px;
+        height: 98px;
+        border-radius: 4px;
+        background: linear-gradient(180deg, #ffffff 0%, #a5f3fc 46%, #22d3ee 100%);
+        box-shadow: 0 0 16px 2px rgba(255, 255, 255, 0.55);
+        opacity: 0;
+      }
+
+      /* gathered packets */
+      .pkt {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #a5f3fc;
+        box-shadow: 0 0 12px 3px rgba(34, 211, 238, 0.8);
+        opacity: 0;
+      }
+
+      /* ------------------------------------------------------------------ */
+      /* COMPOSED READOUT  ·  abs y 640-804, sits BELOW the neon sign        */
+      /* ------------------------------------------------------------------ */
+      #scrim {
+        position: absolute;
+        left: 108px;
+        top: 640px;
+        width: 872px;
+        height: 164px;
+        border-radius: 34px;
+        background: radial-gradient(
+          ellipse 62% 74% at 46% 50%,
+          rgba(4, 12, 18, 0.78) 0%,
+          rgba(4, 12, 18, 0.5) 55%,
+          rgba(4, 12, 18, 0) 100%
+        );
+        opacity: 0;
+      }
+
+      /* the displayed total — hero numeral, 110px */
+      #shown {
+        position: absolute;
+        left: 140px;
+        top: 652px;
+        height: 118px;
+        display: flex;
+        transform-origin: 0% 50%;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-weight: 700;
+        color: #f2fdff;
+        text-shadow: 0 3px 10px rgba(0, 0, 0, 0.95), 0 1px 2px rgba(0, 0, 0, 0.92),
+          0 0 18px rgba(34, 211, 238, 0.5);
+      }
+      #shown .sd,
+      #shown .odo {
+        width: 66px;
+        height: 118px;
+        flex: 0 0 66px;
+      }
+      #shown .sd {
+        font-size: 110px;
+        line-height: 118px;
+        text-align: center;
+        opacity: 0;
+      }
+      #shown .odo { position: relative; overflow: hidden; }
+      #shown .strip { position: absolute; left: 0; top: 0; width: 66px; opacity: 0; }
+      #shown .strip > div {
+        width: 66px;
+        height: 118px;
+        font-size: 110px;
+        line-height: 118px;
+        text-align: center;
+      }
+
+      /* the faint TRUE value — smaller, amber, raised and ahead */
+      #true-wrap {
+        position: absolute;
+        left: 698px;
+        top: 648px;
+        width: 216px;
+        height: 100px;
+        transform-origin: 0% 50%;
+      }
+      #true-label {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 24px;
+        line-height: 24px;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 19px;
+        font-weight: 600;
+        letter-spacing: 5px;
+        color: rgba(251, 191, 36, 0.9);
+        text-shadow: 0 2px 7px rgba(0, 0, 0, 0.95);
+        opacity: 0;
+        white-space: nowrap;
+      }
+      #true {
+        position: absolute;
+        left: 0;
+        top: 34px;
+        height: 56px;
+        display: flex;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-weight: 600;
+        color: rgba(251, 191, 36, 0.8);
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95), 0 1px 2px rgba(0, 0, 0, 0.9);
+      }
+      #true .sd,
+      #true .odo {
+        width: 30px;
+        height: 56px;
+        flex: 0 0 30px;
+      }
+      #true .sd {
+        font-size: 50px;
+        line-height: 56px;
+        text-align: center;
+        opacity: 0;
+      }
+      #true .odo { position: relative; overflow: hidden; }
+      #true .strip { position: absolute; left: 0; top: 0; width: 30px; opacity: 0; }
+      #true .strip > div {
+        width: 30px;
+        height: 56px;
+        font-size: 50px;
+        line-height: 56px;
+        text-align: center;
+      }
+
+      /* the gap itself, made visible — no numerals */
+      #gap-mark {
+        position: absolute;
+        left: 616px;
+        top: 686px;
+        width: 74px;
+        height: 60px;
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="7.20"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="main-clip" class="clip" data-start="0" data-duration="7.20" data-track-index="1">
+        <div id="scene">
+          <div id="headline" class="fadeleaf">MANY COUNTERS, ONE LATE TOTAL</div>
+
+          <div id="shards">
+            <div class="shard" id="sh1"><div class="trk fadeleaf"></div><div class="fil fadeleaf" id="f1"></div></div>
+            <div class="shard" id="sh2"><div class="trk fadeleaf"></div><div class="fil fadeleaf" id="f2"></div></div>
+            <div class="shard" id="sh3"><div class="trk fadeleaf"></div><div class="fil fadeleaf" id="f3"></div></div>
+            <div class="shard" id="sh4"><div class="trk fadeleaf"></div><div class="fil fadeleaf" id="f4"></div></div>
+            <div class="shard" id="sh5"><div class="trk fadeleaf"></div><div class="fil fadeleaf" id="f5"></div></div>
+            <div class="shard" id="sh6"><div class="trk fadeleaf"></div><div class="fil fadeleaf" id="f6"></div></div>
+          </div>
+
+          <div id="sweep"></div>
+
+          <div class="pkt" id="p1"></div>
+          <div class="pkt" id="p2"></div>
+          <div class="pkt" id="p3"></div>
+          <div class="pkt" id="p4"></div>
+          <div class="pkt" id="p5"></div>
+          <div class="pkt" id="p6"></div>
+
+          <div id="scrim" class="fadeleaf"></div>
+
+          <!-- displayed total: 4 8 2 , [hundreds] [tens] 0 -->
+          <div id="shown">
+            <span class="sd fadeleaf">4</span>
+            <span class="sd fadeleaf">8</span>
+            <span class="sd fadeleaf">2</span>
+            <span class="sd fadeleaf">,</span>
+            <span class="odo"><span class="strip fadeleaf" data-layout-allow-overflow="true" data-layout-allow-occlusion="true" data-layout-allow-overlap="true" id="s-h">
+              <div data-layout-allow-overflow="true" data-layout-allow-occlusion="true" data-layout-allow-overlap="true">1</div><div data-layout-allow-overflow="true" data-layout-allow-occlusion="true" data-layout-allow-overlap="true">1</div><div data-layout-allow-overflow="true" data-layout-allow-occlusion="true" data-layout-allow-overlap="true">1</div><div data-layout-allow-overflow="true" data-layout-allow-occlusion="true" data-layout-allow-overlap="true">2</div><div data-layout-allow-overflow="true" data-layout-allow-occlusion="true" data-layout-allow-overlap="true">2</div><div data-layout-allow-overflow="true" data-layout-allow-occlusion="true" data-layout-allow-overlap="true">2</div>
+            </span></span>
+            <span class="odo"><span class="strip fadeleaf" data-layout-allow-overflow="true" data-layout-allow-occlusion="true" data-layout-allow-overlap="true" id="s-t">
+              <div data-layout-allow-overflow="true" data-layout-allow-occlusion="true" data-layout-allow-overlap="true">4</div><div data-layout-allow-overflow="true" data-layout-allow-occlusion="true" data-layout-allow-overlap="true">6</div><div data-layout-allow-overflow="true" data-layout-allow-occlusion="true" data-layout-allow-overlap="true">8</div><div data-layout-allow-overflow="true" data-layout-allow-occlusion="true" data-layout-allow-overlap="true">0</div><div data-layout-allow-overflow="true" data-layout-allow-occlusion="true" data-layout-allow-overlap="true">2</div><div data-layout-allow-overflow="true" data-layout-allow-occlusion="true" data-layout-allow-overlap="true">2</div>
+            </span></span>
+            <span class="sd fadeleaf">0</span>
+          </div>
+
+          <div id="true-wrap">
+            <div id="true-label" class="fadeleaf">REALITY</div>
+            <div id="true">
+              <span class="sd fadeleaf">4</span>
+              <span class="sd fadeleaf">8</span>
+              <span class="sd fadeleaf">2</span>
+              <span class="sd fadeleaf">,</span>
+              <span class="odo"><span class="strip fadeleaf" data-layout-allow-overflow="true" data-layout-allow-occlusion="true" data-layout-allow-overlap="true" id="t-h">
+                <div data-layout-allow-overflow="true" data-layout-allow-occlusion="true" data-layout-allow-overlap="true">5</div><div data-layout-allow-overflow="true" data-layout-allow-occlusion="true" data-layout-allow-overlap="true">5</div><div data-layout-allow-overflow="true" data-layout-allow-occlusion="true" data-layout-allow-overlap="true">5</div><div data-layout-allow-overflow="true" data-layout-allow-occlusion="true" data-layout-allow-overlap="true">5</div><div data-layout-allow-overflow="true" data-layout-allow-occlusion="true" data-layout-allow-overlap="true">5</div><div data-layout-allow-overflow="true" data-layout-allow-occlusion="true" data-layout-allow-overlap="true">5</div>
+              </span></span>
+              <span class="odo"><span class="strip fadeleaf" data-layout-allow-overflow="true" data-layout-allow-occlusion="true" data-layout-allow-overlap="true" id="t-t">
+                <div data-layout-allow-overflow="true" data-layout-allow-occlusion="true" data-layout-allow-overlap="true">0</div><div data-layout-allow-overflow="true" data-layout-allow-occlusion="true" data-layout-allow-overlap="true">2</div><div data-layout-allow-overflow="true" data-layout-allow-occlusion="true" data-layout-allow-overlap="true">4</div><div data-layout-allow-overflow="true" data-layout-allow-occlusion="true" data-layout-allow-overlap="true">6</div><div data-layout-allow-overflow="true" data-layout-allow-occlusion="true" data-layout-allow-overlap="true">8</div><div data-layout-allow-overflow="true" data-layout-allow-occlusion="true" data-layout-allow-overlap="true">8</div>
+              </span></span>
+              <span class="sd fadeleaf">0</span>
+            </div>
+          </div>
+
+          <svg id="gap-mark" class="fadeleaf" viewBox="0 0 74 60">
+            <line x1="3" y1="14" x2="3" y2="46" stroke="rgba(251,191,36,0.95)" stroke-width="4" stroke-linecap="round" />
+            <line x1="9" y1="30" x2="54" y2="30" stroke="rgba(251,191,36,0.85)" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="7 7" />
+            <path d="M54,19 L71,30 L54,41 Z" fill="rgba(251,191,36,0.95)" />
+          </svg>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      /* ---------- deterministic, hard-coded shard character ---------- */
+      const COLLAPSE = [90, 54, 18, -18, -54, -90];   // px, matches the CSS transforms
+      const BASE     = [0.30, 0.46, 0.24, 0.38, 0.52, 0.28];
+      const PEAK     = [0.80, 0.96, 0.66, 0.90, 1.00, 0.72];
+      const A1_START = [2.25, 2.28, 2.31, 2.34, 2.37, 2.40];
+      const A1_DUR   = [0.32, 0.62, 0.30, 0.58, 0.28, 0.54];
+      const A1_REP   = [3, 1, 3, 1, 3, 1];            // odd repeats -> land back on BASE
+      const A2_START = [4.80, 4.86, 4.92, 4.98, 5.04, 5.10];
+      const A2_DUR   = [0.50, 0.48, 0.46, 0.44, 0.42, 0.40];
+      const A2_PEAK  = [0.26, 0.32, 0.22, 0.30, 0.24, 0.28];
+      const DRAIN    = [3.68, 3.78, 3.88, 3.98, 4.08, 4.18];
+      const PKT_T    = [3.68, 3.76, 3.84, 3.92, 4.00, 4.08];
+      const SH_CX    = [175, 321, 467, 613, 759, 905]; // shard centres (abs canvas x)
+
+      /* ---------- continuous camera push-in (origin = content-band centre) ---------- */
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.04, duration: 7.2, ease: "sine.inOut" }, 0);
+
+      /* ================= ACT 1 — the single row, then the split ================= */
+      /* primary entrance at local t=0, visible (0.5 opacity) on frame 0 via CSS   */
+      tl.fromTo("#shards", { scaleX: 0.9 }, { scaleX: 1, duration: 0.6, ease: "power3.out" }, 0);
+      tl.fromTo(".trk", { opacity: 0.5 }, { opacity: 1, duration: 0.55, ease: "power3.out" }, 0);
+      tl.fromTo(".fil", { opacity: 0.5 }, { opacity: 1, duration: 0.55, ease: "power3.out" }, 0);
+
+      tl.fromTo(
+        "#headline",
+        { opacity: 0, y: -16 },
+        { opacity: 1, y: 0, duration: 0.55, ease: "power3.out", immediateRender: false },
+        0.7
+      );
+
+      /* THE SPLIT — one visual event at 1.40 */
+      for (let i = 0; i < 6; i++) {
+        tl.fromTo(
+          "#sh" + (i + 1),
+          { x: COLLAPSE[i] },
+          { x: 0, duration: 0.72, ease: "power3.out", immediateRender: false },
+          1.4
+        );
+        tl.fromTo(
+          "#f" + (i + 1),
+          { scaleY: 1 },
+          { scaleY: BASE[i], duration: 0.55, ease: "power2.out", immediateRender: false },
+          1.4 + i * 0.05
+        );
+      }
+      tl.fromTo(".trk", { borderRadius: "0px" }, { borderRadius: "6px", duration: 0.5, ease: "power2.out", immediateRender: false }, 1.4);
+      tl.fromTo(".fil", { borderRadius: "0px" }, { borderRadius: "6px", duration: 0.5, ease: "power2.out", immediateRender: false }, 1.4);
+
+      /* six independent, out-of-step pulses — no numerals anywhere */
+      for (let i = 0; i < 6; i++) {
+        tl.fromTo(
+          "#f" + (i + 1),
+          { scaleY: BASE[i] },
+          {
+            scaleY: PEAK[i],
+            duration: A1_DUR[i],
+            ease: "sine.inOut",
+            yoyo: true,
+            repeat: A1_REP[i],
+            immediateRender: false,
+          },
+          A1_START[i]
+        );
+      }
+
+      /* ================= THE TURN — summation sweep @ 3.60 ================= */
+      tl.fromTo("#sweep", { opacity: 0 }, { opacity: 1, duration: 0.18, ease: "power3.out", immediateRender: false }, 3.6);
+      tl.fromTo("#sweep", { x: 96 }, { x: 984, duration: 0.64, ease: "power2.inOut", immediateRender: false }, 3.6);
+      tl.fromTo("#sweep", { opacity: 1 }, { opacity: 0, duration: 0.16, ease: "power2.in", immediateRender: false }, 4.14);
+
+      for (let i = 0; i < 6; i++) {
+        /* the sweep drains each shard as it passes */
+        tl.fromTo(
+          "#f" + (i + 1),
+          { scaleY: BASE[i] },
+          { scaleY: 0.12, duration: 0.3, ease: "power2.out", immediateRender: false },
+          DRAIN[i]
+        );
+        /* ...and a packet falls out of it into the total */
+        tl.fromTo(
+          "#p" + (i + 1),
+          { x: SH_CX[i] - 6, y: 374, opacity: 0.25 },
+          { x: 294, y: 694, opacity: 1, duration: 0.3, ease: "power1.in", immediateRender: false },
+          PKT_T[i]
+        );
+        tl.fromTo(
+          "#p" + (i + 1),
+          { opacity: 1 },
+          { opacity: 0, duration: 0.16, ease: "power2.out", immediateRender: false },
+          PKT_T[i] + 0.3
+        );
+      }
+
+      /* ================= ACT 2 — the total lands BEHIND reality ================= */
+      tl.fromTo("#scrim", { opacity: 0 }, { opacity: 1, duration: 0.36, ease: "power2.out", immediateRender: false }, 4.24);
+
+      tl.fromTo("#shown", { y: 20, scale: 0.94 }, { y: 0, scale: 1, duration: 0.45, ease: "power3.out", immediateRender: false }, 4.3);
+      tl.fromTo("#shown .sd, #shown .strip", { opacity: 0 }, { opacity: 1, duration: 0.45, ease: "power3.out", immediateRender: false }, 4.3);
+
+      /* phase colour shift: the shards recede to deep cyan, the total becomes the hero */
+      tl.fromTo(".fil", { backgroundColor: "#22d3ee" }, { backgroundColor: "#0e7490", duration: 0.5, ease: "power2.out", immediateRender: false }, 4.6);
+
+      /* the shards keep counting under the summed display */
+      for (let i = 0; i < 6; i++) {
+        tl.fromTo(
+          "#f" + (i + 1),
+          { scaleY: 0.12 },
+          {
+            scaleY: A2_PEAK[i],
+            duration: A2_DUR[i],
+            ease: "sine.inOut",
+            yoyo: true,
+            repeat: 3,
+            immediateRender: false,
+          },
+          A2_START[i]
+        );
+      }
+
+      tl.fromTo("#true-wrap", { y: -14, scale: 0.96 }, { y: 0, scale: 1, duration: 0.4, ease: "power3.out", immediateRender: false }, 4.92);
+      tl.fromTo("#true-label, #true .sd, #true .strip", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power3.out", immediateRender: false }, 4.92);
+
+      /* odometer strips: 4 discrete ticks, +20 per tick.
+         true  482,500 -> 482,580     shown 482,140 -> 482,220
+         constant 360 behind, and 0.18s behind in phase.                       */
+      tl.fromTo("#t-h", { y: 0 }, { y: -4 * 56, duration: 0.95, ease: "steps(4)", immediateRender: false }, 4.92);
+      tl.fromTo("#t-t", { y: 0 }, { y: -4 * 56, duration: 0.95, ease: "steps(4)", immediateRender: false }, 4.92);
+      tl.fromTo("#s-h", { y: 0 }, { y: -4 * 118, duration: 0.95, ease: "steps(4)", immediateRender: false }, 5.08);
+      tl.fromTo("#s-t", { y: 0 }, { y: -4 * 118, duration: 0.95, ease: "steps(4)", immediateRender: false }, 5.08);
+
+      /* the gap, made explicit and persistent */
+      tl.fromTo("#gap-mark", { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: 0.28, ease: "power3.out", immediateRender: false }, 5.54);
+      tl.fromTo(
+        "#gap-mark",
+        { opacity: 1 },
+        { opacity: 0.42, duration: 0.24, ease: "sine.inOut", yoyo: true, repeat: 3, immediateRender: false },
+        5.9
+      );
+
+      /* ================= tail — one fade per visible leaf, ends at 7.200 ======= */
+      tl.fromTo(
+        ".fadeleaf",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.3, ease: "power2.in", immediateRender: false },
+        6.9
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

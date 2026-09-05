@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP22 PROBLEM — the polling grind</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; }
+      .fill { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* FULL-SCREEN TAKEOVER. Content band designed x=120-830, y=250-1160.
+         Push-in: #scene scale 1 -> 1.06, transform-origin 475px 700px.
+         Worst-case expansion: x 120 -> 475-355*1.06 = 98.7 (>=60 ok), 830 -> 475+355*1.06
+         = 851.3 (<=860 ok); y 250 -> 700-450*1.06 = 223 (>=180 ok), 1160 -> 700+460*1.06
+         = 1187.6 (<=1280 ok). */
+
+      #bg-fill {
+        background: radial-gradient(120% 90% at 50% 10%, #10141c 0%, #0a0d13 45%, #050709 80%, #030405 100%);
+      }
+      #bg-glow-blue {
+        position: absolute;
+        left: 30%;
+        top: 30%;
+        width: 1300px;
+        height: 1300px;
+        transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(96, 165, 250, 0.13) 0%, rgba(96, 165, 250, 0) 62%);
+      }
+      #bg-glow-green {
+        position: absolute;
+        left: 50%;
+        top: 76%;
+        width: 1200px;
+        height: 1200px;
+        transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(74, 222, 128, 0.16) 0%, rgba(74, 222, 128, 0) 60%);
+        opacity: 0;
+      }
+      #vignette {
+        background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 14%, rgba(0,0,0,0) 78%, rgba(0,0,0,0.6) 100%);
+      }
+
+      #scene { transform-origin: 475px 700px; }
+
+      #kicker {
+        position: absolute;
+        left: 0;
+        width: 950px;               /* centred on x=475 */
+        top: 250px;
+        text-align: center;
+        color: #93c5fd;
+        font-size: 44px;
+        font-weight: 800;
+        letter-spacing: 6px;
+        opacity: 0.5;               /* frame-0 state from CSS; primary entrance at t=0 */
+      }
+
+      /* identity filter declared so the desaturate tween never starts from `none` */
+      #poll-group { position: absolute; inset: 0; filter: saturate(1) brightness(1); }
+
+      /* Cards y 400-550; both request lanes run BELOW the cards (poll 590-646,
+         reply 664-720) so no traveling chip ever occludes a card's glyph or label --
+         the first render had the reply chip landing on the APP label (rule 8). */
+      .node-card {
+        position: absolute;
+        top: 400px;
+        width: 300px;
+        height: 150px;
+        border-radius: 22px;
+        background: rgba(15, 22, 34, 0.92);
+        border: 2px solid rgba(96, 165, 250, 0.45);
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        opacity: 0;
+      }
+      #app-card { left: 120px; }
+      #srv-card { left: 530px; }
+      .node-label {
+        color: #dbeafe;
+        font-size: 40px;
+        font-weight: 800;
+        letter-spacing: 3px;
+      }
+      .node-glyph svg { display: block; }
+
+      #poll-chip {
+        position: absolute;
+        left: 150px;                 /* travels x 150 -> 470 via transform */
+        top: 590px;                  /* lane below the cards (40px gap) */
+        height: 56px;
+        padding: 0 20px;
+        display: inline-flex;
+        align-items: center;
+        border-radius: 12px;
+        background: rgba(30, 41, 59, 0.95);
+        border: 1px solid rgba(147, 197, 253, 0.6);
+        color: #bfdbfe;
+        font-size: 28px;
+        opacity: 0;
+      }
+      #reply-chip {
+        position: absolute;
+        left: 560px;                 /* travels x 560 -> 190 via transform */
+        top: 664px;                  /* return lane; never co-visible with the poll
+                                        chip (poll gone by t+0.6, reply enters t+0.6),
+                                        45px above the counter (765) */
+        height: 56px;
+        padding: 0 20px;
+        display: inline-flex;
+        align-items: center;
+        border-radius: 12px;
+        background: rgba(24, 28, 36, 0.95);
+        border: 1px solid rgba(148, 163, 184, 0.45);
+        color: #94a3b8;
+        font-size: 28px;
+        opacity: 0;
+      }
+
+      /* counter: slot-machine digit strips (never tween innerText) */
+      #counter {
+        position: absolute;
+        left: 0;
+        width: 950px;               /* centred on 475 */
+        top: 765px;
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        opacity: 0;
+      }
+      .digit-win {
+        width: 84px;
+        height: 150px;
+        position: relative;
+      }
+      .digit-win > div {
+        position: absolute;
+        inset: 0;
+        text-align: center;
+        color: #e2e8f0;
+        font-size: 120px;
+        line-height: 150px;
+        font-weight: 700;
+        opacity: 0;
+      }
+      #comma {
+        width: 72px;   /* mono advance at 120px = 0.6em = 72px; a narrower box overflows */
+        text-align: center;
+        color: #e2e8f0;
+        font-size: 120px;
+        line-height: 150px;
+        font-weight: 700;
+      }
+      #counter-label {
+        position: absolute;
+        left: 0;
+        width: 950px;               /* centred on 475 */
+        top: 950px;
+        text-align: center;
+        color: #94a3b8;
+        font-size: 36px;
+        font-weight: 600;
+        letter-spacing: 2px;
+        opacity: 0;
+      }
+
+      /* the pile of dead calls */
+      .dead {
+        position: absolute;
+        height: 52px;
+        padding: 0 18px;
+        display: inline-flex;
+        align-items: center;
+        border-radius: 10px;
+        background: rgba(51, 65, 85, 0.55);
+        border: 1px solid rgba(100, 116, 139, 0.4);
+        color: #64748b;
+        font-size: 24px;
+        opacity: 0;
+      }
+
+      #event-chip {
+        position: absolute;
+        left: 300px;
+        top: 1050px;
+        width: 350px;
+        height: 90px;
+        border-radius: 16px;
+        background: rgba(8, 34, 20, 0.97);
+        border: 2px solid rgba(74, 222, 128, 0.9);
+        box-shadow: 0 0 24px rgba(74, 222, 128, 0.45);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        opacity: 0;
+      }
+      #event-num {
+        color: #4ade80;
+        font-size: 60px;
+        font-weight: 800;
+      }
+      #event-label {
+        color: #bbf7d0;
+        font-size: 32px;
+        font-weight: 700;
+        letter-spacing: 1px;
+      }
+
+      #flash { background: #ffffff; opacity: 0; pointer-events: none; }
+      #grain { pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="7.2"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="main-clip" class="clip" data-start="0" data-duration="7.2" data-track-index="1">
+        <div id="bg-fill" class="fill">
+          <div id="bg-glow-blue"></div>
+          <div id="bg-glow-green"></div>
+          <div id="vignette" class="fill"></div>
+        </div>
+
+        <div id="scene" class="fill">
+          <div id="kicker">THE OLD WAY: POLLING</div>
+
+          <div id="poll-group">
+            <div class="node-card" id="app-card">
+              <div class="node-glyph">
+                <svg width="120" height="86" viewBox="0 0 120 86" fill="none">
+                  <rect x="2" y="2" width="116" height="82" rx="10" stroke="#93c5fd" stroke-width="3" fill="rgba(147,197,253,0.08)" />
+                  <rect x="12" y="14" width="42" height="8" rx="4" fill="#60a5fa" />
+                  <rect x="12" y="30" width="96" height="8" rx="4" fill="rgba(147,197,253,0.4)" />
+                  <rect x="12" y="46" width="96" height="8" rx="4" fill="rgba(147,197,253,0.28)" />
+                  <rect x="12" y="62" width="66" height="8" rx="4" fill="rgba(147,197,253,0.2)" />
+                </svg>
+              </div>
+              <div class="node-label">APP</div>
+            </div>
+            <div class="node-card" id="srv-card">
+              <div class="node-glyph">
+                <svg width="120" height="86" viewBox="0 0 120 86" fill="none">
+                  <rect x="10" y="4" width="100" height="22" rx="6" stroke="#93c5fd" stroke-width="3" fill="rgba(147,197,253,0.08)" />
+                  <rect x="10" y="32" width="100" height="22" rx="6" stroke="#93c5fd" stroke-width="3" fill="rgba(147,197,253,0.08)" />
+                  <rect x="10" y="60" width="100" height="22" rx="6" stroke="#93c5fd" stroke-width="3" fill="rgba(147,197,253,0.08)" />
+                  <circle cx="22" cy="15" r="4" fill="#60a5fa" />
+                  <circle cx="22" cy="43" r="4" fill="#60a5fa" />
+                  <circle cx="22" cy="71" r="4" fill="#60a5fa" />
+                </svg>
+              </div>
+              <div class="node-label" style="font-size: 34px">PROVIDER</div>
+            </div>
+
+            <div id="poll-chip" class="mono">anything new?</div>
+            <div id="reply-chip" class="mono">204 &middot; nothing</div>
+          </div>
+
+          <div id="counter" class="mono">
+            <div class="digit-win" id="d0"></div>
+            <div id="comma">,</div>
+            <div class="digit-win" id="d1"></div>
+            <div class="digit-win" id="d2"></div>
+            <div class="digit-win" id="d3"></div>
+          </div>
+          <div id="counter-label">wasted calls a day</div>
+
+          <!-- pile of dead calls: hard-coded scatter, x 140-690 (chips ~140-170 wide,
+               right edges <= 830), y 1030-1160 -->
+          <div class="dead mono" style="left: 140px; top: 1032px; transform: rotate(-4deg)">204</div>
+          <div class="dead mono" style="left: 300px; top: 1046px; transform: rotate(3deg)">204</div>
+          <div class="dead mono" style="left: 452px; top: 1030px; transform: rotate(-2deg)">204</div>
+          <div class="dead mono" style="left: 600px; top: 1050px; transform: rotate(5deg)">204</div>
+          <div class="dead mono" style="left: 210px; top: 1102px; transform: rotate(2deg)">204</div>
+          <div class="dead mono" style="left: 372px; top: 1112px; transform: rotate(-5deg)">204</div>
+          <div class="dead mono" style="left: 528px; top: 1098px; transform: rotate(4deg)">204</div>
+          <div class="dead mono" style="left: 676px; top: 1110px; transform: rotate(-3deg)">204</div>
+
+          <div id="event-chip">
+            <span id="event-num">1</span>
+            <span id="event-label">real event</span>
+          </div>
+        </div>
+
+        <div id="flash" class="fill"></div>
+        <div id="grain" class="fill"></div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter" x="0%" y="0%" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.04 0" />
+      </filter>
+    </svg>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      document.getElementById("grain").style.filter = "url(#grain-filter)";
+
+      // Counter = stacked digit spans crossfaded with zero-duration set swaps (the
+      // spec-prescribed pattern; never tween innerText, and no long translateY strip --
+      // the layout linter reads a strip's clipped digits as real overlapping text).
+      // target "8,640" -> columns land on 8, 6, 4, 0 after 10+final swap steps.
+      const finals = [8, 6, 4, 0];
+      const cols = ["d0", "d1", "d2", "d3"].map((id) => {
+        const el = document.getElementById(id);
+        const digits = [];
+        for (let d = 0; d <= 9; d++) {
+          const div = document.createElement("div");
+          div.textContent = String(d);
+          div.setAttribute("data-layout-allow-occlusion", "true");
+          if (d === 0) div.style.opacity = "1";   // frame-0 state from inline CSS
+          el.appendChild(div);
+          digits.push(div);
+        }
+        return digits;
+      });
+
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // slow push-in under everything, whole beat
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.06, duration: 7.2, ease: "sine.inOut" }, 0);
+
+      // ---- ACT 1: the machinery assembles ----
+      tl.fromTo("#kicker", { opacity: 0.5, y: -16 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 0);
+      tl.fromTo("#app-card", { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out", immediateRender: false }, 0.45);
+      tl.fromTo("#srv-card", { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out", immediateRender: false }, 1.05);
+
+      // three poll cycles; first flight lands on "anything new?" (local 1.75-2.53)
+      const cycles = [1.75, 2.95, 4.05];
+      cycles.forEach((t) => {
+        tl.fromTo("#poll-chip", { x: 0, opacity: 0 }, {x: 0, opacity: 1, duration: 0.12, ease: "power1.out", immediateRender: false }, t);
+        tl.to("#poll-chip", { x: 320, duration: 0.45, ease: "power2.inOut" }, t + 0.05);
+        tl.to("#poll-chip", { opacity: 0, duration: 0.1 }, t + 0.5);
+        tl.fromTo("#reply-chip", { x: 0, opacity: 0 }, {x: 0, opacity: 1, duration: 0.12, ease: "power1.out", immediateRender: false }, t + 0.6);
+        tl.to("#reply-chip", { x: -370, duration: 0.42, ease: "power2.inOut" }, t + 0.65);
+        tl.to("#reply-chip", { opacity: 0, duration: 0.1 }, t + 1.07);
+      });
+
+      // counter reveals then spins; peak rides "thousands of wasted calls" (local 4.48-5.63)
+      tl.fromTo("#counter", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 3.0);
+      tl.fromTo("#counter-label", { opacity: 0 }, { opacity: 1, duration: 0.35, ease: "power3.out", immediateRender: false }, 3.25);
+      // Decelerating swap schedule (power2.out spacing: fast early, slow late).
+      // Each swap touches ONLY the outgoing and incoming digit -- two different
+      // targets, never a blanket hide-all (renderer trap: two sets on the same
+      // property at the same position render the boundary frame blank).
+      cols.forEach((digits, i) => {
+        const N = 10 + finals[i];                 // swap steps; value at step k = k%10
+        const start = 3.4 + i * 0.12;
+        for (let k = 1; k <= N; k++) {
+          const t = start + 2.1 * (1 - Math.sqrt(1 - k / N));
+          tl.set(digits[(k - 1) % 10], { opacity: 0 }, t);
+          tl.set(digits[k % 10], { opacity: 1 }, t);
+        }
+      });
+
+      // the pile accumulates: one grey 204 per reply + extras while the counter spins
+      const deadTimes = [2.85, 3.35, 3.7, 4.0, 4.3, 4.6, 4.9, 5.2];
+      document.querySelectorAll(".dead").forEach((el, i) => {
+        tl.fromTo(el, { opacity: 0, y: -26 }, { opacity: 0.85, y: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, deadTimes[i]);
+      });
+
+      // ---- TURN (~5.85): the freeze -- flash + desaturate hit on the polling machinery ----
+      tl.fromTo("#flash", { opacity: 0 }, { opacity: 0.45, duration: 0.06, ease: "power3.out", immediateRender: false }, 5.85);
+      tl.to("#flash", { opacity: 0, duration: 0.2, ease: "power3.out" }, 5.91);
+      tl.fromTo("#poll-group",
+        { filter: "saturate(1) brightness(1)" },
+        { filter: "saturate(0.2) brightness(0.62)", duration: 0.35, ease: "power3.out", immediateRender: false },
+        5.88);
+      tl.to("#kicker", { opacity: 0.4, duration: 0.3 }, 5.88);
+
+      // ---- ACT 2: thousands of grey calls vs the ONE real event ("one event" local 6.5) ----
+      tl.to(".dead", { opacity: 0.3, duration: 0.3, ease: "power2.out" }, 6.3);
+      tl.fromTo("#bg-glow-green", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.out", immediateRender: false }, 6.3);
+      tl.fromTo("#event-chip",
+        { opacity: 0, scale: 0.8 },
+        { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.6)", immediateRender: false },
+        6.35);
+      // single glow swell, no repeat, done by 6.9
+      tl.to("#event-chip", { boxShadow: "0 0 40px rgba(74,222,128,0.75)", duration: 0.25, ease: "power2.out" }, 6.6);
+
+      // ---- fade: ends EXACTLY at 7.2. #scene carries the transform so it fades itself;
+      // #bg-fill (with glows/vignette children) and #grain fade in the same window. ----
+      for (const sel of ["#scene", "#bg-fill", "#grain"]) {
+        tl.fromTo(sel, { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 6.9);
+      }
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

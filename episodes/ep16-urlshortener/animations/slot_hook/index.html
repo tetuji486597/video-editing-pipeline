@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body {
+        font-family: Inter, sans-serif;
+      }
+
+      :root {
+        --cyan: #67e8f9;
+        --cyan-text: #a5f3fc;
+        --amber: #fbbf24;
+        --amber-hot: #fcd34d;
+      }
+
+      #root {
+        position: relative;
+      }
+      .fill {
+        position: absolute;
+        inset: 0;
+      }
+
+      /* ---------- camera push-in wrapper ----------
+         transform-origin pinned to the CONTENT band centre (540, 1108),
+         NOT the frame centre, so the push-in cannot walk past y=1280. */
+      #scene {
+        position: absolute;
+        inset: 0;
+        transform-origin: 540px 1108px;
+      }
+
+      /* ---------- the address bar ----------
+         act 1 : left 45  width 990  ->  x 45..1035
+         act 2 : left 180 width 720  ->  x 180..900
+         both centred on x = 540. y is fixed: 984..1232 (h 248). */
+      #bar-wrap {
+        position: absolute;
+        left: 50%;
+        top: 984px;
+        width: 990px;
+        height: 248px;
+        transform: translateX(-50%); /* centre-anchored: a width tween cannot drift it */
+        opacity: 0.55; /* frame-0 state comes from CSS, not tl.set() */
+      }
+
+      #bar-inner {
+        position: absolute;
+        inset: 0;
+        border-radius: 26px;
+        overflow: hidden;
+        background: linear-gradient(180deg, rgba(3, 10, 14, 0.3) 0%, rgba(2, 6, 9, 0.32) 100%);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.55);
+      }
+
+      /* rings live OUTSIDE the clipping box so their glow is not clipped away */
+      #ring-cyan,
+      #ring-amber {
+        position: absolute;
+        inset: 0;
+        border-radius: 26px;
+        pointer-events: none;
+      }
+      #ring-cyan {
+        border: 2px solid rgba(103, 232, 249, 0.55);
+        box-shadow: 0 0 20px rgba(34, 211, 238, 0.32);
+        opacity: 1;
+      }
+      #ring-amber {
+        border: 2px solid rgba(251, 191, 36, 0.62);
+        box-shadow: 0 0 20px rgba(245, 158, 11, 0.34);
+        opacity: 0;
+      }
+
+      #scanlines {
+        position: absolute;
+        inset: 0;
+        background: repeating-linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.03) 0px,
+          rgba(255, 255, 255, 0.03) 1px,
+          rgba(255, 255, 255, 0) 1px,
+          rgba(255, 255, 255, 0) 4px
+        );
+      }
+      #bar-grain {
+        position: absolute;
+        inset: 0;
+      }
+
+      /* ---------- ACT 1 : the 200-character URL ----------
+         900px block, centre-anchored on x=540 so the bar resize cannot drag it.
+         abs box: x 90..990, y 1048..1168 */
+      #url-block {
+        position: absolute;
+        left: 50%;
+        margin-left: -450px;
+        top: 64px;
+        width: 900px;
+        height: 120px;
+      }
+      .uline {
+        position: relative;
+        display: block;
+        height: 40px;
+        overflow: hidden;
+        white-space: pre;
+        transform-origin: 450px center; /* every line converges on abs x=540 */
+      }
+      .uline1 {
+        width: 66px;
+      }
+      .uline2,
+      .uline3 {
+        width: 0px;
+      }
+      .utext {
+        display: inline-block;
+        white-space: pre;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-weight: 400;
+        font-size: 22px;
+        line-height: 40px;
+        color: var(--cyan-text);
+        text-shadow: 0 0 5px rgba(0, 0, 0, 0.95), 0 1px 3px rgba(0, 0, 0, 0.92);
+      }
+      #caret {
+        position: absolute;
+        left: 0;
+        top: 7px;
+        width: 11px;
+        height: 26px;
+        background: var(--cyan);
+        box-shadow: 0 0 10px rgba(103, 232, 249, 0.75);
+      }
+
+      /* ---------- THE TURN ---------- */
+      #sweep {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 150px;
+        height: 100%;
+        opacity: 0;
+        background: linear-gradient(
+          90deg,
+          rgba(207, 250, 254, 0) 0%,
+          rgba(207, 250, 254, 0.5) 42%,
+          rgba(255, 255, 255, 0.85) 55%,
+          rgba(207, 250, 254, 0) 100%
+        );
+      }
+      #seed {
+        position: absolute;
+        left: 50%;
+        margin-left: -3px;
+        top: 64px;
+        width: 6px;
+        height: 120px;
+        border-radius: 3px;
+        background: #ecfeff;
+        box-shadow: 0 0 22px rgba(207, 250, 254, 0.9);
+        opacity: 0;
+      }
+
+      /* ---------- ACT 2 : the short link ----------
+         504px block, centre-anchored -> abs x 288..792
+         abs y: dom 998..1040, code 1042..1194, ticks 1212..1218 */
+      #hero {
+        position: absolute;
+        left: 50%;
+        margin-left: -252px;
+        top: 14px;
+        width: 504px;
+        text-align: left;
+        opacity: 0;
+      }
+      #dom {
+        display: block;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-weight: 400;
+        font-size: 38px;
+        line-height: 42px;
+        color: rgba(226, 232, 240, 0.72);
+        text-shadow: 0 0 5px rgba(0, 0, 0, 0.95), 0 1px 3px rgba(0, 0, 0, 0.9);
+      }
+      #code-row {
+        display: block;
+        margin-top: 2px;
+        font-size: 0; /* kills inline-block whitespace between cells */
+      }
+      .cc {
+        display: inline-block;
+        width: 84px; /* 140px * 0.6em advance = exact mono cell */
+        vertical-align: top;
+      }
+      .ch {
+        display: block;
+        text-align: center;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-weight: 700;
+        font-size: 140px;
+        line-height: 152px;
+        color: var(--amber-hot);
+        text-shadow: 0 0 6px rgba(0, 0, 0, 0.9), 0 3px 8px rgba(0, 0, 0, 0.85),
+          0 0 26px rgba(245, 158, 11, 0.45);
+      }
+      .tick {
+        display: block;
+        width: 60px;
+        height: 6px;
+        margin: 18px auto 0;
+        border-radius: 3px;
+        background: var(--amber);
+        box-shadow: 0 0 10px rgba(251, 191, 36, 0.6);
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="5.20"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="main-clip" class="clip" data-start="0" data-duration="5.20" data-track-index="1">
+        <div id="scene">
+          <div id="bar-wrap">
+            <div id="bar-inner">
+              <div id="scanlines"></div>
+              <div id="bar-grain"></div>
+
+              <!-- ACT 1 : one 200-character URL, wrapped to three lines -->
+              <div id="url-block">
+                <div class="uline uline1"><span class="utext">https://shop.northwind-outfitters.com/collections/winter-2026/produc</span></div>
+                <div class="uline uline2"><span class="utext">ts/merino-wool-overshirt?variant=4182736&amp;size=medium&amp;utm_source=news</span></div>
+                <div class="uline uline3"><span class="utext">letter&amp;utm_medium=email&amp;utm_campaign=winter_sale&amp;fbclid=IwAR2xQ7</span></div>
+                <div id="caret"></div>
+              </div>
+
+              <!-- THE TURN : compression sweep + collapse seed -->
+              <div id="sweep"></div>
+              <div id="seed"></div>
+
+              <!-- ACT 2 : the short link -->
+              <div id="hero">
+                <span id="dom">tinyurl.com/</span>
+                <span id="code-row"
+                  ><span class="cc"><span class="ch">3</span><span class="tick"></span></span
+                  ><span class="cc"><span class="ch">m</span><span class="tick"></span></span
+                  ><span class="cc"><span class="ch">K</span><span class="tick"></span></span
+                  ><span class="cc"><span class="ch">9</span><span class="tick"></span></span
+                  ><span class="cc"><span class="ch">Q</span><span class="tick"></span></span
+                  ><span class="cc"><span class="ch">a</span><span class="tick"></span></span
+                ></span>
+              </div>
+            </div>
+
+            <div id="ring-cyan"></div>
+            <div id="ring-amber"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.045 0" />
+      </filter>
+    </svg>
+
+    <script>
+      document.getElementById("bar-grain").style.filter = "url(#grain-filter)";
+
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      /* ---------------- continuous camera push-in ----------------
+         origin (540, 1108) = centre of the content band, so the growth is
+         symmetric about the bar and cannot reach the y=180 / y=1280 limits. */
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.045, duration: 5.2, ease: "sine.inOut" }, 0);
+
+      /* ---------------- ACT 1 : the long URL streams in ---------------- */
+      // primary entrance begins at t=0 and is already visible on frame 0 (CSS opacity .55)
+      tl.fromTo(
+        "#bar-wrap",
+        { opacity: 0.55, scale: 0.965, xPercent: -50 },
+        { opacity: 1, scale: 1, xPercent: -50, duration: 0.45, ease: "power3.out" },
+        0
+      );
+
+      // one continuous stream: the caret never stops between lines.
+      // ease "none" — a stream that decelerates reads as finished, not typing.
+      tl.fromTo(".uline1", { width: 66 }, { width: 898, duration: 0.44, ease: "none" }, 0);
+      tl.fromTo("#caret", { x: 66, y: 0 }, { x: 898, duration: 0.44, ease: "none" }, 0);
+
+      tl.fromTo(
+        ".uline2",
+        { width: 0 },
+        { width: 898, duration: 0.44, ease: "none", immediateRender: false },
+        0.44
+      );
+      tl.fromTo(
+        "#caret",
+        { x: 0, y: 40 },
+        { x: 898, duration: 0.44, ease: "none", immediateRender: false },
+        0.44
+      );
+
+      tl.fromTo(
+        ".uline3",
+        { width: 0 },
+        { width: 845, duration: 0.44, ease: "none", immediateRender: false },
+        0.88
+      );
+      tl.fromTo(
+        "#caret",
+        { x: 0, y: 80 },
+        { x: 845, duration: 0.44, ease: "none", immediateRender: false },
+        0.88
+      );
+
+      // ambient: cyan ring breathes. odd repeat -> lands back on the base value.
+      // ends 0.55 + 2*0.62 = 1.79, before the ring crossfade at 1.80.
+      tl.to("#ring-cyan", { opacity: 0.6, duration: 0.62, ease: "sine.inOut", yoyo: true, repeat: 1 }, 0.55);
+
+      /* ---------------- THE TURN : compression sweep ---------------- */
+      tl.fromTo(
+        "#sweep",
+        { x: -170, opacity: 1 },
+        { x: 1010, opacity: 1, duration: 0.42, ease: "power2.inOut", immediateRender: false },
+        1.28
+      );
+      tl.fromTo(
+        "#caret",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.14, ease: "power2.out", immediateRender: false },
+        1.32
+      );
+      // the URL dims as the sweep passes over it
+      tl.fromTo(
+        ".uline",
+        { opacity: 1 },
+        { opacity: 0.5, duration: 0.2, ease: "sine.out", immediateRender: false },
+        1.34
+      );
+      // ...then compresses horizontally into a single point at abs x = 540
+      tl.fromTo(
+        ".uline",
+        { scaleX: 1, opacity: 0.5 },
+        { scaleX: 0.03, opacity: 0, duration: 0.32, ease: "power3.in", immediateRender: false },
+        1.54
+      );
+      // the bar itself contracts 990 -> 720; translateX(-50%) keeps it on x = 540
+      tl.fromTo(
+        "#bar-wrap",
+        { width: 990 },
+        { width: 720, duration: 0.42, ease: "power4.out", immediateRender: false },
+        1.56
+      );
+      // seed flash where the URL collapsed
+      tl.fromTo(
+        "#seed",
+        { opacity: 0, scaleY: 0.15 },
+        { opacity: 1, scaleY: 1, duration: 0.08, ease: "power3.out", immediateRender: false },
+        1.7
+      );
+      tl.fromTo(
+        "#seed",
+        { opacity: 1, scaleX: 1 },
+        { opacity: 0, scaleX: 8, duration: 0.08, ease: "power2.out", immediateRender: false },
+        1.78
+      );
+      tl.to("#sweep", { opacity: 0, duration: 0.12, ease: "power2.out" }, 1.7);
+
+      // colour phase-shift carries the turn: cyan -> amber
+      tl.fromTo(
+        "#ring-cyan",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.26, ease: "power2.out", immediateRender: false },
+        1.8
+      );
+      tl.fromTo(
+        "#ring-amber",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.3, ease: "power2.out", immediateRender: false },
+        1.84
+      );
+
+      /* ---------------- ACT 2 : the short link lands large ----------------
+         resolves at 2.40, inside the "becomes six characters" window 1.57-2.93 */
+      tl.fromTo(
+        "#hero",
+        { opacity: 0, scaleX: 0.16, scaleY: 0.55 },
+        { opacity: 1, scaleX: 1, scaleY: 1, duration: 0.52, ease: "power4.out", immediateRender: false },
+        1.88
+      );
+      // six slot markers snap in under the six characters — last one lands at 2.92
+      tl.fromTo(
+        ".tick",
+        { opacity: 0, scaleX: 0 },
+        {
+          opacity: 1,
+          scaleX: 1,
+          duration: 0.2,
+          ease: "power3.out",
+          stagger: 0.06,
+          immediateRender: false,
+        },
+        2.42
+      );
+
+      // ambient: amber ring breathes. odd repeat, ends 3.00 + 2*0.70 = 4.40 < 4.90 fade.
+      tl.to("#ring-amber", { opacity: 0.62, duration: 0.7, ease: "sine.inOut", yoyo: true, repeat: 1 }, 3.0);
+
+      /* ---------------- final fade : FINISHES at exactly 5.200 ----------------
+         applied to leaves + every transformed descendant. #ring-cyan, .uline,
+         #caret, #sweep and #seed are already at opacity 0 by 4.90 and are
+         deliberately excluded so the fade cannot resurrect them. */
+      tl.fromTo(
+        ["#bar-wrap", "#ring-amber", "#hero", ".tick"],
+        { opacity: 1 },
+        { opacity: 0, duration: 0.3, ease: "power2.in", immediateRender: false },
+        4.9
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

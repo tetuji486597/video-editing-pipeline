@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP22 TikTok-style Title Box (B)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      /* Variant B sticker: "RLLY COOL TECH:" / "EPISODE 22" (2 boxes), per the fixed
+         wording table (abbreviated RLLY, no leading EXPLORING). User feedback fix:
+         stack CENTRED ON x=540, the true frame centre (left:0;right:0 + flex centring).
+         Widest box "RLLY COOL TECH:" measured 628px at 66px -> x ~226-854; at the 1.01
+         drift max 540 + 317 = ~857 <= 870, so the 66px font stays.
+         Stack y 210-440 (110*2 + 10). Intro B brow ~620, eyes ~700 -> 180px clear. */
+      #stack {
+        position: absolute;
+        left: 0;
+        right: 0;                /* full-width flex column -> boxes centre on x=540 */
+        top: 210px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        opacity: 0.6;
+        transform: scale(0.94);
+        transform-origin: 50% 12%;
+      }
+      .tt-line {
+        background: #ffffff;
+        color: #111111;
+        font-size: 66px;
+        line-height: 66px;
+        font-weight: 800;
+        letter-spacing: -1px;
+        padding: 20px 28px 24px 28px;
+        border-radius: 16px;
+        white-space: nowrap;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="4.4"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="4.4"
+        data-track-index="1"
+      >
+        <div id="stack">
+          <!-- 2 boxes: y 210-440 -->
+          <div class="tt-line">RLLY COOL TECH:</div>
+          <div class="tt-line">EPISODE 22</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      tl.fromTo(
+        "#stack",
+        { opacity: 0.6, scale: 0.94 },
+        { opacity: 1, scale: 1, duration: 0.28, ease: "power3.out" },
+        0
+      );
+
+      tl.fromTo(
+        "#stack",
+        { scale: 1 },
+        { scale: 1.01, duration: 3.84, ease: "none", immediateRender: false },
+        0.28
+      );
+
+      // Fade ends at EXACTLY 4.12 + 0.28 = 4.400.
+      tl.fromTo(
+        "#stack",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.28, ease: "power2.out", immediateRender: false },
+        4.12
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

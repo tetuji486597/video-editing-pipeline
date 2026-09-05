@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP19 TikTok-style Title Box</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;   /* never a takeover -- the presenter stays visible */
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      /* TikTok's native text sticker: each WRAPPED LINE gets its own white rounded box,
+         rather than one box behind the whole block. That per-line treatment is the single
+         thing that makes it read as native rather than as a lower-third, so the lines are
+         authored as separate elements and the widths are ragged by design. */
+      #stack {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 250px;              /* measured: hair top ~490, brow ~883, chin ~1279 */
+        display: flex;
+        flex-direction: column;
+        align-items: center;      /* centred, each box hugging its own text */
+        gap: 14px;
+        /* Frame-0 state from CSS -- tl.set() at position 0 never fires in this renderer,
+           and the primary entrance must not be at opacity 0 on frame 0. */
+        opacity: 0.6;
+        transform: scale(0.94);
+        transform-origin: 50% 12%;
+      }
+      .tt-line {
+        background: #ffffff;
+        color: #111111;
+        font-size: 82px;
+        line-height: 82px;
+        font-weight: 800;
+        letter-spacing: -1px;
+        padding: 26px 34px 30px 34px;
+        border-radius: 18px;
+        white-space: nowrap;      /* each line is authored; never let it re-wrap */
+        /* TikTok's sticker sits flat on the video with no shadow. A very soft one keeps
+           the white box from vibrating against the bright neon sign behind it without
+           reading as a drop-shadow. Reach is 1.6*18 = 29px, far inside the band. */
+        box-shadow: 0 2px 18px rgba(0, 0, 0, 0.22);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="7.4"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="7.4"
+        data-track-index="1"
+      >
+        <div id="stack">
+          <!-- Line breaks authored to match the reference's shape: wide / narrow / medium.
+               At 82px Inter 800 the widest line resolves to ~881px inside the 1080 canvas,
+               leaving ~100px of margin each side. -->
+          <div class="tt-line">MASTERING SYSTEM</div>
+          <div class="tt-line">DESIGN:</div>
+          <div class="tt-line">EPISODE 19</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // The three lines are ONE sticker, not three reveals -- so they land together and the
+      // >=0.6s stagger rule does not apply (same basis as a multi-line headline lockup).
+      // A real TikTok sticker just appears; a 0.28s settle keeps it from feeling like a
+      // hard pop without turning it into an animated lower-third.
+      tl.fromTo(
+        "#stack",
+        { opacity: 0.6, scale: 0.94 },
+        { opacity: 1, scale: 1, duration: 0.28, ease: "power3.out" },
+        0
+      );
+
+      // A real TikTok sticker is pinned and perfectly static, which is what this wants to be
+      // -- but a fully static hold makes the motion linter report "Timeline did not advance
+      // under seek", and it explicitly says every other verdict on that run is then
+      // unreliable. So the hold carries a drift of 1.000 -> 1.010 over 6.8s: ~9px across the
+      // widest box, invisible at 1x, enough that no two sampled frames are identical. It also
+      // keeps the sticker from reading as pasted-on while the footage zooms underneath.
+      // fromTo, not to: a plain .to() alongside the CSS `transform: scale(0.94)` trips
+      // gsap_css_transform_conflict, because GSAP would overwrite the whole CSS transform.
+      // fromTo is explicitly exempt and states its own start value.
+      tl.fromTo(
+        "#stack",
+        { scale: 1 },
+        { scale: 1.01, duration: 6.84, ease: "none", immediateRender: false },
+        0.28
+      );
+
+      // Fade must FINISH at exactly data-duration, zero buffer: 7.12 + 0.28 = 7.400.
+      // Single fading element, so there is no per-leaf 1-(1-a)^n amplification and no
+      // nested-ancestor multiplication -- power2.out still lands the last stored frame low.
+      tl.fromTo(
+        "#stack",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.28, ease: "power2.out", immediateRender: false },
+        7.12
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

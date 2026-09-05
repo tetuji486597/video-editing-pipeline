@@ -1,0 +1,21 @@
+# EP21 — HIBP k-anonymity range API, real values (captured 2026-08-28)
+
+Dummy password used everywhere: password123  (never a real password)
+SHA-1("password123") = CBFDAC6008F9CAB4083784CBD1874F76618D2A97
+  prefix sent to API : CBFDA        (first 5 hex chars — ALL the server ever sees)
+  suffix kept local  : C6008F9CAB4083784CBD1874F76618D2A97
+
+API call: https://api.pwnedpasswords.com/range/CBFDA
+Response saved to: range_CBFDA.txt
+
+Stats:
+  Total suffix lines returned (the "crowd" the real password hides in): 1972
+  Matching line: C6008F9CAB4083784CBD1874F76618D2A97:2266543
+  -> password123 seen 2,266,543 times in breaches
+  First line of response: 000DD0BFD801860C09116B9AAD880B125F1:53
+  Last line of response : FFFB48B574F158C0C05FB297FB30933FA09:1
+
+Cross-check: haveibeenpwned.com/Passwords UI reported the same number —
+"This password has been seen 2,266,543 times before in data breaches!"
+(screenshots ep21_hibp_pwned_fullpage.png / ep21_hibp_pwned_result_tight.png /
+ep21_hibp_search_and_result.png)

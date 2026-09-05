@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP21 slot_problem — the catch-22</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .fill { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* ---------- background (exempt from content band) ---------- */
+      #bg-fill {
+        background: radial-gradient(120% 90% at 50% 10%, #0d1420 0%, #080c14 45%, #04060a 80%, #020305 100%);
+      }
+      #glow-blue {
+        position: absolute; left: 50%; top: 24%;
+        width: 1400px; height: 1400px; transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(96, 165, 250, 0.15) 0%, rgba(96, 165, 250, 0) 62%);
+      }
+      #glow-red {
+        position: absolute; left: 50%; top: 76%;
+        width: 1500px; height: 1500px; transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(239, 68, 68, 0.14) 0%, rgba(239, 68, 68, 0) 60%);
+        opacity: 0;
+      }
+      #vignette {
+        background: linear-gradient(to bottom,
+          rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 14%,
+          rgba(0,0,0,0) 78%, rgba(0,0,0,0.65) 100%);
+      }
+
+      #scene { transform-origin: 480px 730px; }
+
+      /* ---------- YOU side: envelope + password chip ---------- */
+      #env-group { position: absolute; left: 0; top: 0; width: 1080px; height: 0; }
+      #env-svg { position: absolute; left: 370px; top: 250px; width: 220px; height: 150px; opacity: 0.55; }
+      #pw-chip {
+        position: absolute; left: 330px; top: 416px; width: 300px; height: 54px;
+        border-radius: 12px;
+        background: rgba(30, 58, 138, 0.45);
+        border: 1.5px solid rgba(96, 165, 250, 0.8);
+        color: #bfdbfe; font-size: 30px;
+        display: flex; align-items: center; justify-content: center;
+        opacity: 0;
+      }
+      #hash-chip {
+        position: absolute; left: 240px; top: 416px; width: 480px; height: 54px;
+        border-radius: 12px;
+        background: rgba(58, 37, 3, 0.55);
+        border: 1.5px solid rgba(251, 191, 36, 0.85);
+        color: #fde68a; font-size: 26px; letter-spacing: 0.5px;
+        display: flex; align-items: center; justify-content: center;
+        opacity: 0;
+      }
+      #crack-svg { position: absolute; left: 240px; top: 400px; width: 480px; height: 90px;
+                   overflow: visible; }
+      .crack { fill: none; stroke: #ef4444; stroke-width: 3.5; stroke-linejoin: round; }
+      #x-env { position: absolute; left: 434px; top: 270px; width: 92px; height: 92px; opacity: 0; }
+
+      /* ---------- transfer path ---------- */
+      #path-svg { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px;
+                  overflow: visible; }
+      #path-line { fill: none; stroke: rgba(96, 165, 250, 0.75); stroke-width: 4;
+                   stroke-linecap: round; stroke-dasharray: 14 14; }
+
+      /* ---------- server card ---------- */
+      #srv-card {
+        position: absolute; left: 190px; top: 740px; width: 580px; height: 340px;
+        border-radius: 22px;
+        background: linear-gradient(165deg, rgba(13, 22, 38, 0.96), rgba(6, 10, 18, 0.98));
+        border: 2px solid rgba(96, 165, 250, 0.5);
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+        opacity: 0.55;
+      }
+      #srv-title {
+        position: absolute; left: 0; top: 34px; width: 100%;
+        text-align: center;
+        color: #bfdbfe; font-size: 30px; font-weight: 700; letter-spacing: 4px;
+      }
+      #vault-svg { position: absolute; left: 60px; top: 104px; width: 150px; height: 150px; }
+      #vault-label {
+        position: absolute; left: 236px; top: 122px;
+        padding: 10px 18px; border-radius: 10px;
+        background: rgba(35, 22, 2, 0.65);
+        border: 1.5px solid rgba(251, 191, 36, 0.8);
+        color: #fde68a; font-size: 24px; font-weight: 700; letter-spacing: 1px;
+        opacity: 0;
+      }
+      .pw-dots-row {
+        position: absolute; left: 240px; width: 280px; height: 12px;
+        display: flex; gap: 8px;
+      }
+      .pw-dots-row span {
+        display: block; height: 12px; border-radius: 6px;
+        background: rgba(148, 163, 184, 0.35);
+      }
+
+      /* ---------- the verdict ---------- */
+      #catch22 {
+        position: absolute; left: 0; top: 570px; width: 960px;
+        text-align: center;
+        color: #fecaca;
+        font-size: 120px; font-weight: 800; letter-spacing: -2px; line-height: 124px;
+        text-shadow: 0 4px 18px rgba(0,0,0,0.9), 0 0 46px rgba(239,68,68,0.6);
+        opacity: 0;
+        white-space: nowrap;
+      }
+
+      #flash { background: #fecaca; opacity: 0; pointer-events: none; }
+      #dither { opacity: 1; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="8.2"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="main-clip" class="clip" data-start="0" data-duration="8.2" data-track-index="1">
+        <div id="content-all" class="fill">
+          <div id="bg-fill" class="fill">
+            <div id="glow-blue"></div>
+            <div id="glow-red"></div>
+            <div id="vignette" class="fill"></div>
+          </div>
+
+          <div id="scene" class="fill">
+            <svg id="path-svg" viewBox="0 0 1080 1920">
+              <path id="path-line" d="M480,500 L480,716" />
+            </svg>
+
+            <div id="env-group">
+              <svg id="env-svg" viewBox="0 0 220 150">
+                <rect x="4" y="4" width="212" height="142" rx="14"
+                      fill="rgba(30,58,138,0.35)" stroke="#60a5fa" stroke-width="4" />
+                <path d="M8 14 L110 88 L212 14" fill="none" stroke="#60a5fa" stroke-width="4"
+                      stroke-linejoin="round" />
+              </svg>
+              <div id="pw-chip" class="mono">password123</div>
+              <div id="hash-chip" class="mono">CBFDAC6008F9CAB4&#8230;76618D2A97</div>
+              <svg id="crack-svg" viewBox="0 0 480 90">
+                <path class="crack" id="crack1" d="M180 0 L200 26 L186 44 L212 66 L204 90" />
+                <path class="crack" id="crack2" d="M300 90 L282 58 L296 40 L272 18 L280 0" />
+              </svg>
+              <svg id="x-env" viewBox="0 0 92 92">
+                <circle cx="46" cy="46" r="41" fill="rgba(127,29,29,0.4)"
+                        stroke="#ef4444" stroke-width="5" />
+                <line x1="29" y1="29" x2="63" y2="63" stroke="#ef4444" stroke-width="9" stroke-linecap="round" />
+                <line x1="63" y1="29" x2="29" y2="63" stroke="#ef4444" stroke-width="9" stroke-linecap="round" />
+              </svg>
+            </div>
+
+            <div id="srv-card">
+              <div id="srv-title">HAVE I BEEN PWNED</div>
+              <svg id="vault-svg" viewBox="0 0 150 150">
+                <circle cx="75" cy="75" r="66" fill="rgba(15,23,42,0.6)"
+                        stroke="#60a5fa" stroke-width="4" />
+                <circle cx="75" cy="75" r="34" fill="none" stroke="#60a5fa" stroke-width="3.5" />
+                <line x1="75" y1="9" x2="75" y2="41" stroke="#60a5fa" stroke-width="4" stroke-linecap="round" />
+                <line x1="75" y1="109" x2="75" y2="141" stroke="#60a5fa" stroke-width="4" stroke-linecap="round" />
+                <line x1="9" y1="75" x2="41" y2="75" stroke="#60a5fa" stroke-width="4" stroke-linecap="round" />
+                <line x1="109" y1="75" x2="141" y2="75" stroke="#60a5fa" stroke-width="4" stroke-linecap="round" />
+                <circle cx="75" cy="75" r="10" fill="#60a5fa" />
+              </svg>
+              <div id="vault-label">HUNDREDS OF MILLIONS</div>
+              <div class="pw-dots-row" style="top: 208px;">
+                <span style="width:52px"></span><span style="width:34px"></span>
+                <span style="width:64px"></span><span style="width:42px"></span>
+              </div>
+              <div class="pw-dots-row" style="top: 236px;">
+                <span style="width:38px"></span><span style="width:58px"></span>
+                <span style="width:30px"></span><span style="width:70px"></span>
+              </div>
+              <div class="pw-dots-row" style="top: 264px;">
+                <span style="width:60px"></span><span style="width:36px"></span>
+                <span style="width:52px"></span><span style="width:44px"></span>
+              </div>
+            </div>
+
+            <div id="catch22">CATCH-22</div>
+          </div>
+
+          <div id="flash" class="fill"></div>
+          <div id="dither" class="fill"></div>
+        </div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter" x="0%" y="0%" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.04 0" />
+      </filter>
+    </svg>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      document.getElementById("dither").style.filter = "url(#grain-filter)";
+
+      // deterministic crack line-draw setup
+      ["crack1", "crack2"].forEach((id) => {
+        const el = document.getElementById(id);
+        const len = el.getTotalLength();
+        el.style.strokeDasharray = String(len);
+        el.style.strokeDashoffset = String(len);
+      });
+
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // slow camera push-in for the whole beat; origin = content-band centre (480,730)
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.04, duration: 8.2, ease: "sine.inOut" }, 0);
+
+      // ---------- Act 1 (blue): the offer — your password vs their vault ----------
+      // primary content visible at local t=0 (CSS opacity 0.55), bg-fill instant.
+      tl.fromTo("#env-svg", { opacity: 0.55, y: -16 },
+        { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 0);
+      tl.fromTo("#srv-card", { opacity: 0.55, y: 24 },
+        { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.3);
+      tl.fromTo("#pw-chip", { opacity: 0, y: 8 },
+        { opacity: 1, y: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 0.5);
+      // vault quantity lands on "hundreds of millions" (abs ~16.5 in A)
+      tl.fromTo("#vault-label", { opacity: 0, scale: 0.8 },
+        { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(1.5)",
+          immediateRender: false, transformOrigin: "50% 50%" }, 0.85);
+      // the dashed request path draws downward
+      const pline = document.getElementById("path-line");
+      tl.fromTo("#path-line", { opacity: 0 }, { opacity: 1, duration: 0.4, immediateRender: false }, 1.5);
+
+      // envelope leans toward the server (wants to be sent)
+      tl.to("#env-group", { y: 60, duration: 1.0, ease: "power2.inOut" }, 1.7);
+
+      // ---------- Turn: tug-of-war — should it be sent at all? ----------
+      // yoyo with ODD repeat so it lands back at base; ends 2.9 + 4*0.22 = 3.78
+      tl.to("#env-group", { y: 92, duration: 0.22, ease: "sine.inOut", yoyo: true, repeat: 3 }, 2.9);
+      // "sending yours to be checked, EVEN HASHED" — password crossfades to its hash
+      tl.to("#pw-chip", { opacity: 0, duration: 0.25, ease: "power3.out" }, 3.3);
+      tl.fromTo("#hash-chip", { opacity: 0, scale: 0.92 },
+        { opacity: 1, scale: 1, duration: 0.3, ease: "power3.out",
+          immediateRender: false, transformOrigin: "50% 50%" }, 3.4);
+
+      // red flash — the realization
+      tl.fromTo("#flash", { opacity: 0 }, { opacity: 0.5, duration: 0.06, ease: "power3.out",
+        immediateRender: false }, 4.05);
+      tl.to("#flash", { opacity: 0, duration: 0.25, ease: "power3.out" }, 4.11);
+      tl.to("#glow-red", { opacity: 1, duration: 0.5, ease: "power3.out" }, 4.1);
+      tl.to("#srv-card", { borderColor: "rgba(239,68,68,0.75)", duration: 0.4 }, 4.15);
+      tl.to("#path-line", { stroke: "rgba(239,68,68,0.8)", duration: 0.4 }, 4.15);
+
+      // ---------- Act 2 (red): even hashed is crackable ----------
+      // cracks split the hash chip exactly on "even hashed" (abs ~20.3 in A)
+      tl.to("#crack1", { strokeDashoffset: 0, duration: 0.4, ease: "power3.out" }, 4.3);
+      tl.to("#crack2", { strokeDashoffset: 0, duration: 0.4, ease: "power3.out" }, 4.5);
+      // chip shudder; odd repeat, back to base; ends 4.5+4*0.09=4.86
+      tl.to("#hash-chip", { x: 8, duration: 0.09, ease: "sine.inOut", yoyo: true, repeat: 3 }, 4.5);
+      // sending is refused
+      tl.fromTo("#x-env", { opacity: 0, scale: 1.6 },
+        { opacity: 1, scale: 1, duration: 0.3, ease: "power4.out",
+          immediateRender: false, transformOrigin: "50% 50%" }, 4.95);
+
+      // stalemate breathing — both sides lit red, nobody wins.
+      // odd repeats: 5.6 + 2*0.8 = 7.2 <= slam; glow ends before fade.
+      tl.to("#glow-red", { opacity: 0.55, duration: 0.8, ease: "sine.inOut", yoyo: true, repeat: 1 }, 5.6);
+      tl.to("#glow-blue", { opacity: 0.5, duration: 0.8, ease: "sine.inOut", yoyo: true, repeat: 1 }, 5.6);
+
+      // ---------- the verdict slams on the word "catch-22" (abs ~23.1 in A) ----------
+      tl.to("#path-line", { opacity: 0.25, duration: 0.3 }, 7.4);
+      tl.fromTo("#catch22", { opacity: 0, scale: 1.5 },
+        { opacity: 1, scale: 1, duration: 0.32, ease: "power4.out",
+          immediateRender: false, transformOrigin: "50% 50%" }, 7.45);
+      tl.fromTo("#flash", { opacity: 0 }, { opacity: 0.35, duration: 0.05, ease: "power3.out",
+        immediateRender: false }, 7.45);
+      tl.to("#flash", { opacity: 0, duration: 0.2, ease: "power3.out" }, 7.5);
+
+      // ---------- fade out, FINISHING exactly at 8.2 ----------
+      tl.fromTo("#content-all", { opacity: 1 },
+        { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 7.9);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

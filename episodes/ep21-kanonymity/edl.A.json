@@ -1,0 +1,207 @@
+{
+  "version": 1,
+  "sources": {
+    "ep21": "C:/Users/gordo/Downloads/drive-download-20260828T050315Z-1-002/ep21.mp4"
+  },
+  "ranges": [
+    {
+      "source": "ep21",
+      "start": 53.53,
+      "end": 56.36,
+      "beat": "BLOOPER",
+      "quote": "Anonymity. Ana-anonymity. Anonymity.",
+      "reason": "Cold-open pronunciation stumble, placed BEFORE the clean intro per STYLE.md's EP7 rule (blooper must precede the clean delivery). Trimmed tight: acoustic onset 53.63 (dead 52.69-53.63) vs ASR 'Anonymity.' at 53.64 -- agree; acoustic end 56.28 vs ASR box end 56.22. The internal 0.41s beat at 55.25-55.66 between the second stumble and the clean third try is the gag and is kept.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep21",
+      "start": 67.55,
+      "end": 72.85,
+      "beat": "INTRO",
+      "quote": "This is episode 21 of prepping you for your system design interview. Today, we'll be talking about k-anonymity.",
+      "reason": "VARIANT A (system-design-interview framing), the only complete interview take (67.64-72.68); earlier attempts at 36.48 and 60.08 are false starts. Acoustic onset 67.65 matches ASR 'This' 67.64; acoustic end 72.75 vs ASR 'k-anonymity.' box end 72.68 -- close agreement, end padded 100ms past the acoustic stop.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep21",
+      "start": 83.0,
+      "end": 89.75,
+      "beat": "HOOK",
+      "quote": "So a website can tell you your password leaked in a breach without you ever sending your password in. That sounds impossible, but it isn't.",
+      "reason": "Only complete take (a false start 'So a webs...' at 78.50 precedes it). Acoustic onset 83.07 matches ASR 'So' 83.10. ASR boxes \"isn't.\" as 89.26-90.40, a 1.14s word; acoustically speech stops at 89.60 (dead 89.60-98.17), so the range ends 150ms after the ACOUSTIC stop -- padding off the ASR box would have shipped ~0.8s of dead air.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep21",
+      "start": 98.1,
+      "end": 107.25,
+      "beat": "PROBLEM",
+      "quote": "Have I Been Pwned holds hundreds of millions of breached passwords, but sending yours to be checked, even hashed, hands a stranger something crackable. It's a catch-22.",
+      "reason": "Take runs on into a false start ('Here's the trick. Your device hashes the ha...') that is EXCLUDED -- BUILD uses the clean 117.58 retake. ASR boxes 'catch-22.' as 106.34-108.14 with \"Here's\" at 108.18, implying no room to cut; acoustically the word ends at 107.09 with dead air 107.09-108.20 before \"Here's\", so cutting at 107.25 (160ms past the acoustic stop) is clean and 0.93s clear of the next onset. Internal 0.36s beat after 'hashed,' (103.89-104.25) kept.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep21",
+      "start": 117.48,
+      "end": 124.08,
+      "beat": "BUILD",
+      "quote": "Here's the trick. Your device hashes the password locally, then sends only the first five characters of the hash, just the prefix.",
+      "reason": "Clean retake of the sentence PROBLEM's take fumbled (false starts at 108.18 mid-fumble and 113.60). Acoustic onset 117.65 vs ASR \"Here's\" 117.58 -- ASR leads by 70ms, within measurement resolution; start padded before both. Acoustic end 123.95 matches ASR 'prefix.' end 123.88.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep21",
+      "start": 145.06,
+      "end": 151.78,
+      "beat": "SCAN",
+      "quote": "The server returns every breached hash starting with those five characters, hundreds of them, and your device checks for a match locally.",
+      "reason": "First half of the one long clean take 145.18-162.46 (two earlier partial takes at 126.40 and 133.70 dropped). Acoustic onset 145.17 matches ASR 'The' 145.18. Ends at 151.78, the word boundary between 'locally.' (box ends 151.76) and 'The' (starts 151.80) -- continuous speech, no acoustic gap; KANON starts on this exact sample so the split loses and doubles nothing.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep21",
+      "start": 151.78,
+      "end": 162.56,
+      "beat": "KANON",
+      "quote": "The server can never tell which of those hundreds you were asking about. You're hidden in a crowd, and that property has a name: k-anonymity. Browsers use this exact scheme for their password found in a breach warnings.",
+      "reason": "Second half of the same take, contiguous with SCAN at exactly 151.78 (zero source gap). ASR boxes 'k-anonymity.' as 157.34-158.799; acoustically it ends at 158.29 with a 0.53s beat before 'Browsers' -- kept, it's the name landing. Acoustic end 162.37 vs ASR 'warnings.' end 162.46 -- close; end padded past both.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep21",
+      "start": 205.48,
+      "end": 211.78,
+      "beat": "PAYOFF",
+      "quote": "So you don't send the secret. Send a crowd it can hide in. Next, we'll talk about how your app finds out you got paid without ever asking.",
+      "reason": "Final take; five earlier attempts (165.87, 169.34, 175.30, 185.70, 191.04, 197.16) are false starts or off-script wordings ('send it in a crowd YOU can hide in'). Acoustic onset 205.55 matches ASR 'So' 205.62; acoustic end 211.63 matches ASR 'asking' end 211.549.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    }
+  ],
+  "grade": "eq=contrast=1.15:saturation=1.05,colorbalance=rs=-0.04:gs=0.02:bs=0.05:rm=0.01:gm=0.0:bm=-0.01:rh=0.06:gh=0.02:bh=-0.06,vignette=angle=0.7,unsharp=5:5",
+  "overlays": [
+    {
+      "file": "animations/slot_tiktok_title/render.webm",
+      "start_in_output": 0.0,
+      "duration": 7.9
+    },
+    {
+      "file": "animations/slot_hook/render.webm",
+      "start_in_output": 8.95,
+      "duration": 5.5
+    },
+    {
+      "file": "animations/slot_problem/render.webm",
+      "start_in_output": 15.65,
+      "duration": 8.2
+    },
+    {
+      "file": "animations/slot_build/render.webm",
+      "start_in_output": 25.0,
+      "duration": 5.6
+    },
+    {
+      "file": "animations/slot_scan/render.webm",
+      "start_in_output": 31.6,
+      "duration": 5.8
+    },
+    {
+      "file": "animations/slot_kanon/render.webm",
+      "start_in_output": 38.6,
+      "duration": 6.9
+    },
+    {
+      "file": "animations/slot_payoff/render.webm",
+      "start_in_output": 48.9,
+      "duration": 5.4
+    }
+  ],
+  "subtitles": "master.A.ass",
+  "_variant": "Variant A -- 'prepping you for your system design interview' intro.",
+  "_zoom_note": "Slow FACE-ANCHORED zoom, focal (540,730) = eye line, magnitude 1.08, direction alternating so the drift is continuous across cuts. Rebuilt 2026-08-28 per feedback ('zoom shakes, make it stronger'): render.py's zoom chain is now supersampled with the crop offset derived from the frame's actual quantized size, killing the size/offset rounding mismatch that caused the judder; magnitude raised 1.045->1.08 and focal moved from frame centre to the eye line so the stronger zoom displaces the face far less against overlay clearances.",
+  "_beat_windows_output_timeline": {
+    "BLOOPER": [
+      0.0,
+      2.8333
+    ],
+    "INTRO": [
+      2.8333,
+      8.1667
+    ],
+    "HOOK": [
+      8.1667,
+      14.9167
+    ],
+    "PROBLEM": [
+      14.9167,
+      24.0833
+    ],
+    "BUILD": [
+      24.0833,
+      30.7083
+    ],
+    "SCAN": [
+      30.7083,
+      37.4583
+    ],
+    "KANON": [
+      37.4583,
+      48.25
+    ],
+    "PAYOFF": [
+      48.25,
+      54.5833
+    ]
+  },
+  "total_duration_s": 54.5833,
+  "_windows_note": "Output-timeline windows on render.py's real 24fps extract grid: each segment's rendered duration is ceil((end-start)*24)/24, not the raw source span. Verified against rendered clips where measurable. Overlay start_in_output values are derived from THESE numbers.",
+  "_overlay_gap_audit": "Every gap is a deliberate >=0.5s breathing-room gap over live footage (each overlay carries its own fade-out finishing exactly at its declared duration); no contiguous zero-gap pairs are used in this episode. slot_tiktok_title->slot_hook: end 7.900, next starts 8.950, gap 1.050 | slot_hook->slot_problem: end 14.450, next starts 15.650, gap 1.200 | slot_problem->slot_build: end 23.850, next starts 25.000, gap 1.150 | slot_build->slot_scan: end 30.600, next starts 31.600, gap 1.000 | slot_scan->slot_kanon: end 37.400, next starts 38.600, gap 1.200 | slot_kanon->slot_payoff: end 45.500, next starts 48.900, gap 3.400",
+  "_title_note": "TikTok sticker replaces slot_title (none was built); variant A wording per the skill table. Sticker holds from output 0.0 over BLOOPER+INTRO (the sticker over the 'Ana-anonymity' stumble IS the gag - no other overlay on BLOOPER) and fades before HOOK."
+}

@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body {
+        font-family: Inter, sans-serif;
+      }
+
+      :root {
+        --cyan: #38bdf8;
+        --violet: #a78bfa;
+        --amber: #fbbf24;
+        --ink: #05070a;
+      }
+
+      #root {
+        position: relative;
+      }
+
+      .fill {
+        position: absolute;
+        inset: 0;
+      }
+
+      /* ---------------- background (exempt from the 180-1280 band) ------------- */
+      #bg-fill {
+        background: radial-gradient(126% 92% at 50% 12%, #131a22 0%, #0b0f15 44%, #06080c 78%, #030406 100%);
+        opacity: 1;
+      }
+      #glow-a {
+        position: absolute;
+        left: -150px;
+        top: 60px;
+        width: 1260px;
+        height: 1260px;
+        background: radial-gradient(circle, rgba(56, 189, 248, 0.17) 0%, rgba(56, 189, 248, 0) 62%);
+        opacity: 1;
+      }
+      #glow-b {
+        position: absolute;
+        left: 190px;
+        top: 700px;
+        width: 1320px;
+        height: 1320px;
+        background: radial-gradient(circle, rgba(167, 139, 250, 0.14) 0%, rgba(167, 139, 250, 0) 60%);
+        opacity: 1;
+      }
+      #vignette {
+        background: radial-gradient(120% 74% at 50% 44%, rgba(0, 0, 0, 0) 34%, rgba(0, 0, 0, 0.5) 78%, rgba(0, 0, 0, 0.82) 100%);
+        opacity: 1;
+        pointer-events: none;
+      }
+
+      /* ---------------- camera ------------- */
+      /* content band is y=240..1197; its centre is y=718 -> transform-origin pinned there */
+      #scene {
+        transform-origin: 540px 718px;
+      }
+
+      /* #stage carries the act-1 material; the act-2 turn dims it via filter.
+         filter is declared here (not `none`) so GSAP interpolates function-for-function. */
+      #stage {
+        filter: brightness(1) saturate(1);
+      }
+
+      /* ---------------- headline ------------- */
+      #headline {
+        position: absolute;
+        top: 240px;
+        left: 0;
+        width: 1080px;
+        text-align: center;
+        font-size: 38px;
+        line-height: 1.2;
+        font-weight: 800;
+        letter-spacing: 14px;
+        text-indent: 14px;
+        color: #93a5b8;
+        text-shadow: 0 0 14px rgba(56, 189, 248, 0.28);
+        opacity: 0.5; /* frame-0 state from CSS, animated up from t=0 */
+      }
+
+      /* ---------------- glyph banks ------------- */
+      .bank {
+        position: absolute;
+        left: 90px;
+        width: 900px;
+        padding: 16px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        border-radius: 20px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        background: rgba(10, 15, 22, 0.55);
+        box-shadow: 0 0 26px rgba(8, 14, 22, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        opacity: 0.5; /* frame-0 state from CSS, animated up from t=0 */
+      }
+      #bank1 {
+        top: 344px;
+        height: 90px;
+      }
+      #bank2 {
+        top: 476px;
+        height: 160px;
+      }
+      #bank3 {
+        top: 678px;
+        height: 160px;
+      }
+
+      .row {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
+        gap: 30px;
+        height: 58px;
+        white-space: nowrap;
+      }
+      .glyph {
+        flex: 0 0 auto;
+        display: inline-block;
+        /* MONOSPACE IS LOAD-BEARING: JetBrains Mono named FIRST, never ui-monospace.
+           Widths here come from the font advance (no fixed tile width), so the three
+           13-glyph rows only align if the stack really resolves to a monospace face. */
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 54px;
+        line-height: 58px;
+        height: 58px;
+        font-weight: 700;
+        opacity: 0;
+      }
+      #bank1 .glyph {
+        color: var(--cyan);
+        text-shadow: 0 0 16px rgba(56, 189, 248, 0.35);
+      }
+      #bank2 .glyph {
+        color: var(--violet);
+        text-shadow: 0 0 16px rgba(167, 139, 250, 0.35);
+      }
+      #bank3 .glyph {
+        color: var(--amber);
+        text-shadow: 0 0 16px rgba(251, 191, 36, 0.32);
+      }
+
+      /* count-up sweep bar — CSS box already sits inside the content band */
+      #sweep {
+        position: absolute;
+        left: 90px;
+        top: 332px;
+        width: 900px;
+        height: 5px;
+        border-radius: 3px;
+        background: linear-gradient(
+          to right,
+          rgba(226, 232, 240, 0) 0%,
+          rgba(226, 232, 240, 0.95) 22%,
+          rgba(255, 255, 255, 1) 50%,
+          rgba(226, 232, 240, 0.95) 78%,
+          rgba(226, 232, 240, 0) 100%
+        );
+        box-shadow: 0 0 20px rgba(186, 230, 253, 0.7);
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      /* ---------------- act 2 hero lockup ------------- */
+      #hero62 {
+        position: absolute;
+        top: 904px;
+        left: 0;
+        width: 1080px;
+        text-align: center;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 200px;
+        line-height: 1;
+        font-weight: 800;
+        letter-spacing: 8px;
+        text-indent: 8px;
+        color: #f4f8fc;
+        text-shadow: 0 0 40px rgba(56, 189, 248, 0.55), 0 0 12px rgba(255, 255, 255, 0.35);
+        opacity: 0;
+        transform-origin: 540px 100px;
+      }
+      #symbols-label {
+        position: absolute;
+        top: 1152px;
+        left: 0;
+        width: 1080px;
+        text-align: center;
+        font-size: 36px;
+        line-height: 1.25;
+        font-weight: 700;
+        letter-spacing: 18px;
+        text-indent: 18px;
+        color: #7dd3fc;
+        text-shadow: 0 0 14px rgba(56, 189, 248, 0.4);
+        opacity: 0;
+      }
+
+      /* ---------------- full-frame overlays (exempt) ------------- */
+      #flash {
+        background: #ffffff;
+        opacity: 0;
+        pointer-events: none;
+      }
+      #grain {
+        opacity: 1;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="6.40"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="main-clip" class="clip" data-start="0" data-duration="6.40" data-track-index="1">
+        <div id="bg-fill" class="fill">
+          <div id="glow-a"></div>
+          <div id="glow-b"></div>
+        </div>
+        <div id="vignette" class="fill"></div>
+
+        <div id="scene" class="fill">
+          <div id="stage" class="fill">
+            <div id="headline">BASE62</div>
+
+            <!-- ACT 1 · bank 1 — the digits -->
+            <div class="bank" id="bank1">
+              <div class="row">
+                <span class="glyph">0</span><span class="glyph">1</span><span class="glyph">2</span
+                ><span class="glyph">3</span><span class="glyph">4</span><span class="glyph">5</span
+                ><span class="glyph">6</span><span class="glyph">7</span><span class="glyph">8</span
+                ><span class="glyph">9</span>
+              </div>
+            </div>
+
+            <!-- ACT 1 · bank 2 — lowercase -->
+            <div class="bank" id="bank2">
+              <div class="row">
+                <span class="glyph">a</span><span class="glyph">b</span><span class="glyph">c</span
+                ><span class="glyph">d</span><span class="glyph">e</span><span class="glyph">f</span
+                ><span class="glyph">g</span><span class="glyph">h</span><span class="glyph">i</span
+                ><span class="glyph">j</span><span class="glyph">k</span><span class="glyph">l</span
+                ><span class="glyph">m</span>
+              </div>
+              <div class="row">
+                <span class="glyph">n</span><span class="glyph">o</span><span class="glyph">p</span
+                ><span class="glyph">q</span><span class="glyph">r</span><span class="glyph">s</span
+                ><span class="glyph">t</span><span class="glyph">u</span><span class="glyph">v</span
+                ><span class="glyph">w</span><span class="glyph">x</span><span class="glyph">y</span
+                ><span class="glyph">z</span>
+              </div>
+            </div>
+
+            <!-- ACT 1 · bank 3 — uppercase -->
+            <div class="bank" id="bank3">
+              <div class="row">
+                <span class="glyph">A</span><span class="glyph">B</span><span class="glyph">C</span
+                ><span class="glyph">D</span><span class="glyph">E</span><span class="glyph">F</span
+                ><span class="glyph">G</span><span class="glyph">H</span><span class="glyph">I</span
+                ><span class="glyph">J</span><span class="glyph">K</span><span class="glyph">L</span
+                ><span class="glyph">M</span>
+              </div>
+              <div class="row">
+                <span class="glyph">N</span><span class="glyph">O</span><span class="glyph">P</span
+                ><span class="glyph">Q</span><span class="glyph">R</span><span class="glyph">S</span
+                ><span class="glyph">T</span><span class="glyph">U</span><span class="glyph">V</span
+                ><span class="glyph">W</span><span class="glyph">X</span><span class="glyph">Y</span
+                ><span class="glyph">Z</span>
+              </div>
+            </div>
+
+            <!-- TURN · the count-up sweep bar -->
+            <div id="sweep"></div>
+          </div>
+
+          <!-- ACT 2 · the hero lockup -->
+          <div id="hero-layer" class="fill">
+            <div id="hero62">62</div>
+            <div id="symbols-label">SYMBOLS</div>
+          </div>
+        </div>
+
+        <div id="flash" class="fill"></div>
+        <div id="grain" class="fill"></div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter">
+        <feTurbulence type="fractalNoise" baseFrequency="0.86" numOctaves="2" stitchTiles="stitch" result="noise" />
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.042 0" />
+      </filter>
+    </svg>
+
+    <script>
+      document.getElementById("grain").style.filter = "url(#grain-filter)";
+
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      const D = 6.4;
+
+      /* ---------- continuous camera: slow push-in pinned to the content-band centre ---------- */
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.05, duration: D, ease: "sine.inOut" }, 0);
+
+      /* ---------- frame-0 material animates UP from CSS opacity 0.5 (never 0 on frame 0) ---------- */
+      tl.fromTo("#headline", { opacity: 0.5, y: -12 }, { opacity: 1, y: 0, duration: 0.55, ease: "power3.out" }, 0);
+      tl.fromTo(".bank", { opacity: 0.5 }, { opacity: 1, duration: 0.6, ease: "power3.out", stagger: 0.09 }, 0.06);
+
+      /* ---------- ambient life: two background glows breathing out of phase (odd repeats) ---------- */
+      tl.to("#glow-a", { opacity: 0.55, duration: 1.05, ease: "sine.inOut", yoyo: true, repeat: 3 }, 1.6); // ends 5.80
+      tl.to("#glow-b", { opacity: 0.6, duration: 1.3, ease: "sine.inOut", yoyo: true, repeat: 3 }, 0.2); // ends 5.40
+
+      /* ================= ACT 1 — the three banks fill in AS THEY ARE NAMED =================
+         Each bank is ONE visual event: it fills rapidly within itself and completes on its word.
+           bank 1 "zero through nine"      -> completes 1.32
+           bank 2 "lowercase a through z"  -> completes 2.50
+           bank 3 "capital A through Z"    -> completes 4.06                                  */
+      function fillBank(sel, start, stagger, count) {
+        tl.fromTo(
+          sel + " .glyph",
+          { opacity: 0, y: -16, scale: 0.66 },
+          {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.35,
+            ease: "power3.out",
+            stagger: stagger,
+            immediateRender: false,
+          },
+          start
+        );
+        // the bank's frame lights as it takes its glyphs
+        tl.to(
+          sel,
+          { borderColor: "rgba(148,163,184,0.42)", duration: 0.4, ease: "power3.out" },
+          start
+        );
+      }
+      fillBank("#bank1", 0.7, 0.03, 10); // last glyph: 0.70 + 9*0.030 + 0.35 = 1.32
+      fillBank("#bank2", 1.8, 0.014, 26); // last glyph: 1.80 + 25*0.014 + 0.35 = 2.50
+      fillBank("#bank3", 3.36, 0.014, 26); // last glyph: 3.36 + 25*0.014 + 0.35 = 4.06
+
+      /* ================= THE TURN — count-up sweep across all three banks =================
+         Sits inside the deliberate 660ms pause (local 4.56-5.22) before "sixty-two".
+         62 glyphs light in DOM order 0..9, a..z, A..Z — the count itself, no numerals. */
+      tl.fromTo(
+        "#sweep",
+        { y: 0 },
+        { y: 510, duration: 0.7, ease: "power1.inOut", immediateRender: false },
+        4.5
+      );
+      tl.fromTo("#sweep", { opacity: 0 }, { opacity: 0.9, duration: 0.14, ease: "power3.out", immediateRender: false }, 4.5);
+      tl.to("#sweep", { opacity: 0, duration: 0.18, ease: "power3.out" }, 5.02); // ends 5.20, back to 0
+
+      tl.to(
+        ".glyph",
+        {
+          color: "#ffffff",
+          scale: 1.2,
+          duration: 0.13,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 1, // odd -> lands back on each glyph's own base colour/scale
+          stagger: 0.0072,
+        },
+        4.5
+      ); // ends 4.50 + 61*0.0072 + 2*0.13 = 5.199
+
+      /* ================= ACT 2 — the numeral 62 lands on "sixty-two" (5.22) ================= */
+      // shutter hit: short, and fully out by 5.40 so no bright wash sits under the caption band
+      tl.fromTo("#flash", { opacity: 0 }, { opacity: 0.46, duration: 0.06, ease: "power3.out", immediateRender: false }, 5.16);
+      tl.to("#flash", { opacity: 0, duration: 0.18, ease: "power3.out" }, 5.22); // ends 5.40
+
+      // act 1 recedes by luminance, not opacity (opacity is reserved for the final fade)
+      tl.to("#stage", { filter: "brightness(0.34) saturate(0.5)", duration: 0.5, ease: "power3.out" }, 5.16);
+
+      // the hero lockup: 62 slams, SYMBOLS follows as part of the same lockup
+      tl.fromTo(
+        "#hero62",
+        { opacity: 0, scale: 0.46, y: 22 },
+        { opacity: 1, scale: 1, y: 0, duration: 0.4, ease: "power4.out", immediateRender: false },
+        5.22
+      );
+      tl.fromTo(
+        "#symbols-label",
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.4, ease: "power3.out", immediateRender: false },
+        5.36
+      );
+      // ambient life on the held payoff
+      tl.to("#hero62", { scale: 1.024, duration: 0.22, ease: "sine.inOut", yoyo: true, repeat: 1 }, 5.64); // ends 6.08
+
+      /* ================= FINAL FADE — finishes at exactly 6.400, zero buffer =================
+         Applied to leaves (never a wrapper), explicit fromTo {opacity:1}, lazy:false.
+         Excluded: #sweep and #flash, both already at opacity 0. */
+      const fadeTargets = [
+        "#bg-fill",
+        "#glow-a",
+        "#glow-b",
+        "#vignette",
+        "#grain",
+        "#headline",
+        ".bank",
+        ".glyph",
+        "#hero62",
+        "#symbols-label",
+      ];
+      tl.fromTo(
+        fadeTargets,
+        { opacity: 1 },
+        { opacity: 0, duration: 0.3, ease: "power3.out", immediateRender: false },
+        6.1
+      ); // 6.10 + 0.30 = 6.400 exactly
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

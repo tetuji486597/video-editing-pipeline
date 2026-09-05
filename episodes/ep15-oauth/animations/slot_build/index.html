@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body {
+        font-family: Inter, sans-serif;
+      }
+
+      :root {
+        --cyan: #38bdf8;
+        --cyan-bright: #7dd3fc;
+        --amber: #fbbf24;
+        --amber-bright: #fcd34d;
+        --slate: #94a3b8;
+      }
+
+      #root {
+        position: relative;
+      }
+      .fill {
+        position: absolute;
+        inset: 0;
+      }
+
+      /* NO #bg-fill, no opaque layer anywhere — this is a transparent band. */
+
+      #scene {
+        /* content band centre, resolved on paper: (472.7 + 703.3) / 2 = 588 */
+        transform-origin: 540px 588px;
+      }
+
+      /* ---------- ambient glow blobs (max fill alpha 0.20) ---------- */
+      .glow {
+        position: absolute;
+        width: 300px;
+        height: 190px;
+      }
+      .glow-inner {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+      }
+      .gi-cyan {
+        background: radial-gradient(
+          closest-side,
+          rgba(56, 189, 248, 0.2) 0%,
+          rgba(56, 189, 248, 0.06) 55%,
+          rgba(56, 189, 248, 0) 100%
+        );
+      }
+      .gi-amber {
+        background: radial-gradient(
+          closest-side,
+          rgba(251, 191, 36, 0.2) 0%,
+          rgba(251, 191, 36, 0.06) 55%,
+          rgba(251, 191, 36, 0) 100%
+        );
+        opacity: 0;
+      }
+      /* app glow: box 75-375 x, 493-683 y  (centre 225,588 == app card centre) */
+      #app-glow {
+        left: 75px;
+        top: 493px;
+        opacity: 0.5; /* frame-0 state from CSS, entrance starts at t=0 */
+      }
+      /* google glow: box 705-1005 x, 493-683 y (centre 855,588) */
+      #google-glow {
+        left: 705px;
+        top: 493px;
+        opacity: 0;
+      }
+
+      /* ---------- the redirect link (SVG sized to its own content) ---------- */
+      /* box 400-680 x, 566-610 y ; stroke runs x 404-676 at y 588 */
+      #link-svg {
+        position: absolute;
+        left: 400px;
+        top: 566px;
+        width: 280px;
+        height: 44px;
+        filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.85));
+      }
+      #link-halo {
+        fill: none;
+        stroke: rgba(56, 189, 248, 0.28);
+        stroke-width: 14;
+        stroke-linecap: round;
+      }
+      #link-path {
+        fill: none;
+        stroke: #38bdf8;
+        stroke-width: 5;
+        stroke-linecap: round;
+      }
+
+      .chevron {
+        position: absolute;
+        top: 574px;
+        width: 28px;
+        height: 28px;
+        opacity: 0;
+        filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.75))
+          drop-shadow(0 1px 3px rgba(0, 0, 0, 0.9));
+      }
+      #ch1 {
+        left: 434px;
+      }
+      #ch2 {
+        left: 526px;
+      }
+      #ch3 {
+        left: 618px;
+      }
+      .chev-path {
+        fill: none;
+        stroke: #7dd3fc;
+        stroke-width: 4.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      /* ---------- travelling beads (rings, not solid dots) ---------- */
+      .packet {
+        position: absolute;
+        left: 0;
+        top: 577px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        opacity: 0;
+      }
+      #packet-out {
+        border: 3px solid #7dd3fc;
+        background: rgba(56, 189, 248, 0.28);
+        box-shadow: 0 0 18px 5px rgba(56, 189, 248, 0.55);
+      }
+      #packet-back {
+        border: 3px solid #fcd34d;
+        background: rgba(251, 191, 36, 0.3);
+        box-shadow: 0 0 20px 6px rgba(251, 191, 36, 0.6);
+      }
+
+      /* ---------- direction-reversal sweep (the turn) ---------- */
+      #sweep {
+        position: absolute;
+        left: 0;
+        top: 585px;
+        width: 110px;
+        height: 6px;
+        border-radius: 3px;
+        background: linear-gradient(
+          90deg,
+          rgba(251, 191, 36, 0) 0%,
+          rgba(251, 191, 36, 0.3) 50%,
+          rgba(251, 191, 36, 0) 100%
+        );
+        box-shadow: 0 0 22px 6px rgba(251, 191, 36, 0.3);
+        opacity: 0;
+      }
+
+      /* ---------- node cards (outline + translucent fill, max alpha 0.32) ---------- */
+      .node-card {
+        position: absolute;
+        top: 500px;
+        width: 270px;
+        height: 176px;
+        border-radius: 26px;
+        border: 3px solid rgba(56, 189, 248, 0.85);
+        background: linear-gradient(
+          180deg,
+          rgba(4, 10, 18, 0.32) 0%,
+          rgba(6, 14, 24, 0.2) 62%,
+          rgba(6, 14, 24, 0.14) 100%
+        );
+        box-shadow: 0 0 22px 2px rgba(56, 189, 248, 0.3),
+          inset 0 0 26px rgba(56, 189, 248, 0.1);
+      }
+      #app-card {
+        left: 90px;
+        opacity: 0.55; /* frame-0 state from CSS — primary entrance starts at t=0 */
+      }
+      #google-card {
+        left: 720px;
+        opacity: 0;
+      }
+
+      .node-label {
+        position: absolute;
+        left: 0;
+        top: 24px;
+        width: 270px;
+        text-align: center;
+        font-size: 46px;
+        line-height: 56px;
+        font-weight: 800;
+        letter-spacing: 2px;
+        color: #eaf6ff;
+        text-shadow: 0 0 3px rgba(0, 0, 0, 0.95), 0 0 7px rgba(0, 0, 0, 0.95),
+          0 2px 4px rgba(0, 0, 0, 0.9), 0 0 22px rgba(0, 0, 0, 0.7);
+      }
+
+      .divider {
+        position: absolute;
+        left: 26px;
+        top: 98px;
+        width: 218px;
+        height: 2px;
+        background: rgba(56, 189, 248, 0.4);
+      }
+
+      /* credential row: 6 hollow rings — the thing that either fills or does not */
+      .dot-row {
+        position: absolute;
+        left: 46px;
+        top: 120px;
+        width: 178px;
+        height: 18px;
+        display: flex;
+        gap: 14px;
+      }
+      .dot {
+        position: relative;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        border: 2px solid rgba(148, 163, 184, 0.6);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+      }
+      .dot-fill {
+        position: absolute;
+        inset: 2px;
+        border-radius: 50%;
+        background: rgba(251, 191, 36, 0.3);
+        box-shadow: 0 0 10px 2px rgba(251, 191, 36, 0.55);
+        opacity: 0;
+      }
+
+      /* strike across the APP credential row — drawn last */
+      #strike-svg {
+        position: absolute;
+        left: 26px;
+        top: 100px;
+        width: 218px;
+        height: 60px;
+        overflow: visible;
+        filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.9));
+      }
+      #strike {
+        stroke: #fb7185;
+        stroke-width: 6;
+        stroke-linecap: round;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="5.60"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="main-clip"
+        class="clip"
+        data-start="0"
+        data-duration="5.60"
+        data-track-index="1"
+      >
+        <div id="scene" class="fill">
+          <!-- ambient glow blobs, behind everything -->
+          <div id="app-glow" class="glow fx">
+            <div class="glow-inner gi-cyan"></div>
+          </div>
+          <div id="google-glow" class="glow fx">
+            <div id="gg-cyan" class="glow-inner gi-cyan"></div>
+            <div id="gg-amber" class="glow-inner gi-amber"></div>
+          </div>
+
+          <!-- the redirect link between the two nodes -->
+          <svg id="link-svg" class="fx" viewBox="0 0 280 44">
+            <path id="link-halo" d="M4,22 L276,22" />
+            <path id="link-path" d="M4,22 L276,22" />
+          </svg>
+
+          <div id="ch1" class="chevron fx">
+            <svg viewBox="0 0 28 28">
+              <path class="chev-path" d="M9 5 L19 14 L9 23" />
+            </svg>
+          </div>
+          <div id="ch2" class="chevron fx">
+            <svg viewBox="0 0 28 28">
+              <path class="chev-path" d="M9 5 L19 14 L9 23" />
+            </svg>
+          </div>
+          <div id="ch3" class="chevron fx">
+            <svg viewBox="0 0 28 28">
+              <path class="chev-path" d="M9 5 L19 14 L9 23" />
+            </svg>
+          </div>
+
+          <div id="sweep"></div>
+          <div id="packet-out" class="packet"></div>
+          <div id="packet-back" class="packet"></div>
+
+          <!-- NODE: the app -->
+          <div id="app-card" class="node-card fx">
+            <div id="app-label" class="node-label">APP</div>
+            <div id="app-divider" class="divider"></div>
+            <div class="dot-row">
+              <div class="dot"><div class="dot-fill"></div></div>
+              <div class="dot"><div class="dot-fill"></div></div>
+              <div class="dot"><div class="dot-fill"></div></div>
+              <div class="dot"><div class="dot-fill"></div></div>
+              <div class="dot"><div class="dot-fill"></div></div>
+              <div class="dot"><div class="dot-fill"></div></div>
+            </div>
+            <svg id="strike-svg" class="fx" viewBox="0 0 218 60">
+              <line id="strike" x1="6" y1="46" x2="212" y2="12" />
+            </svg>
+          </div>
+
+          <!-- NODE: google — the credentials land here, and only here -->
+          <div id="google-card" class="node-card fx">
+            <div id="google-label" class="node-label">GOOGLE</div>
+            <div id="google-divider" class="divider"></div>
+            <div class="dot-row">
+              <div class="dot"><div class="dot-fill"></div></div>
+              <div class="dot"><div class="dot-fill"></div></div>
+              <div class="dot"><div class="dot-fill"></div></div>
+              <div class="dot"><div class="dot-fill"></div></div>
+              <div class="dot"><div class="dot-fill"></div></div>
+              <div class="dot"><div class="dot-fill"></div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+
+      // deterministic dash setup, measured at load (frame-0 state comes from the DOM,
+      // never from a tl.set at position 0)
+      const dashSetup = (el) => {
+        const len = el.getTotalLength();
+        el.style.strokeDasharray = String(len);
+        el.style.strokeDashoffset = String(len);
+        return len;
+      };
+      dashSetup(document.getElementById("link-halo"));
+      dashSetup(document.getElementById("link-path"));
+      const STRIKE_LEN = dashSetup(document.getElementById("strike"));
+
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ---- continuous slow push-in, origin on the content band's own centre ----
+      tl.fromTo(
+        "#scene",
+        { scale: 1 },
+        { scale: 1.03, duration: 5.6, ease: "sine.inOut" },
+        0
+      );
+
+      /* =====================  ACT 1 — the redirect goes out  ===================== */
+
+      // primary entrance begins at t=0 (CSS already has it at 0.55 / 0.50)
+      tl.fromTo(
+        "#app-card",
+        { opacity: 0.55, scale: 0.94 },
+        { opacity: 1, scale: 1, duration: 0.62, ease: "power3.out" },
+        0
+      );
+      tl.fromTo(
+        "#app-glow",
+        { opacity: 0.5 },
+        { opacity: 1, duration: 0.62, ease: "power3.out" },
+        0
+      );
+
+      tl.fromTo(
+        "#google-card",
+        { opacity: 0, scale: 0.92, x: 26 },
+        {
+          opacity: 1,
+          scale: 1,
+          x: 0,
+          duration: 0.6,
+          ease: "power3.out",
+          immediateRender: false,
+        },
+        0.68
+      );
+      tl.fromTo(
+        "#google-glow",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.6, ease: "power3.out", immediateRender: false },
+        0.68
+      );
+
+      // the path draws itself APP -> GOOGLE
+      tl.to(
+        ["#link-halo", "#link-path"],
+        { strokeDashoffset: 0, duration: 0.62, ease: "power3.out" },
+        1.35
+      );
+      tl.fromTo(
+        ".chevron",
+        { opacity: 0, scale: 0.6 },
+        {
+          opacity: 1,
+          scale: 1,
+          duration: 0.34,
+          ease: "back.out(1.6)",
+          stagger: 0.13,
+          immediateRender: false,
+        },
+        1.62
+      );
+
+      // ambient life — breathe on a scaled inner layer so no opacity state is disturbed.
+      // odd repeat (3) so it lands back on the base value; ends 1.50 + 4*0.86 = 4.94 < 5.30
+      tl.to(
+        ".glow-inner",
+        { scale: 1.1, duration: 0.86, ease: "sine.inOut", yoyo: true, repeat: 3 },
+        1.5
+      );
+
+      // the redirect itself travels
+      tl.fromTo(
+        "#packet-out",
+        { x: 393 },
+        { x: 665, duration: 0.66, ease: "power2.inOut", immediateRender: false },
+        2.15
+      );
+      tl.fromTo(
+        "#packet-out",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.16, ease: "power3.out", immediateRender: false },
+        2.15
+      );
+      tl.to("#packet-out", { opacity: 0, duration: 0.14, ease: "power3.out" }, 2.69);
+      // arrival on GOOGLE
+      tl.to(
+        "#google-card",
+        { borderColor: "rgba(125,211,252,1)", duration: 0.16, ease: "power4.out" },
+        2.78
+      );
+
+      /* =========  THE TURN @2.96 — the path reverses and the phase shifts  ========= */
+
+      tl.to("#link-path", { stroke: "#fbbf24", duration: 0.32, ease: "power3.out" }, 2.96);
+      tl.to(
+        "#link-halo",
+        { stroke: "rgba(251,191,36,0.30)", duration: 0.32, ease: "power3.out" },
+        2.96
+      );
+      tl.to(".chev-path", { stroke: "#fcd34d", duration: 0.32, ease: "power3.out" }, 2.96);
+      // flip the arrowheads: scaleX on a DIV that has real width and height.
+      // (never GSAP-rotate the degenerate <line>/<path> itself)
+      tl.to(
+        ".chevron",
+        {
+          scaleX: -1,
+          duration: 0.3,
+          ease: "power3.inOut",
+          stagger: { each: 0.09, from: "end" },
+        },
+        2.96
+      );
+      tl.fromTo(
+        "#sweep",
+        { x: 566, opacity: 0 },
+        {
+          x: 404,
+          opacity: 0.95,
+          duration: 0.36,
+          ease: "power2.inOut",
+          immediateRender: false,
+        },
+        3.0
+      );
+      tl.to("#sweep", { opacity: 0, duration: 0.18, ease: "power3.out" }, 3.36);
+
+      tl.to(
+        "#google-card",
+        { borderColor: "rgba(251,191,36,0.95)", duration: 0.36, ease: "power3.out" },
+        3.02
+      );
+      tl.to("#google-label", { color: "#fde68a", duration: 0.36, ease: "power3.out" }, 3.02);
+      tl.to(
+        "#google-divider",
+        { backgroundColor: "rgba(251,191,36,0.50)", duration: 0.36, ease: "power3.out" },
+        3.02
+      );
+      tl.to(
+        "#gg-cyan",
+        { opacity: 0, duration: 0.4, ease: "power3.out", immediateRender: false },
+        3.02
+      );
+      tl.fromTo(
+        "#gg-amber",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.4, ease: "power3.out", immediateRender: false },
+        3.02
+      );
+
+      /* ==========  ACT 2 — the log-in happens on GOOGLE, and nowhere else  ========== */
+
+      // six credential rings fill, one at a time, on the GOOGLE node.
+      // completes at 4.34 — on "…with Google" (local 3.50-5.60).
+      tl.fromTo(
+        "#google-card .dot",
+        { borderColor: "rgba(148,163,184,0.60)" },
+        {
+          borderColor: "rgba(252,211,77,1)",
+          duration: 0.26,
+          ease: "power3.out",
+          stagger: 0.12,
+          immediateRender: false,
+        },
+        3.48
+      );
+      tl.fromTo(
+        "#google-card .dot-fill",
+        { opacity: 0, scale: 0.4 },
+        {
+          opacity: 1,
+          scale: 1,
+          duration: 0.26,
+          ease: "back.out(2)",
+          stagger: 0.12,
+          immediateRender: false,
+        },
+        3.48
+      );
+
+      // the round trip completes: a token — not a password — travels back to the APP
+      tl.fromTo(
+        "#packet-back",
+        { x: 665 },
+        { x: 393, duration: 0.4, ease: "power2.inOut", immediateRender: false },
+        4.34
+      );
+      tl.fromTo(
+        "#packet-back",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.16, ease: "power3.out", immediateRender: false },
+        4.34
+      );
+      tl.to("#packet-back", { opacity: 0, duration: 0.14, ease: "power3.out" }, 4.62);
+
+      tl.to(
+        "#app-card",
+        { borderColor: "rgba(251,191,36,0.92)", duration: 0.2, ease: "power4.out" },
+        4.74
+      );
+      tl.to("#app-card", { scale: 1.03, duration: 0.16, ease: "power4.out" }, 4.74);
+      tl.to("#app-card", { scale: 1, duration: 0.28, ease: "power3.out" }, 4.9);
+
+      // …and the APP's credential row is struck: it is never filled.
+      tl.fromTo(
+        "#strike",
+        { strokeDashoffset: STRIKE_LEN },
+        {
+          strokeDashoffset: 0,
+          duration: 0.24,
+          ease: "power3.out",
+          immediateRender: false,
+        },
+        4.78
+      );
+
+      // settle 5.02 -> 5.30, then the fade FINISHES at exactly 5.600
+      tl.fromTo(
+        ".fx",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.3, ease: "power3.out", immediateRender: false },
+        5.3
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

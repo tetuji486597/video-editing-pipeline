@@ -1,0 +1,187 @@
+{
+  "version": 1,
+  "sources": {
+    "ep20": "C:/Users/gordo/Downloads/drive-download-20260828T050315Z-1-001/ep20.mp4"
+  },
+  "ranges": [
+    {
+      "source": "ep20",
+      "start": 13.8,
+      "end": 18.76,
+      "beat": "INTRO",
+      "quote": "This is episode twenty of prepping you for your system design interview. Today, we'll be talking about tokens.",
+      "reason": "INTRO VARIANT A (system-design-interview framing); this source has no 'exploring really cool tech' take, so B is a cold open instead. Acoustic onset 13.84 agrees with ASR 'This' at 13.86 -- no EP19-style head-box overrun here. END disagreement the other way: ASR boxes 'tokens.' ending at 18.56 but audio carries to ~18.77 (dead-air onset), so the end pads to 18.76 to keep the word's tail.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep20",
+      "start": 21.82,
+      "end": 28.58,
+      "beat": "HOOK",
+      "quote": "So if you asked ChatGPT how many Rs there are in strawberry, for years it would get it wrong because it hasn't actually seen the word strawberry.",
+      "reason": "Only take. ASR 'So' starts 21.96; acoustic onset is ~21.91 (find_dead_air), agreement within two frames, start padded to 21.82. End: 'strawberry.' boxed to 28.52 with dead air from 28.59 -- agree.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep20",
+      "start": 34.4,
+      "end": 42.84,
+      "beat": "PROBLEM",
+      "quote": "Here's the problem. Models can't eat raw text, and letter by letter is too slow to learn from. Whole words means a vocabulary of millions, and one typo becomes an unknown word.",
+      "reason": "Single clean take. Acoustic onset 34.47 vs ASR 'Here's' 34.46 -- exact agreement. 'word.' ends 42.76 with dead air from 42.88. Internal pause after 'from.' is only 0.28s (38.46-38.74) -- kept, it is the beat's list rhythm.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep20",
+      "start": 61.52,
+      "end": 70.7,
+      "beat": "BUILD",
+      "quote": "So a tokenizer chops text into tokens, chunks somewhere between letters and words. Common words stay whole. Rarer ones will split straw and berry.",
+      "reason": "The earlier ~49.36 take is a false start -- this is the keeper. ASR boxes 'So' 61.70-62.04; acoustic onset is 61.61, start padded to 61.52. END disagreement: ASR boxes 'berry.' to 70.66 but audio drops at 70.61 (only a faint breath tail rides to ~71.2 at a lower floor), so 70.70 keeps the whole word and none of the breath gap.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep20",
+      "start": 79.28,
+      "end": 88.0,
+      "beat": "NEW_COMPONENT",
+      "quote": "The model never receives letters at all. It receives token ID numbers, so asking it to count letters is like asking you to count letters in a word you've only ever heard spoken.",
+      "reason": "Acoustic onset 79.36 vs ASR 'The' 79.34 -- agree. END is the tight edge of the episode: the same take trails into a false start ('It's also why AI...') whose ASR onset is 88.28, only 40ms after the 'spoken.' box ends (88.24). Acoustically 'spoken.' actually ends at 87.68 and the dead valley runs 87.68-88.28, so the cut lands at 88.00 -- 320ms after real speech end, 280ms clear of the false start. Trusting the ASR box + pad would have shipped the first syllable of 'It's'.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep20",
+      "start": 102.84,
+      "end": 108.79,
+      "beat": "TOKENS",
+      "quote": "It's also why AI pricing and context windows are measured in tokens. Tokens are the only unit the model actually reads.",
+      "reason": "Clean retake of the phrase the NEW_COMPONENT take fumbled at 88.28-89.38 (excluded there). Acoustic onset 102.89 vs ASR 102.90 -- agree. 'reads.' ends 108.75 with dead air from 108.80; end 108.79.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep20",
+      "start": 111.34,
+      "end": 118.82,
+      "beat": "PAYOFF",
+      "quote": "So AI doesn't read your words. It reads chunks with ID numbers. Next, we'll look at how a website checks your leaked password without ever actually seeing it.",
+      "reason": "Only take. ASR 'So' starts 111.46; acoustic onset is 111.40, start padded to 111.34. 'it' ends 118.77 with dead air from 118.83 -- agree.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    }
+  ],
+  "grade": "eq=contrast=1.15:saturation=1.05,colorbalance=rs=-0.04:gs=0.02:bs=0.05:rm=0.01:gm=0.0:bm=-0.01:rh=0.06:gh=0.02:bh=-0.06,vignette=angle=0.7,unsharp=5:5",
+  "overlays": [
+    {
+      "file": "animations/slot_tiktok_title/render.webm",
+      "start_in_output": 0.0,
+      "duration": 4.8
+    },
+    {
+      "file": "animations/slot_hook/render.webm",
+      "start_in_output": 6.0,
+      "duration": 5.7
+    },
+    {
+      "file": "animations/slot_problem/render.webm",
+      "start_in_output": 13.0,
+      "duration": 7.1
+    },
+    {
+      "file": "animations/slot_build/render.webm",
+      "start_in_output": 21.0,
+      "duration": 9.0
+    },
+    {
+      "file": "animations/slot_new_component/render.webm",
+      "start_in_output": 30.6,
+      "duration": 7.3
+    },
+    {
+      "file": "animations/slot_tokens/render.webm",
+      "start_in_output": 39.2,
+      "duration": 4.9
+    },
+    {
+      "file": "animations/slot_payoff/render.webm",
+      "start_in_output": 45.2,
+      "duration": 5.2
+    }
+  ],
+  "_overlay_note": "Times derived from THIS file's _beat_windows_output_timeline (INTRO 0-5, HOOK 5-11.7917, PROBLEM 11.7917-20.25, BUILD 20.25-29.4583, NEW_COMPONENT 29.4583-38.2083, TOKENS 38.2083-44.1667, PAYOFF 44.1667-51.6667). Variant A uses slot_tiktok_title over the intro (fades at 4.8, 0.2s before HOOK). Deliberate >=0.5s breathing gaps between all adjacent overlays (EP4 pacing); every composition fades to zero at exactly its declared duration, so no gap exposes a hard cut.",
+  "subtitles": "master.A.ass",
+  "_variant": "Variant A -- 'prepping you for your system design interview' intro, then HOOK through PAYOFF.",
+  "_zoom_note": "Slow FACE-ANCHORED zoom, focal (540,730) = eye line, magnitude 1.08, direction alternating so the drift is continuous across cuts. Rebuilt 2026-08-28 per feedback ('zoom shakes, make it stronger'): render.py's zoom chain is now supersampled with the crop offset derived from the frame's actual quantized size, killing the size/offset rounding mismatch that caused the judder; magnitude raised 1.045->1.08 and focal moved from frame centre to the eye line so the stronger zoom displaces the face far less against overlay clearances.",
+  "_beat_windows_output_timeline": {
+    "INTRO": [
+      0.0,
+      5.0
+    ],
+    "HOOK": [
+      5.0,
+      11.7917
+    ],
+    "PROBLEM": [
+      11.7917,
+      20.25
+    ],
+    "BUILD": [
+      20.25,
+      29.4583
+    ],
+    "NEW_COMPONENT": [
+      29.4583,
+      38.2083
+    ],
+    "TOKENS": [
+      38.2083,
+      44.1667
+    ],
+    "PAYOFF": [
+      44.1667,
+      51.6667
+    ]
+  },
+  "total_duration_s": 51.6667,
+  "_windows_note": "Output-timeline windows on render.py's real 24fps extract grid: each segment's rendered duration is ceil((end-start)*24)/24, not the raw source span. Verified against rendered clips where measurable. Overlay start_in_output values are derived from THESE numbers."
+}

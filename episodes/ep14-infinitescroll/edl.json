@@ -1,0 +1,192 @@
+{
+  "version": 1,
+  "sources": {
+    "ep14": "C:/Users/gordo/Downloads/drive-download-20260819T201857Z-1-001/ep14.mp4"
+  },
+  "ranges": [
+    {
+      "source": "ep14",
+      "start": 1.21,
+      "end": 9.25,
+      "beat": "HOOK",
+      "quote": "So you're doom scrolling TikTok, and it seems to never end. Now, instead of loading everything ahead of time, TikTok does something really smart here. Pay attention.",
+      "reason": "Only take of the hook. ASR boxes 'attention.' out to 12.28; find_dead_air puts the acoustic end at 9.17, so cutting at 9.25 removes 3.03s of room tone that padding off the ASR end would have preserved. The 1.03s beat inside ('here.' -> 'Pay') is rhetorical and kept.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.045,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep14",
+      "start": 16.75,
+      "end": 23.78,
+      "beat": "PROBLEM",
+      "quote": "Now, here's the problem. Loading all ten thousand posts up front would burn data, memory, and make the app freeze before showing anything.",
+      "reason": "Single clean take. ASR end and acoustic end agree at 23.68.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.045,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep14",
+      "start": 25.65,
+      "end": 33.9,
+      "beat": "BUILD",
+      "quote": "So we lazy load. Only fetch what's about to enter the screen as you scroll near the bottom. The app quietly requests the next batch.",
+      "reason": "Single clean take, continuous across the 0.52s breath at 29.48->30.00.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.045,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep14",
+      "start": 41.65,
+      "end": 51.95,
+      "beat": "NEW_COMPONENT",
+      "quote": "In order to grab the next batch reliably, we use cursor pagination. Hey, give me items after this ID instead of page numbers, which break when new posts arrive mid-scroll.",
+      "reason": "Take 2 of 2. Take 1 (35.12) aborts at 37.14 on 'reliably...'. Cut at 51.95 lands 110ms after 'mid-scroll.' with 630ms of clearance before 'Items'.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.045,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep14",
+      "start": 52.53,
+      "end": 60.26,
+      "beat": "RECYCLE",
+      "quote": "Items above the screen can even be unloaded to save memory. The feed feels infinite because the work is spread across your scrolling.",
+      "reason": "Contiguous with NEW_COMPONENT in the source but kept as its own range so the unload/recycle idea can carry its own overlay.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.045,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep14",
+      "start": 123.29,
+      "end": 131.19,
+      "beat": "AI_ANGLE",
+      "quote": "Now, here's the AI angle. Which batch you get isn't random. A recommendation model decides what to lazy load. So loading and ranking happen together.",
+      "reason": "Take 6 of 8 and the tightest complete read. Takes at 62.34/71.60/85.22/90.64/102.48/110.08/134.34 all abort. The remaining complete take (141.40) drags: 'here's' is boxed 541ms vs 170ms here, and it leaves a 330ms hole after 'angle.' where this take runs straight through at 40ms.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.045,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep14",
+      "start": 159.53,
+      "end": 166.05,
+      "beat": "PAYOFF",
+      "quote": "Load what they see, not what they might see. Next episode, we'll look at how sign-in with Google works.",
+      "reason": "Only complete take. Runs continuously into the next-episode tease with a natural 0.66s beat between them.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.045,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    }
+  ],
+  "grade": "eq=contrast=1.15:saturation=1.05,colorbalance=rs=-0.04:gs=0.02:bs=0.05:rm=0.01:gm=0.0:bm=-0.01:rh=0.06:gh=0.02:bh=-0.06,vignette=angle=0.7,unsharp=5:5",
+  "overlays": [
+    {
+      "file": "animations/slot_title/render.webm",
+      "start_in_output": 0.0,
+      "duration": 2.766
+    },
+    {
+      "file": "animations/slot_hook/render.webm",
+      "start_in_output": 0.0,
+      "duration": 7.6
+    },
+    {
+      "file": "animations/slot_problem/render.webm",
+      "start_in_output": 8.9,
+      "duration": 5.6
+    },
+    {
+      "file": "animations/slot_build/render.webm",
+      "start_in_output": 15.9,
+      "duration": 6.6
+    },
+    {
+      "file": "animations/slot_new_component/render.webm",
+      "start_in_output": 24.2,
+      "duration": 9.2
+    },
+    {
+      "file": "animations/slot_recycle/render.webm",
+      "start_in_output": 34.3,
+      "duration": 6.5
+    },
+    {
+      "file": "animations/slot_ai_angle/render.webm",
+      "start_in_output": 42.1,
+      "duration": 6.6
+    },
+    {
+      "file": "animations/slot_payoff/render.webm",
+      "start_in_output": 49.6,
+      "duration": 5.4
+    }
+  ],
+  "_beat_windows_output_timeline": {
+    "HOOK": [
+      0.0,
+      8.0417
+    ],
+    "PROBLEM": [
+      8.0417,
+      15.0833
+    ],
+    "BUILD": [
+      15.0833,
+      23.3333
+    ],
+    "NEW_COMPONENT": [
+      23.3333,
+      33.6667
+    ],
+    "RECYCLE": [
+      33.6667,
+      41.4167
+    ],
+    "AI_ANGLE": [
+      41.4167,
+      49.3333
+    ],
+    "PAYOFF": [
+      49.3333,
+      55.875
+    ]
+  },
+  "_windows_note": "Output-timeline windows on render.py's real 24fps extract grid: each segment's rendered duration is ceil((end-start)*24)/24, not the raw source span. Verified against rendered clips where measurable. Overlay start_in_output values are derived from THESE numbers.",
+  "subtitles": "master.ass",
+  "total_duration_s": 55.875,
+  "_overlay_gap_audit": "Gaps >= 0.5s are deliberate returns to the talking head (ep13 shipped 1.0-6.7s gaps at 49-54% coverage). Anything shorter is closed to exactly zero, per rule 12 -- a sub-half-second hole reads as a bare-footage flash, not a breath. EP19 tradeoff->payoff is contiguous for exactly this reason: its beats butt up against each other and a 0.3s gap would have landed on the punchline.",
+  "_hook_lead_note": "slot_hook starts at 0.000 on purpose. Its beat also starts at 0.000, so the usual >=0.25s lead would mean waiting on the title card. This slot is a transparent/right-side format specifically so it can run SIMULTANEOUSLY with the title (rule 10) -- making it opaque would delay its content until 2.766 and the beat's idea would land late, which is the EP7 hook mistake. The content is ambient (a scrolling column / a streaming URL), not a claim that needs the narration to establish it first.",
+  "_zoom_note": "Gradual CENTERED zoom on the talking head. focal (540,960) = exact frame centre, not render.py's eye-line default. Direction alternates per segment so each range starts at the scale the previous one ended on -- the drift is continuous across every cut instead of snapping back to 1.0 at each edit. Magnitude capped at 4.5%: the overlays were placed against measured face positions with clearances as tight as 40px, and a centered zoom displaces a point by distance_from_centre*(Z-1), so 4.5% costs the tightest one ~13px while 12% would cost it ~35px and push graphics into the face."
+}

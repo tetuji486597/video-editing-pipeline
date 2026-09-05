@@ -1,0 +1,186 @@
+{
+  "version": 1,
+  "sources": {
+    "ep23": "C:/Users/gordo/Downloads/drive-download-20260828T050315Z-1-001/ep23.mp4"
+  },
+  "ranges": [
+    {
+      "source": "ep23",
+      "start": 13.52,
+      "end": 18.42,
+      "beat": "INTRO",
+      "quote": "This is episode 23 of Exploring Really Cool Tech. Today, we'll be talking about containers.",
+      "reason": "INTRO VARIANT B (cool-tech framing). Acoustic activity runs from 13.01 but it is breath -- ASR 'This' starts 13.62; start 13.52 keeps 100ms of the inhale tail instead of 600ms of breath. ASR boxes 'containers.' to 18.22 but the audio rings until the dead stretch at 18.35 -- end 18.42 keeps the full decay plus 70ms. Three false starts (5.90, 8.54, 11.80) dropped.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep23",
+      "start": 38.52,
+      "end": 43.58,
+      "beat": "HOOK",
+      "quote": "The most annoying phrase in software, \"But it only works on my machine,\" got killed by containers.",
+      "reason": "The take at 28.94 trails off ('...is...') and is incomplete -- dropped. ASR start 38.62 matches acoustic onset 38.63. ASR boxes 'containers.' ending 43.34 but the audio rings to 43.52 (dead stretch starts there); end 43.58 keeps the full decay. The 0.32s beat at 41.81 before 'got killed' is the delivery pause, kept.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep23",
+      "start": 60.54,
+      "end": 69.02,
+      "beat": "PROBLEM",
+      "quote": "So code depends on a specific runtime, libraries, and config. If you move it to another computer with slightly different versions, it will break in mysterious ways.",
+      "reason": "The 51.44 material is a false start ('So code depends... I just write down code.') -- dropped. Acoustic onset 60.65 agrees with ASR 'So' at 60.64. End: ASR 'ways.' 68.90 vs acoustic 68.91 -- agree; end 69.02 pads 110ms into the 68.91-70.31 dead stretch. Largest internal pause is 0.28s after 'config.' -- natural.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep23",
+      "start": 70.24,
+      "end": 78.0,
+      "beat": "BUILD",
+      "quote": "A container packages your app together with everything it needs, runtime, libraries, settings, into one standardized unit.",
+      "reason": "Only take. Acoustic onset 70.31 agrees with ASR 'A' at 70.34. End: Scribe boxes 'unit.' to 77.94 but the audio drops below floor at 77.87 -- the last 70ms of the box is inaudible decay; end 78.00 clears both. The 0.42s beat before 'into one standardized unit' is the list-to-punchline pivot, kept.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep23",
+      "start": 79.37,
+      "end": 86.1,
+      "beat": "RUNS",
+      "quote": "That container runs identically on your laptop, a teammate's machine, and the cloud because it carries its environment with it.",
+      "reason": "Only take. Scribe fronts 'That' to 79.42 against an acoustic onset of 79.47; start 79.37 pads off the acoustic edge. End 86.10 = 100ms after 'it.' (86.00) -- the 86.00-86.52 stretch before VM is a breath (never drops below floor for 0.25s), trimmed so RUNS+VM butt with only 0.22s of output silence.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep23",
+      "start": 86.4,
+      "end": 95.4,
+      "beat": "VM",
+      "quote": "Unlike a full virtual machine, it shares the host OS kernel, so it's lightweight, and it boots in seconds. Think shipping container, same box, any ship, any port.",
+      "reason": "Only take, near-contiguous with RUNS in the source; kept as its own range with a 120ms head pad ('Unlike' at 86.52) so the cross-cut silence stays at 0.22s -- under the 0.3s bare-dead-air limit. End: ASR 'port.' 95.28 vs acoustic 95.27 -- agree; 95.40 pads 130ms into the 95.27-96.70 dead stretch. The 0.48s beat before 'Think shipping container' is the metaphor turn, kept.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep23",
+      "start": 106.58,
+      "end": 112.55,
+      "beat": "PAYOFF",
+      "quote": "So ship the whole kitchen, not just the recipe. Next, we'll look at how Google runs a billion of these without going insane.",
+      "reason": "FINAL take used (106.70), not the 96.74 alternate: both are acoustically clean, but the final is tighter ('recipe.' to 'Next,' is 0.23s vs the alternate's 0.40s) and sits on a clean 2.28s room-tone tail. Scribe fronts 'So' to 106.70 against an acoustic onset of 106.64; start 106.58 pads off the acoustic edge. End: ASR 'insane' 112.42 vs acoustic 112.43 -- agree; end 112.55.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    }
+  ],
+  "grade": "eq=contrast=1.15:saturation=1.05,colorbalance=rs=-0.04:gs=0.02:bs=0.05:rm=0.01:gm=0.0:bm=-0.01:rh=0.06:gh=0.02:bh=-0.06,vignette=angle=0.7,unsharp=5:5",
+  "overlays": [
+    {
+      "file": "animations/slot_tiktok_title_b/render.webm",
+      "start_in_output": 0.0,
+      "duration": 4.766
+    },
+    {
+      "file": "animations/slot_hook/render.webm",
+      "start_in_output": 5.5333,
+      "duration": 4.7
+    },
+    {
+      "file": "animations/slot_problem/render.webm",
+      "start_in_output": 10.8333,
+      "duration": 7.2
+    },
+    {
+      "file": "animations/slot_build/render.webm",
+      "start_in_output": 19.2333,
+      "duration": 6.9
+    },
+    {
+      "file": "animations/slot_runs/render.webm",
+      "start_in_output": 26.9333,
+      "duration": 5.6
+    },
+    {
+      "file": "animations/slot_vm/render.webm",
+      "start_in_output": 33.5333,
+      "duration": 8.0
+    },
+    {
+      "file": "animations/slot_payoff/render.webm",
+      "start_in_output": 42.3833,
+      "duration": 5.3
+    }
+  ],
+  "subtitles": "master.B.ass",
+  "_variant": "Variant B -- 'Exploring Really Cool Tech' intro.",
+  "_zoom_note": "Slow FACE-ANCHORED zoom, focal (540,730) = eye line, magnitude 1.08, direction alternating so the drift is continuous across cuts. Rebuilt 2026-08-28 per feedback ('zoom shakes, make it stronger'): render.py's zoom chain is now supersampled with the crop offset derived from the frame's actual quantized size, killing the size/offset rounding mismatch that caused the judder; magnitude raised 1.045->1.08 and focal moved from frame centre to the eye line so the stronger zoom displaces the face far less against overlay clearances.",
+  "_beat_windows_output_timeline": {
+    "INTRO": [
+      0.0,
+      4.9167
+    ],
+    "HOOK": [
+      4.9167,
+      10.0
+    ],
+    "PROBLEM": [
+      10.0,
+      18.5
+    ],
+    "BUILD": [
+      18.5,
+      26.2917
+    ],
+    "RUNS": [
+      26.2917,
+      33.0417
+    ],
+    "VM": [
+      33.0417,
+      42.0417
+    ],
+    "PAYOFF": [
+      42.0417,
+      48.0417
+    ]
+  },
+  "total_duration_s": 48.0417,
+  "_windows_note": "Output-timeline windows on render.py's real 24fps extract grid: each segment's rendered duration is ceil((end-start)*24)/24, not the raw source span. Verified against rendered clips where measurable. Overlay start_in_output values are derived from THESE numbers."
+}

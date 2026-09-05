@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+
+      :root {
+        --cyan: #22d3ee;
+        --cyan-lite: #67e8f9;
+        --amber: #f59e0b;
+        --amber-lite: #fbbf24;
+        --slate: #cbd5e1;
+      }
+
+      #root { position: relative; }
+
+      /* ---------------- band scrim (translucent — live footage stays visible) --------- */
+      /* canvas box: x 0..1080, y 200..780 */
+      #scrim {
+        position: absolute;
+        left: 0;
+        top: 200px;
+        width: 1080px;
+        height: 580px;
+        opacity: 0.5;                      /* frame-0 state from CSS, animates up at t=0 */
+        background: linear-gradient(
+          to bottom,
+          rgba(3, 7, 11, 0) 0%,
+          rgba(3, 7, 11, 0.44) 7%,
+          rgba(3, 7, 11, 0.5) 20%,
+          rgba(3, 7, 11, 0.5) 84%,
+          rgba(3, 7, 11, 0.22) 94%,
+          rgba(3, 7, 11, 0) 100%
+        );
+      }
+      #grain {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 12%, #000 88%, transparent 100%);
+        mask-image: linear-gradient(to bottom, transparent 0%, #000 12%, #000 88%, transparent 100%);
+      }
+
+      /* ---------------- scene (camera push-in target) ---------------- */
+      #scene {
+        position: absolute;
+        inset: 0;
+        transform-origin: 50% 490px;       /* centre of the design band 200..780 */
+      }
+
+      /* ---------------- headline : x 90..990, y 218..280 ---------------- */
+      #headline {
+        position: absolute;
+        left: 90px;
+        top: 218px;
+        width: 900px;
+        height: 62px;
+        text-align: center;
+        font-size: 58px;
+        line-height: 62px;
+        font-weight: 800;
+        letter-spacing: 2px;
+        color: #eef2f7;
+        opacity: 0.5;                      /* frame-0 state from CSS */
+        transform: translateY(-12px);
+        text-shadow: 0 3px 9px rgba(0, 0, 0, 0.95), 0 1px 3px rgba(0, 0, 0, 0.92);
+        white-space: nowrap;
+      }
+
+      /* ---------------- request inlet : lane x 0..90, y 408..412 ---------------- */
+      #inlet {
+        position: absolute;
+        left: 0;
+        top: 408px;
+        width: 90px;
+        height: 4px;
+        border-radius: 2px;
+        transform: scaleX(0);
+        transform-origin: left center;
+        background: linear-gradient(to right, rgba(34, 211, 238, 0), rgba(34, 211, 238, 0.9));
+      }
+      #packet {
+        position: absolute;
+        left: 72px;
+        top: 401px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: var(--cyan-lite);
+        box-shadow: 0 0 5px 1px rgba(34, 211, 238, 0.95);
+        opacity: 0;
+      }
+
+      /* ---------------- feature store : x 90..990, y 322..498 ---------------- */
+      #store {
+        position: absolute;
+        left: 90px;
+        top: 322px;
+        width: 900px;
+        height: 176px;
+        border-radius: 24px;
+        border: 2px solid rgba(34, 211, 238, 0.42);
+        background: rgba(6, 17, 24, 0.3);
+        overflow: hidden;
+        opacity: 0;
+      }
+      #chips {
+        position: absolute;
+        left: 44px;
+        top: 32px;                          /* canvas y 354..466 */
+        width: 828px;
+        height: 112px;
+        display: flex;
+        gap: 16px;
+      }
+      .chip {
+        position: relative;
+        flex: 1 1 0;
+        border-radius: 12px;
+        border: 1px solid rgba(34, 211, 238, 0.32);
+        background: rgba(9, 22, 30, 0.34);
+        overflow: hidden;
+        opacity: 0;
+      }
+      .chip-fill {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        transform: scaleY(0);
+        transform-origin: bottom center;
+        background: linear-gradient(to top, rgba(34, 211, 238, 0.85), rgba(34, 211, 238, 0.28));
+        border-top: 2px solid rgba(103, 232, 249, 0.95);
+      }
+      .chip-flash {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        background: linear-gradient(to top, rgba(103, 232, 249, 0.55), rgba(103, 232, 249, 0.06));
+      }
+      #store-scan {
+        position: absolute;
+        left: -220px;
+        top: 0;
+        bottom: 0;
+        width: 220px;
+        background: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0));
+      }
+      #store-pulse {
+        position: absolute;
+        left: -240px;
+        top: 0;
+        bottom: 0;
+        width: 240px;
+        background: linear-gradient(
+          to right,
+          rgba(34, 211, 238, 0),
+          rgba(165, 243, 252, 0.32),
+          rgba(34, 211, 238, 0)
+        );
+      }
+
+      /* ---------------- latency bars ---------------- */
+      .bar-label {
+        position: absolute;
+        left: 26px;
+        top: 0;
+        bottom: 0;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: 3px;
+        display: flex;
+        align-items: center;
+        white-space: nowrap;
+      }
+
+      /* PRECOMPUTED bar : x 90..990, y 562..618 */
+      #barA-row {
+        position: absolute;
+        left: 90px;
+        top: 562px;
+        width: 900px;
+        height: 56px;
+        opacity: 0;
+      }
+      #barA-track {
+        position: absolute;
+        inset: 0;
+        border-radius: 14px;
+        border: 2px solid rgba(245, 158, 11, 0.6);
+        background: rgba(24, 16, 4, 0.34);
+        overflow: hidden;
+        box-shadow: 0 0 10px rgba(245, 158, 11, 0.45);
+      }
+      #barA-fill {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to right, rgba(245, 158, 11, 0.94), rgba(251, 191, 36, 0.99));
+      }
+      #barA-flash {
+        position: absolute;
+        inset: 0;
+        background: #ffffff;
+        opacity: 0;
+      }
+      #barA-label { color: #1b1205; }
+      #barA-check {
+        position: absolute;
+        right: 22px;
+        top: 14px;
+        width: 28px;
+        height: 28px;
+      }
+
+      /* COMPUTE NOW ghost bar : x 90..990, y 682..734 */
+      #barB-row {
+        position: absolute;
+        left: 90px;
+        top: 682px;
+        width: 900px;
+        height: 52px;
+        opacity: 0;
+      }
+      #barB-track {
+        position: absolute;
+        inset: 0;
+        border-radius: 14px;
+        border: 2px solid rgba(148, 163, 184, 0.36);
+        background: rgba(12, 16, 22, 0.32);
+        overflow: hidden;
+      }
+      #barB-fill {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 0%;
+        background: linear-gradient(to right, rgba(100, 116, 139, 0.5), rgba(148, 163, 184, 0.38));
+      }
+      #barB-edge {
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 5px;
+        background: rgba(203, 213, 225, 0.9);
+        opacity: 0.45;
+      }
+      #barB-label {
+        color: rgba(203, 213, 225, 0.94);
+        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.95), 0 0 2px rgba(0, 0, 0, 0.9);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="5.00"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="main-clip" class="clip" data-start="0" data-duration="5.00" data-track-index="1">
+        <div id="content-all">
+          <div id="scrim"><div id="grain"></div></div>
+
+          <div id="scene">
+            <div id="headline">READY BEFORE THE SWIPE</div>
+
+            <!-- TURN: the request arrives -->
+            <div id="inlet"></div>
+            <div id="packet"></div>
+
+            <!-- ACT 1: the feature store fills in ahead of time -->
+            <div id="store">
+              <div id="chips">
+                <div class="chip"><div class="chip-fill" style="height: 62%"></div><div class="chip-flash"></div></div>
+                <div class="chip"><div class="chip-fill" style="height: 86%"></div><div class="chip-flash"></div></div>
+                <div class="chip"><div class="chip-fill" style="height: 44%"></div><div class="chip-flash"></div></div>
+                <div class="chip"><div class="chip-fill" style="height: 74%"></div><div class="chip-flash"></div></div>
+                <div class="chip"><div class="chip-fill" style="height: 95%"></div><div class="chip-flash"></div></div>
+                <div class="chip"><div class="chip-fill" style="height: 55%"></div><div class="chip-flash"></div></div>
+              </div>
+              <div id="store-scan" data-layout-allow-overflow="true"></div>
+              <div id="store-pulse" data-layout-allow-overflow="true"></div>
+            </div>
+
+            <!-- ACT 2: the lookup returns already finished -->
+            <div id="barA-row">
+              <div id="barA-track">
+                <div id="barA-fill"></div>
+                <div id="barA-flash"></div>
+              </div>
+              <div id="barA-label" class="bar-label">PRECOMPUTED</div>
+              <svg id="barA-check" viewBox="0 0 24 24" fill="none">
+                <path d="M4 12.5L9.5 18L20 6" stroke="#1b1205" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </div>
+
+            <div id="barB-row">
+              <div id="barB-track">
+                <div id="barB-fill"><div id="barB-edge"></div></div>
+              </div>
+              <div id="barB-label" class="bar-label">COMPUTE NOW</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter" x="0%" y="0%" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.04 0" />
+      </filter>
+    </svg>
+
+    <script>
+      document.getElementById("grain").style.filter = "url(#grain-filter)";
+
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      /* ---- continuous slow push-in, origin = design-band centre (50% 490px) ---- */
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.025, duration: 5.0, ease: "sine.inOut" }, 0);
+
+      /* ---- t=0 primary entrance (starts at 0.5 opacity, never 0 on frame 0) ---- */
+      tl.fromTo("#scrim", { opacity: 0.5 }, { opacity: 1, duration: 0.45, ease: "power2.out" }, 0);
+      tl.fromTo(
+        "#headline",
+        { opacity: 0.5, y: -12 },
+        { opacity: 1, y: 0, duration: 0.55, ease: "power3.out" },
+        0
+      );
+
+      /* ================= ACT 1 — values written into the store ahead of time ========= */
+      tl.fromTo(
+        "#store",
+        { opacity: 0, y: 20, scale: 0.97 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: "power3.out", immediateRender: false },
+        0.62
+      );
+      tl.fromTo(
+        ".chip",
+        { opacity: 0, y: 14 },
+        { opacity: 1, y: 0, duration: 0.32, ease: "power3.out", stagger: 0.085, immediateRender: false },
+        0.8
+      ); /* ends 1.545 */
+      tl.fromTo(
+        ".chip-fill",
+        { scaleY: 0 },
+        { scaleY: 1, duration: 0.4, ease: "power2.out", stagger: 0.1, immediateRender: false },
+        1.0
+      ); /* ends 1.90 */
+      tl.fromTo(
+        ".chip-flash",
+        { opacity: 0 },
+        {
+          opacity: 0.5,
+          duration: 0.16,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 1,
+          stagger: 0.1,
+          immediateRender: false,
+        },
+        1.02
+      ); /* last: 1.52 + 2*0.16 = 1.84 */
+
+      /* ambient life inside the panel (clipped by overflow:hidden) */
+      tl.fromTo(
+        "#store-scan",
+        { x: 0 },
+        { x: 1180, duration: 1.7, ease: "none", repeat: 1, immediateRender: false },
+        1.0
+      ); /* ends 1.0 + 2*1.7 = 4.40 */
+
+      /* ================= TURN — a request arrives ==================================== */
+      tl.fromTo("#inlet", { scaleX: 0 }, { scaleX: 1, duration: 0.28, ease: "power3.out", immediateRender: false }, 2.34);
+      /* travel is kept inside the visible 90px inlet so the packet reads for its whole run */
+      tl.fromTo("#packet", { x: -90 }, { x: 0, duration: 0.46, ease: "power2.in", immediateRender: false }, 2.46);
+      tl.fromTo("#packet", { opacity: 0 }, { opacity: 1, duration: 0.14, ease: "power2.out", immediateRender: false }, 2.46);
+      /* both end 2.92 / 2.60 */
+      tl.fromTo("#packet", { opacity: 1 }, { opacity: 0, duration: 0.14, ease: "power2.out", immediateRender: false }, 2.92);
+      /* the lookup sweeps the store, and the store turns from cyan (writing) to amber (serving) */
+      tl.fromTo("#store-pulse", { x: 0 }, { x: 1200, duration: 0.55, ease: "none", immediateRender: false }, 2.92);
+      tl.fromTo(
+        "#store",
+        { borderColor: "rgba(34,211,238,0.42)" },
+        { borderColor: "rgba(245,158,11,0.6)", duration: 0.35, ease: "power3.out", immediateRender: false },
+        2.96
+      );
+
+      /* ================= ACT 2 — the ghost "compute it now" bar, still crawling ====== */
+      tl.fromTo(
+        "#barB-row",
+        { opacity: 0, y: 14 },
+        { opacity: 1, y: 0, duration: 0.42, ease: "power3.out", immediateRender: false },
+        2.96
+      );
+      /* one-shot, constant velocity, deliberately stops short — it never finishes */
+      tl.fromTo(
+        "#barB-fill",
+        { width: "0%" },
+        { width: "38%", duration: 1.52, ease: "none", immediateRender: false },
+        3.1
+      ); /* ends 4.62 */
+      tl.fromTo(
+        "#barB-edge",
+        { opacity: 0.45 },
+        { opacity: 1, duration: 0.3, ease: "sine.inOut", yoyo: true, repeat: 3, immediateRender: false },
+        3.3
+      ); /* ends 3.3 + 4*0.3 = 4.50 */
+
+      /* ================= ACT 2 payoff — the lookup returns ALREADY FULL ============== */
+      tl.fromTo(
+        "#barA-row",
+        { opacity: 0, scale: 0.94 },
+        { opacity: 1, scale: 1, duration: 0.13, ease: "power4.out", immediateRender: false },
+        3.58
+      ); /* lands 3.71 -> output 48.41, inside 47.63-49.64 */
+      tl.fromTo("#barA-flash", { opacity: 0 }, { opacity: 0.8, duration: 0.05, ease: "power2.out", immediateRender: false }, 3.6);
+      tl.fromTo("#barA-flash", { opacity: 0.8 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 3.65);
+      tl.fromTo(
+        "#barA-track",
+        { boxShadow: "0 0 10px rgba(245,158,11,0.45)" },
+        {
+          boxShadow: "0 0 14px rgba(245,158,11,0.72)",
+          duration: 0.42,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 1,
+          immediateRender: false,
+        },
+        3.76
+      ); /* ends 3.76 + 2*0.42 = 4.60, lands back on base (odd repeat) */
+
+      /* ================= single fade, finishing exactly at 5.000 ===================== */
+      tl.fromTo(
+        "#content-all",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.3, ease: "power3.out", immediateRender: false },
+        4.7
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

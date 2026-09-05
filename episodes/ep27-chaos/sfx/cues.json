@@ -1,0 +1,170 @@
+{
+ "video": "final_nosfx.mp4",
+ "out": "final.mp4",
+ "cues": [
+  {
+   "at": 0.49,
+   "sfx": "br_six_seven",
+   "vol": 0.17,
+   "why": "HOOK: the 6-7 snippet lands on 'seven' + LaMelo pop"
+  },
+  {
+   "at": 3.0,
+   "sfx": "br_monkey_screech",
+   "vol": 0.47,
+   "why": "HOOK: Chimpanzini creeps toward the rack"
+  },
+  {
+   "at": 3.93,
+   "sfx": "br_electric_zap",
+   "vol": 0.28,
+   "why": "HOOK: cable yank, server dies on 'break Netflix'"
+  },
+  {
+   "at": 4.61,
+   "sfx": "tt_vine_boom",
+   "vol": 0.08,
+   "why": "HOOK: 'on purpose'"
+  },
+  {
+   "at": 6.3,
+   "sfx": "br_what_the_skibidi",
+   "vol": 0.51,
+   "why": "HOOK voice meme right after he says 'what the skibidi'; Skibidi Toilet peeks"
+  },
+  {
+   "at": 8.3,
+   "sfx": "tt_sparkle_trim",
+   "vol": 1.57,
+   "why": "PROBLEM: glazing sparkles on the NEVER GOES DOWN slide"
+  },
+  {
+   "at": 11.18,
+   "sfx": "br_amongus_reveal",
+   "vol": 0.65,
+   "why": "PROBLEM: Among Us reveal sting lands on 'three AM' (swell anchored on landing)"
+  },
+  {
+   "at": 11.45,
+   "sfx": "br_tung_sahur",
+   "vol": 0.38,
+   "why": "PROBLEM: Tung Tung Tung Sahur IS the pager, knocking on the door"
+  },
+  {
+   "at": 14.72,
+   "sfx": "tt_error_glitch",
+   "vol": 0.38,
+   "why": "PROBLEM: 'crashing out', cameramen film the outage"
+  },
+  {
+   "at": 16.12,
+   "sfx": "tt_wrong_buzzer",
+   "vol": 0.31,
+   "why": "PROBLEM: CAP stamp on 'capping'"
+  },
+  {
+   "at": 17.35,
+   "sfx": "br_aura_minus1000",
+   "vol": 2.14,
+   "why": "PROBLEM voice meme: '-1000 aura' as the AURA counter plummets on 'aura loss'"
+  },
+  {
+   "at": 21.26,
+   "sfx": "swoosh_double",
+   "vol": 0.71,
+   "why": "BUILD: CHAOS MONKEY chip + real logo land on 'Chaos Monkey'"
+  },
+  {
+   "at": 22.58,
+   "sfx": "tt_click_trim",
+   "vol": 1.55,
+   "why": "BUILD: the plug pulled on 'unplugs a server'"
+  },
+  {
+   "at": 23.72,
+   "sfx": "ding",
+   "vol": 0.34,
+   "why": "BUILD: the 2:00 PM clock on 'middle of the day'"
+  },
+  {
+   "at": 25.05,
+   "sfx": "tt_bubble_pop",
+   "vol": 0.87,
+   "why": "BUILD: Kai Cenat coffee cutout appears on 'sitting right there watching'"
+  },
+  {
+   "at": 28.06,
+   "sfx": "stamp",
+   "vol": 0.77,
+   "why": "BUILD: chef hat lands on the monkey on 'let him cook'"
+  },
+  {
+   "at": 30.05,
+   "sfx": "tt_whoosh",
+   "vol": 0.33,
+   "why": "NEW_COMPONENT: CHAOS ENGINEERING headline lands"
+  },
+  {
+   "at": 32.15,
+   "sfx": "pop_bubble",
+   "vol": 0.47,
+   "why": "NEW_COMPONENT: GUESS chip on 'unalive this box'"
+  },
+  {
+   "at": 34.43,
+   "sfx": "drip",
+   "vol": 0.2,
+   "why": "NEW_COMPONENT: green slime on the box on 'slime out'"
+  },
+  {
+   "at": 37.03,
+   "sfx": "br_rizz",
+   "vol": 0.29,
+   "why": "NEW_COMPONENT: W RIZZ sting on 'W rizz'"
+  },
+  {
+   "at": 38.47,
+   "sfx": "tt_record_scratch",
+   "vol": 0.88,
+   "why": "NEW_COMPONENT: the line flinches, red blip on 'something did break'"
+  },
+  {
+   "at": 40.05,
+   "sfx": "tt_correct_ding",
+   "vol": 0.5,
+   "why": "NEW_COMPONENT: FOUND ONE stamp on 'found out at lunch'"
+  },
+  {
+   "at": 41.79,
+   "sfx": "br_amongus_sus",
+   "vol": 0.19,
+   "why": "NEW_COMPONENT: 2 AM clock chip on 'Diddy party' (sus sting, bass-capped)"
+  },
+  {
+   "at": 43.97,
+   "sfx": "bass_hit",
+   "vol": 0.2,
+   "why": "NEW_COMPONENT: Bombardiro starts bombing on 'yeeting'"
+  },
+  {
+   "at": 46.2,
+   "sfx": "br_fanum_tax",
+   "vol": 0.39,
+   "why": "NEW_COMPONENT: 'only in Ohio' song bit as the Ohio outline fills on 'Ohio of boxes'"
+  },
+  {
+   "at": 47.75,
+   "sfx": "tt_swoosh",
+   "vol": 0.37,
+   "why": "PAYOFF: day/night card lands on 'break your own stuff'"
+  },
+  {
+   "at": 52.5,
+   "sfx": "pop_balloon",
+   "vol": 0.1,
+   "why": "PAYOFF: unc chip on 'types like an unk'"
+  }
+ ],
+ "_note": "EP27 cold open. 27 cues / 27 distinct. Voice memes: what_the_skibidi, tung_sahur, aura_minus1000 (+ fanum_tax music bit). 6-7 anchor x1.",
+ "_vol_note": "Brainrot edition: br_* volumes from sfx_shared/BRAINROT_SFX_NOTES.md (voice memes already carry the x1.25 bump), tt_*/legacy from TIKTOK_SFX_NOTES.md. Rules: no repeated sound within an episode except the deliberate 6-7 anchor; voice memes placed just AFTER the presenter's own word, >=1.5s apart, never over his punchline; bass-heavy files <=0.45 and never within 1s of each other. br_diabolical (uncensored) deliberately NOT used."
+}

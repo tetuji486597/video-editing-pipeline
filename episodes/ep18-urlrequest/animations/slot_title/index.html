@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP18 Title Card</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      /* OVERLAY_SPEC: font stack is Inter, sans-serif. Matches EP14-17/19 exactly —
+         this batch of six episodes must read as one set.
+
+         REBUILT. The previous EP18 card survived from the pre-rebuild batch and was
+         the only title in the six that differed: it used a CYAN accent (#0ea5e9)
+         against the batch's violet, it popped in blank on frame 0 (measured max
+         alpha 0, against 143 on every other title), and its `0 0 18px 2px` shadow
+         is the exact value OVERLAY_SPEC trap #6 records as resolving to y=170 and
+         breaching the y=180 limit. */
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      /* STYLE.md "Title card": anchored top-left, left:70 / top:190 on a
+         1080x1920 canvas. Transparent background throughout — the presenter
+         stays visible underneath, never an opaque card. Content is ONLY accent
+         bar + kicker + headline. No badge, no meta-line, no subtitle, no tease. */
+      #block {
+        position: absolute;
+        left: 70px;
+        top: 190px;
+        width: 900px;
+        display: flex;
+        align-items: flex-start;
+      }
+      #accent-bar {
+        width: 6px;
+        border-radius: 3px;
+        /* Same violet as EP14-17/19 — batch-consistent signature colour. */
+        background: #a78bfa;
+        /* OVERLAY_SPEC trap #6: a box-shadow reaches ~1.6x its blur radius past
+           the element edge. `0 4px 6px` resolves to 190 + 4 - 1.6*6 = y=184.4,
+           clear of the y=180 limit. */
+        box-shadow: 0 4px 6px rgba(167, 139, 250, 0.9);
+        margin-right: 34px;
+        /* Height recomputed to match this episode's 2-line text stack exactly:
+           tag line-box 26 + tag margin-bottom 40 + headline 2 x 73 = 212. */
+        height: 212px;
+        flex-shrink: 0;
+        /* Frame-0 state comes from CSS, never from a timeline set (tl.set at
+           position 0 never fires in this renderer). The primary entrance is
+           already visible on frame 0 at 0.55 opacity — never 0. This is the
+           specific defect the old EP18 card had. */
+        opacity: 0.55;
+        transform: scaleY(0.22);
+        transform-origin: top center;
+      }
+      #text-stack { display: flex; flex-direction: column; }
+      #tag {
+        font-size: 22px;
+        line-height: 26px;
+        font-weight: 600;
+        letter-spacing: 3px;
+        color: #ddd6fe;
+        text-transform: uppercase;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85);
+        /* 40px box gap to the headline: OVERLAY_SPEC layout rule 4 requires
+           >= 40px separation, and calls a tight kicker-above-headline the
+           classic "reads as one merged sentence" failure. */
+        margin-bottom: 40px;
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      #headline {
+        font-size: 66px;
+        line-height: 73px;
+        font-weight: 800;
+        color: #ffffff;
+        text-shadow: 0 3px 14px rgba(0, 0, 0, 0.9), 0 0 40px rgba(0, 0, 0, 0.6);
+        opacity: 0;
+        transform: translateY(24px);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="2.766"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="2.766"
+        data-track-index="1"
+      >
+        <div id="block">
+          <div id="accent-bar"></div>
+          <div id="text-stack">
+            <div id="tag">System Design &middot; 18</div>
+            <!-- Deliberate break: the setup clause takes line 1 and the payoff
+                 ("Type a URL") lands alone on line 2. Widest line is line 1 at
+                 ~760px against an 860px text column (900 - 6 bar - 34 gap), so
+                 no line can wrap into an unplanned 3rd row and desync the
+                 212px bar. -->
+            <div id="headline">What Happens When You<br />Type a URL</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      // OVERLAY_SPEC: required alongside the fromTo fade — a lazy tween can
+      // silently fail to render when the renderer seeks a paused timeline and
+      // screenshots immediately.
+      gsap.defaults({ lazy: false });
+
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      tl
+        // Primary entrance begins at local t=0 and is NOT at opacity 0 on
+        // frame 0 (CSS holds it at 0.55 / scaleY 0.22).
+        .fromTo(
+          "#accent-bar",
+          { opacity: 0.55, scaleY: 0.22 },
+          { opacity: 1, scaleY: 1, duration: 0.5, ease: "power3.out" },
+          0
+        )
+        // The bar and the kicker are one gesture — the bar is a graphic accent
+        // for the kicker line, not a second thing to read — so 0.25 here is a
+        // ride-along, not a competing reveal.
+        .fromTo(
+          "#tag",
+          { opacity: 0, y: 20 },
+          { opacity: 1, y: 0, duration: 0.45, ease: "power3.out", immediateRender: false },
+          0.25
+        )
+        // The real second reveal. 0.90 - 0.25 = 0.65s after the kicker starts,
+        // clearing the >= 0.6s stagger minimum. Ends at 1.45.
+        .fromTo(
+          "#headline",
+          { opacity: 0, y: 24 },
+          { opacity: 1, y: 0, duration: 0.55, ease: "power3.out", immediateRender: false },
+          0.9
+        )
+        // Settle 1.45 -> 2.466 = 1.016s held. The fade must FINISH at exactly
+        // data-duration, zero buffer: 2.466 + 0.30 = 2.766. Written as fromTo
+        // with an explicit {opacity:1} start because a plain tl.to({opacity:0})
+        // can silently fail to render here. Targets the three leaves directly —
+        // fading the wrapper would not apply uniformly to transformed
+        // descendants.
+        .fromTo(
+          ["#accent-bar", "#tag", "#headline"],
+          { opacity: 1 },
+          { opacity: 0, duration: 0.3, ease: "power1.in", immediateRender: false },
+          2.466
+        );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

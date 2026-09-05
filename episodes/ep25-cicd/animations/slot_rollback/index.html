@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP25 rollback — corner revert chip</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* CORNER ACCENT, top-left. Shot measured: hair top ~200, brow ~700, chin ~1290.
+         Chip box x 70-390, y 200-420 — over wall + the hair's left edge only; clears
+         the brow by 280px. Translucent fill (0.30) per rule 11. Nothing else in frame
+         reacts. Format-scale note: a corner chip is deliberately small; its type is
+         36px, argued as the corner-accent exception to the 110px hero rule (same basis
+         as EP22's payoff corner chip in the batch plan). */
+
+      #chip {
+        position: absolute; left: 70px; top: 200px; width: 320px; height: 220px;
+        border-radius: 18px;
+        background: rgba(8, 12, 18, 0.30);
+        border: 1.5px solid rgba(148, 163, 184, 0.55);
+        box-shadow: 0 0 10px rgba(148, 163, 184, 0.25);  /* reach 16px: top 184 > 180 */
+        opacity: 0.55;            /* frame-0 state from CSS; entrance tween at t=0 */
+      }
+      /* one inline unit: [commit square] [id] [status lamp] — first render had an
+         absolutely-positioned lamp covering the id's last digit (rule-8 catch) */
+      #row1 {
+        position: absolute; left: 24px; right: 24px; top: 26px; height: 36px;
+        display: flex; align-items: center; gap: 14px;
+      }
+      #commit-sq {
+        width: 18px; height: 18px; border-radius: 4px; flex-shrink: 0;
+        background: #fbbf24; box-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
+      }
+      #deploy-id {
+        color: #e2e8f0; font-size: 27px; font-weight: 700; white-space: nowrap;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85);
+      }
+      #lamp {
+        width: 26px; height: 26px; flex-shrink: 0;
+        border-radius: 50%; background: #475569; border: 2px solid rgba(226, 232, 240, 0.5);
+      }
+      #uturn-svg { position: absolute; left: 24px; top: 108px; width: 64px; height: 84px; overflow: visible; }
+      #uturn {
+        fill: none; stroke: #4ade80; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round;
+      }
+      .lab {
+        position: absolute; left: 96px; top: 134px;
+        font-size: 32px; font-weight: 700; white-space: nowrap;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85);
+        opacity: 0;               /* stacked labels; swaps touch outgoing+incoming only */
+      }
+      #lab-fail { color: #f87171; }
+      #lab-rev  { color: #4ade80; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="4.50" data-width="1080" data-height="1920">
+      <section id="main-clip" class="clip" data-start="0" data-duration="4.50" data-track-index="1">
+        <!-- ACT 1: a small change goes out, the test lamp catches it (red).
+             TURN: instant flip-back on "roll back". ACT 2: green calm, nothing else
+             in frame reacts. -->
+        <div id="chip">
+          <div id="row1">
+            <div id="commit-sq"></div>
+            <div id="deploy-id" class="mono">deploy #1209</div>
+            <div id="lamp"></div>
+          </div>
+          <svg id="uturn-svg" viewBox="0 0 64 84">
+            <path id="uturn" d="M52,72 L52,26 A18,18 0 0 0 16,26 L16,58 M6,46 L16,60 L26,46" />
+          </svg>
+          <div class="lab mono" id="lab-fail">TEST FAILED</div>
+          <div class="lab mono" id="lab-rev">revert &#10003;</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+
+      // deterministic draw setup for the U-turn arrow
+      const ut = document.getElementById("uturn");
+      const utLen = ut.getTotalLength();
+      ut.style.strokeDasharray = String(utLen);
+      ut.style.strokeDashoffset = String(utLen);
+
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ---------- entrance at t=0 ----------
+      tl.fromTo("#chip", { opacity: 0.55, y: 8 }, { opacity: 1, y: 0, duration: 0.35, ease: "power3.out" }, 0);
+
+      // ---------- ACT 1: the red lamp catches the bad change (buzzer cue ~35.8 abs) ----
+      tl.to("#lamp", { backgroundColor: "#ef4444", boxShadow: "0 0 14px rgba(239,68,68,0.8)", duration: 0.12, ease: "power2.out" }, 0.85);
+      tl.set("#lab-fail", { opacity: 1 }, 0.9);
+      // small alarm shake on the chip (x wiggle, scripted, no repeats)
+      tl.to("#chip", { x: -5, duration: 0.06, ease: "power1.inOut" }, 0.92);
+      tl.to("#chip", { x: 4, duration: 0.06, ease: "power1.inOut" }, 0.98);
+      tl.to("#chip", { x: -2, duration: 0.06, ease: "power1.inOut" }, 1.04);
+      tl.to("#chip", { x: 0, duration: 0.08, ease: "power2.out" }, 1.1);
+
+      // ---------- TURN: instant flip-back — lands on "roll back" (abs 36.50 = 1.55) ----
+      tl.to("#uturn", { strokeDashoffset: 0, duration: 0.4, ease: "power2.inOut" }, 1.55);
+      tl.set("#lab-fail", { opacity: 0 }, 1.7);   // hide OUTGOING …
+      tl.set("#lab-rev", { opacity: 1 }, 1.7);    // … show incoming (different targets)
+      tl.to("#lamp", { backgroundColor: "#4ade80", boxShadow: "0 0 14px rgba(74,222,128,0.8)", duration: 0.15, ease: "power2.out" }, 1.9);
+      tl.to("#chip", { borderColor: "rgba(74,222,128,0.65)", duration: 0.3, ease: "power2.out" }, 1.9);
+
+      // ---------- ACT 2: green calm through "stops being scary" ----------
+      // breathing glow: yoyo, ODD repeat, ends 2.5 + 2*0.55 = 3.60 < fade start 4.20
+      tl.fromTo("#chip", { boxShadow: "0 0 10px rgba(74,222,128,0.30)" },
+        { boxShadow: "0 0 18px rgba(74,222,128,0.5)", duration: 0.55, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 2.5);
+
+      // ---------- fade: FINISHES at exactly 4.500 (4.20 + 0.30) ----------
+      tl.fromTo("#chip", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 4.2);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

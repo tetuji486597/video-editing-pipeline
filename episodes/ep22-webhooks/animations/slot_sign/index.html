@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP22 SIGN — verify it's really them</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;   /* HALF-PANEL: presenter stays visible below y~610 */
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* LAYOUT (SIGN shot measured: hair top ~200, brow ~640, eyes 690-780, face x
+         270-780). Moved UP 25px (184 -> 159) after the talking-head zoom was
+         strengthened 1.045 -> 1.08 (focal at the eye line): brow clearance was ~10px,
+         now panel bottom 585 sits ~35px above the zoomed brow. Upper half-panel
+         x 70-850, y 159-585; it covers hair/upper forehead only (solid-over-hair
+         precedent). No outer box-shadow on the panel: a blur at top 159 would breach
+         the top margin (reach 1.6*blur). The panel fill/border at 159-204 are dark,
+         background-grade (luma << 200); the topmost BRIGHT text/UI is inside the code
+         capture, measured y=261 before the move -> y=236 after, >= the y=200 margin.
+         Inside (absolute canvas px, all -25 vs the first build):
+         - #inset-card (REAL Stripe docs code capture) x 110-810, y 185-457
+         - verdict row: #rogue-chip x 110-579 / #sig-chip x 110-579 (never co-visible,
+           rogue exits by 2.6, sig enters 2.65), #verified-badge x 619-809 (40px gap to
+           the chip), all y 497-561. Panel bottom 585: 24px margin. */
+
+      #panel {
+        position: absolute;
+        left: 70px;
+        top: 167px;
+        width: 780px;
+        height: 426px;
+        border-radius: 26px;
+        background: rgba(9, 13, 20, 0.80);
+        border: 2px solid rgba(99, 91, 255, 0.35);
+        opacity: 0.5;              /* frame-0 from CSS; primary entrance at t=0 */
+      }
+
+      #inset-card {
+        position: absolute;
+        left: 40px;                /* abs 110 */
+        top: 26px;                 /* abs 210 */
+        width: 700px;
+        height: 272px;
+        border-radius: 16px;
+        overflow: hidden;
+        background: #0a1128;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+      }
+      #inset-head {
+        height: 34px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 16px;
+        background: rgba(20, 26, 44, 0.95);
+        border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+      }
+      .ins-dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(148, 163, 184, 0.5); }
+      #inset-title {
+        margin-left: 8px;
+        color: #94a3b8;
+        font-size: 20px;
+        letter-spacing: 1px;
+      }
+      #inset-img-wrap {
+        position: absolute;
+        left: 30px;
+        top: 44px;                 /* abs image top 254 */
+        width: 640px;
+        height: 218px;
+        overflow: hidden;
+        border-radius: 8px;
+      }
+      #inset-img {
+        width: 640px;
+        height: 218px;             /* 1010x344 scaled by 0.6337 */
+        object-fit: cover;
+        filter: brightness(0.82) saturate(0.95);
+      }
+      /* scanline that sweeps the code during "verify the signature" */
+      #scanline {
+        position: absolute;
+        left: 30px;
+        top: 44px;
+        width: 640px;
+        height: 30px;
+        background: linear-gradient(to bottom, rgba(74, 222, 128, 0) 0%, rgba(74, 222, 128, 0.16) 50%, rgba(74, 222, 128, 0) 100%);
+        opacity: 0;
+      }
+      /* highlight ring around the real `signature = request.env[...]` line
+         (panel-relative: abs x 213-571, y 305-336 -> panel-rel x 143-501, y 121-152) */
+      #sig-ring {
+        position: absolute;
+        left: 138px;
+        top: 116px;
+        width: 372px;
+        height: 42px;
+        border-radius: 8px;
+        border: 3px solid rgba(74, 222, 128, 0.9);
+        box-shadow: 0 0 12px rgba(74, 222, 128, 0.5);
+        opacity: 0;
+      }
+
+      .verdict-chip {
+        position: absolute;
+        left: 40px;                /* abs 110 */
+        top: 338px;                /* abs 522 */
+        height: 64px;
+        padding: 0 18px;
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+        border-radius: 12px;
+        font-size: 26px;
+      }
+      #rogue-chip {
+        background: rgba(40, 12, 12, 0.92);
+        border: 2px solid rgba(248, 113, 113, 0.85);
+        color: #fecaca;
+        opacity: 0;
+      }
+      #sig-chip {
+        background: rgba(8, 28, 24, 0.92);
+        border: 2px solid rgba(45, 212, 191, 0.85);
+        color: #99f6e4;
+        opacity: 0;
+      }
+      #rogue-chip svg, #verified-badge svg { display: block; flex-shrink: 0; }
+
+      #verified-badge {
+        position: absolute;
+        left: 549px;               /* abs 619 */
+        top: 338px;                /* abs 522 */
+        width: 190px;
+        height: 64px;
+        border-radius: 32px;
+        background: rgba(8, 34, 20, 0.95);
+        border: 2px solid rgba(74, 222, 128, 0.95);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        color: #bbf7d0;
+        font-size: 24px;
+        font-weight: 800;
+        letter-spacing: 2px;
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="6.1"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="scene" class="clip" data-start="0" data-duration="6.1" data-track-index="1">
+        <div id="panel">
+          <!-- THE REAL IMAGE: Stripe docs webhook-handler code, cropped to the
+               signature-verification lines, dimmed, inset in designed chrome -->
+          <div id="inset-card">
+            <div id="inset-head">
+              <div class="ins-dot"></div>
+              <div class="ins-dot"></div>
+              <div class="ins-dot"></div>
+              <div id="inset-title" class="mono">stripe docs &middot; webhook handler</div>
+            </div>
+            <div id="inset-img-wrap">
+              <img id="inset-img" src="assets/stripe_sig_code.png" alt="" />
+            </div>
+            <div id="scanline"></div>
+            <div id="sig-ring"></div>
+          </div>
+
+          <!-- ACT 1: the rogue unsigned POST -->
+          <div id="rogue-chip" class="verdict-chip mono">
+            <span>POST &middot; no signature</span>
+            <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+              <circle cx="18" cy="18" r="16" stroke="#ef4444" stroke-width="3" />
+              <path d="M11 11 L25 25 M25 11 L11 25" stroke="#ef4444" stroke-width="3.5" stroke-linecap="round" />
+            </svg>
+          </div>
+
+          <!-- TURN: the genuine, signed call -->
+          <div id="sig-chip" class="verdict-chip mono">Stripe-Signature: v1=5257a8&hellip;</div>
+
+          <!-- ACT 2: verified -->
+          <div id="verified-badge">
+            <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+              <circle cx="15" cy="15" r="13" stroke="#4ade80" stroke-width="2.5" />
+              <path d="M8.5 15.5 L13 20 L21.5 10.5" stroke="#4ade80" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span>VERIFIED</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ---- entrance at t=0: the panel with its real-code inset settles ----
+      tl.fromTo("#panel", { opacity: 0.5, y: 14 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 0);
+
+      // ---- ACT 1: rogue unsigned POST arrives and is rejected ----
+      tl.fromTo("#rogue-chip", { opacity: 0, x: -60 }, { opacity: 1, x: 0, duration: 0.35, ease: "power3.out", immediateRender: false }, 0.7);
+      // rejection shake + red flare on the stamp moment
+      tl.to("#rogue-chip", { x: -8, duration: 0.06, ease: "power2.out" }, 1.3);
+      tl.to("#rogue-chip", { x: 6, duration: 0.06, ease: "power2.out" }, 1.36);
+      tl.to("#rogue-chip", { x: 0, duration: 0.08, ease: "power2.out" }, 1.42);
+      tl.to("#rogue-chip", { boxShadow: "0 0 18px rgba(239,68,68,0.7)", duration: 0.15, ease: "power2.out" }, 1.3);
+      // it exits: rejected calls don't get to stay
+      tl.to("#rogue-chip", { opacity: 0, x: -70, duration: 0.3, ease: "power2.in" }, 2.3);
+
+      // ---- TURN: the genuine call carries its signature ("sign each call" local 2.485-3.085) ----
+      tl.fromTo("#sig-chip", { opacity: 0, x: -60 }, { opacity: 1, x: 0, duration: 0.35, ease: "power3.out", immediateRender: false }, 2.65);
+
+      // ---- the real check runs ("verify the signature" local 3.425-4.325):
+      // scanline sweeps the actual Stripe handler code, ring lands on the signature line ----
+      tl.fromTo("#scanline", { opacity: 0, y: 0 }, {y: 0, opacity: 1, duration: 0.15, immediateRender: false }, 3.6);
+      tl.to("#scanline", { y: 188, duration: 0.8, ease: "power1.inOut" }, 3.65);
+      tl.to("#scanline", { opacity: 0, duration: 0.15 }, 4.45);
+      tl.fromTo("#sig-ring", { opacity: 0, scale: 1.15 }, { opacity: 1, scale: 1, duration: 0.3, ease: "power3.out", immediateRender: false }, 3.95);
+
+      // ---- ACT 2: VERIFIED, timed to the ONSET of "them." (local 5.325 in BOTH
+      // variants; beats.md: never cue to that word's ASR box end) ----
+      tl.fromTo("#verified-badge", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.28, ease: "back.out(1.7)", immediateRender: false }, 5.325);
+      tl.to("#verified-badge", { boxShadow: "0 0 26px rgba(74,222,128,0.7)", duration: 0.2, ease: "power2.out" }, 5.6);
+
+      // ---- fade: ends EXACTLY at 6.1 ----
+      tl.fromTo("#panel", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 5.8);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

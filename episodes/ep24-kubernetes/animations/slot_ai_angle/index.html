@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP24 ai_angle — GPU scheduling grid</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent; /* TRANSPARENT BAND: linework over live footage */
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      #content-all { position: absolute; inset: 0; opacity: 0.55; } /* frame-0 visible */
+
+      /* row labels — the two allowed labels */
+      .row-chip {
+        position: absolute; left: 70px; height: 56px;
+        border-radius: 12px;
+        background: rgba(10, 16, 26, 0.30);
+        border: 1.5px solid rgba(52, 211, 153, 0.8);
+        color: #a7f3d0; font-size: 26px; letter-spacing: 3px;
+        display: flex; align-items: center; padding: 0 20px;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95);
+        opacity: 0;
+      }
+      #chip-train { top: 277px; }
+      #chip-infer { top: 467px; }
+
+      /* scheduling slots: 4 cols x 2 rows, x 290-858, rows y 230-380 / 420-570 */
+      .slot {
+        position: absolute; width: 130px; height: 150px;
+        border-radius: 12px;
+        border: 2px dashed rgba(34, 211, 238, 0.65);
+        background: rgba(34, 211, 238, 0.07);
+        opacity: 0;
+      }
+      /* ghost extension row (turn): dim linework implying the grid continues */
+      .ghost {
+        position: absolute; width: 130px; height: 60px;
+        border-radius: 12px 12px 0 0;
+        border: 2px dashed rgba(34, 211, 238, 0.5);
+        border-bottom: none;
+        opacity: 0;
+      }
+      .gpu { position: absolute; width: 114px; height: 134px; opacity: 0; }
+      .gpu svg { width: 100%; height: 100%; }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="6.2"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="scene" class="clip" data-start="0" data-duration="6.2" data-track-index="1">
+        <div id="content-all">
+          <div id="grid-group">
+            <div class="row-chip mono" id="chip-train">TRAINING</div>
+            <div class="row-chip mono" id="chip-infer">INFERENCE</div>
+            <!-- slots and gpus are placed by the literal arrays in the script -->
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+
+      const group = document.getElementById("grid-group");
+      const colX = [290, 436, 582, 728];            // right edge 728+130=858 <= 860
+      const rowY = [230, 420];
+      // build 8 slots
+      const slotIds = [];
+      colX.forEach((x, c) => rowY.forEach((y, r) => {
+        const d = document.createElement("div");
+        d.className = "slot";
+        d.id = `slot${r}${c}`;
+        d.style.left = x + "px";
+        d.style.top = y + "px";
+        group.appendChild(d);
+        slotIds.push("#" + d.id);
+      }));
+      // ghost extension row (y 600-660, dim linework — over forehead top at 0.22 max)
+      colX.forEach((x, c) => {
+        const g = document.createElement("div");
+        g.className = "ghost";
+        g.id = `ghost${c}`;
+        g.style.left = x + "px";
+        g.style.top = "600px";
+        group.appendChild(g);
+      });
+      // GPU card glyph (hand-drawn SVG: board + fan + pins)
+      const gpuSvg = `
+        <svg viewBox="0 0 114 134">
+          <rect x="6" y="6" width="102" height="106" rx="10"
+                fill="rgba(34,211,238,0.14)" stroke="rgba(103,232,249,0.9)" stroke-width="2.5"/>
+          <circle cx="57" cy="52" r="26" fill="none" stroke="rgba(103,232,249,0.9)" stroke-width="2.5"/>
+          <path d="M57 30 A22 22 0 0 1 79 52 M57 74 A22 22 0 0 1 35 52"
+                fill="none" stroke="rgba(103,232,249,0.65)" stroke-width="2.5"/>
+          <circle cx="57" cy="52" r="6" fill="rgba(103,232,249,0.9)"/>
+          <rect x="18" y="92" width="30" height="10" rx="3" fill="rgba(103,232,249,0.55)"/>
+          <rect x="56" y="92" width="40" height="10" rx="3" fill="rgba(103,232,249,0.55)"/>
+          <g stroke="rgba(103,232,249,0.8)" stroke-width="3">
+            <line x1="22" y1="114" x2="22" y2="126"/><line x1="40" y1="114" x2="40" y2="126"/>
+            <line x1="58" y1="114" x2="58" y2="126"/><line x1="76" y1="114" x2="76" y2="126"/>
+            <line x1="94" y1="114" x2="94" y2="126"/>
+          </g>
+        </svg>`;
+      // 8 GPUs, one per slot, +8px inset
+      const gpuIds = [];
+      colX.forEach((x, c) => rowY.forEach((y, r) => {
+        const d = document.createElement("div");
+        d.className = "gpu";
+        d.id = `gpu${r}${c}`;
+        d.style.left = (x + 8) + "px";
+        d.style.top = (y + 8) + "px";
+        d.innerHTML = gpuSvg;
+        group.appendChild(d);
+        gpuIds.push("#" + d.id);
+      }));
+
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ---- Act 1: the scheduling grid draws (t=0) ----
+      tl.fromTo("#content-all", { opacity: 0.55 }, { opacity: 1, duration: 0.3, ease: "power3.out" }, 0);
+      slotIds.forEach((sel, i) =>
+        tl.fromTo(sel, { opacity: 0, scale: 0.88 },
+          { opacity: 1, scale: 1, duration: 0.3, ease: "power3.out", immediateRender: false }, 0.1 + i * 0.09));
+      tl.fromTo("#chip-train", { opacity: 0, x: -18 }, { opacity: 1, x: 0, duration: 0.35, ease: "power3.out", immediateRender: false }, 1.35);
+      tl.fromTo("#chip-infer", { opacity: 0, x: -18 }, { opacity: 1, x: 0, duration: 0.35, ease: "power3.out", immediateRender: false }, 1.7);
+
+      // ---- GPUs slot in, first lands ON "GPU workloads" (A 44.797 -> local 2.40) ----
+      // order: fill row 0 (training) then row 1 (inference); identical repeated events
+      const order = ["#gpu00", "#gpu01", "#gpu02", "#gpu10", "#gpu11", "#gpu12"];
+      order.forEach((sel, i) => {
+        const t = 2.4 + i * 0.35;
+        tl.fromTo(sel, { opacity: 0, y: -26, scale: 0.85 },
+          { opacity: 1, y: 0, scale: 1, duration: 0.28, ease: "back.out(1.6)", immediateRender: false }, t);
+      }); // last of the six lands 4.15+0.28
+
+      // ---- Turn @4.90 ("huge clusters" A 47.297): the grid is bigger than the frame ----
+      tl.to("#grid-group", { scale: 0.95, transformOrigin: "480px 250px", duration: 0.5, ease: "power2.inOut" }, 4.9);
+      colX.forEach((x, c) =>
+        tl.fromTo(`#ghost${c}`, { opacity: 0, y: 14 },
+          { opacity: 0.22, y: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 4.95 + c * 0.08));
+      // the two remaining slots fill fast — the cluster keeps growing
+      tl.fromTo("#gpu03", { opacity: 0, y: -26, scale: 0.85 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.28, ease: "back.out(1.6)", immediateRender: false }, 5.05);
+      tl.fromTo("#gpu13", { opacity: 0, y: -26, scale: 0.85 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.28, ease: "back.out(1.6)", immediateRender: false }, 5.3);
+
+      // ---- fade out finishes at EXACTLY 6.2, zero buffer ----
+      tl.fromTo("#content-all", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 5.9);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

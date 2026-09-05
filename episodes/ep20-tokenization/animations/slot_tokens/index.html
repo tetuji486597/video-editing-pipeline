@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP20 TOKENS — the real tokenizer readout; priced and measured in tokens</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;   /* half-panel: footage visible below the card */
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      #fade-wrap { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* UPPER BAND. TOKENS framing: hair top ~130, brow ~680 (=> ~667 at max zoom).
+         Border-margin fix: card moved DOWN 25px (top 190 -> 215, >= y215) and 18px of
+         internal padding reclaimed (chrome 52->46, gaps tightened, height 455 -> 437)
+         so the bottom is 215+437=652 -- worst-case brow 667 - 652 = 15px face gap.
+         Card y 215-652 sits over hair/background (solid-over-hair convention). */
+      #card {
+        position: absolute;
+        left: 70px; top: 215px;    /* x 70-810 */
+        width: 740px; height: 437px;
+        border-radius: 22px;
+        background: linear-gradient(165deg, rgba(24, 27, 36, 0.97), rgba(13, 15, 21, 0.98));
+        border: 1.5px solid rgba(148, 163, 184, 0.35);
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);  /* dark, background-grade */
+        overflow: hidden;
+        opacity: 0.55;              /* frame-0 from CSS */
+        transform: translateY(30px);
+      }
+      #chrome {
+        position: absolute;
+        left: 0; top: 0; width: 740px; height: 46px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+        background: rgba(255, 255, 255, 0.04);
+      }
+      .cdot { position: absolute; top: 16px; width: 14px; height: 14px; border-radius: 50%; }
+      #d1 { left: 26px; background: #f87171; }
+      #d2 { left: 52px; background: #fbbf24; }
+      #d3 { left: 78px; background: #4ade80; }
+      #urlpill {
+        position: absolute;
+        left: 170px; top: 7px;
+        width: 400px; height: 32px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.08);
+        color: #cbd5e1;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 20px;
+        line-height: 32px;
+        text-align: center;
+      }
+      #shot {
+        position: absolute;
+        left: 30px; top: 55px;      /* canvas x 100-740, y 270-537 */
+        width: 640px; height: 267px;
+        border-radius: 10px;
+        opacity: 0;
+      }
+      /* highlight ring around the REAL "Tokens 3" readout only: canvas x 88-184, y 264-342
+         (6px above the shot top, same relative alignment as the first build).
+         Narrower than the first cut (w 180), which spilled onto the "Characters 19"
+         readout (starts card-rel x=122) — caught on the composited frame. */
+      #ring {
+        position: absolute;
+        left: 18px; top: 49px;
+        width: 96px; height: 78px;
+        opacity: 0;
+        filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.6));
+      }
+
+      /* light sweep for the turn, confined to the card */
+      #sweep {
+        position: absolute;
+        left: -220px; top: 0;
+        width: 200px; height: 437px;
+        background: linear-gradient(100deg, rgba(255,255,255,0), rgba(255,255,255,0.16), rgba(255,255,255,0));
+        transform: skewX(-12deg);
+      }
+
+      /* ACT 2: context-window meter, denominated in tokens */
+      #cw-lbl {
+        position: absolute;
+        left: 30px; top: 328px;     /* canvas y 543-563 */
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 20px;
+        letter-spacing: 4px;
+        color: #7dd3fc;
+        opacity: 0;
+      }
+      #track {
+        position: absolute;
+        left: 30px; top: 356px;     /* canvas x 100-520, y 571-605 */
+        width: 420px; height: 34px;
+        border-radius: 10px;
+        border: 1.5px solid rgba(125, 211, 252, 0.4);
+        background: rgba(8, 20, 30, 0.6);
+        opacity: 0;
+      }
+      .tickcell {
+        position: absolute;
+        top: 4px; width: 48px; height: 24px;
+        border-radius: 6px;
+        background: linear-gradient(180deg, rgba(125, 211, 252, 0.85), rgba(56, 152, 210, 0.75));
+        opacity: 0;
+      }
+      #readout {
+        position: absolute;
+        left: 470px; top: 350px;    /* canvas x 540-~700, y 565-609 */
+        width: 240px; height: 44px;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 40px;
+        line-height: 44px;
+        font-weight: 700;
+        color: #bae6fd;
+        opacity: 0;
+      }
+      #readout .val { position: absolute; left: 0; top: 0; opacity: 0; }
+      #price-chip {
+        position: absolute;
+        left: 30px; top: 394px;     /* canvas x 100-~314, y 609-651 */
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 22px;
+        letter-spacing: 1px;
+        color: #fcd34d;
+        padding: 6px 16px 8px 16px;
+        border: 1.5px solid rgba(245, 158, 11, 0.6);
+        border-radius: 10px;
+        background: rgba(60, 40, 8, 0.5);
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="4.9"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="4.9"
+        data-track-index="1"
+      >
+        <div id="fade-wrap">
+          <div id="card">
+            <div id="chrome">
+              <div class="cdot" id="d1"></div>
+              <div class="cdot" id="d2"></div>
+              <div class="cdot" id="d3"></div>
+              <div id="urlpill">platform.openai.com/tokenizer</div>
+            </div>
+
+            <!-- REAL capture: OpenAI tokenizer, "I love strawberries" -> Tokens 3,
+                 Characters 19, IDs [40, 3047, 106502]. Cropped to the readout region;
+                 no page header / login branding in the crop. -->
+            <img id="shot" src="assets/tokenizer_tokens_ids_crop.png" alt="" />
+
+            <svg id="ring" viewBox="0 0 96 78">
+              <rect id="ring-rect" x="3" y="3" width="90" height="72" rx="12"
+                    fill="none" stroke="#f59e0b" stroke-width="4" />
+            </svg>
+
+            <div id="cw-lbl">CONTEXT WINDOW</div>
+            <div id="track"></div>
+            <div id="readout">
+              <div class="val" id="r0">32K</div>
+              <div class="val" id="r1">64K</div>
+              <div class="val" id="r2">96K</div>
+              <div class="val" id="r3">128K</div>
+            </div>
+            <div id="price-chip">$ / 1M TOKENS</div>
+
+            <div id="sweep" data-layout-allow-overflow="true"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+
+      // 8 meter cells, hard-coded positions (4 + i*52 inside the track)
+      const track = document.getElementById("track");
+      for (let i = 0; i < 8; i++) {
+        const d = document.createElement("div");
+        d.className = "tickcell";
+        d.id = "cell" + i;
+        d.style.left = (4 + i * 52) + "px";
+        track.appendChild(d);
+      }
+
+      // ring draw setup (deterministic, measured at load)
+      const ringRect = document.getElementById("ring-rect");
+      const per = 2 * (90 + 72) + 2 * Math.PI * 12; // approx perimeter incl corners
+      ringRect.style.strokeDasharray = String(per);
+      ringRect.style.strokeDashoffset = String(per);
+
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ---------- ACT 1: the real screenshot card lands (entrance at t=0) ----------
+      tl.fromTo("#card", { opacity: 0.55, y: 30 },
+        { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0);
+      tl.fromTo("#shot", { opacity: 0, scale: 1.03 },
+        { opacity: 1, scale: 1, duration: 0.45, ease: "power2.out", immediateRender: false }, 0.35);
+
+      // highlight ring draws around the REAL token count — lands on "measured in tokens"
+      tl.fromTo("#ring", { opacity: 0 },
+        { opacity: 1, duration: 0.12, ease: "power2.out", immediateRender: false }, 1.2);
+      tl.to("#ring-rect", { strokeDashoffset: 0, duration: 0.45, ease: "power2.inOut" }, 1.25);
+      // ring pulse: 1.8 + 2*0.35 = 2.5, complete before the fade
+      tl.to("#ring", {
+        filter: "drop-shadow(0 0 16px rgba(245,158,11,0.95))",
+        duration: 0.35, ease: "sine.inOut", yoyo: true, repeat: 1,
+      }, 1.8);
+
+      // ---------- TURN @2.3: light sweep; the shot recedes slightly ----------
+      tl.fromTo("#sweep", { x: 0 },
+        { x: 1180, duration: 0.5, ease: "power2.inOut", immediateRender: false }, 2.3);
+      tl.to("#shot", { opacity: 0.75, duration: 0.4, ease: "power2.out" }, 2.45);
+      tl.to("#ring", { opacity: 0.45, duration: 0.4, ease: "power2.out" }, 2.45);
+
+      // ---------- ACT 2: the context-window meter fills, tick by tick ----------
+      tl.fromTo("#cw-lbl", { opacity: 0 },
+        { opacity: 1, duration: 0.3, ease: "power2.out", immediateRender: false }, 2.5);
+      tl.fromTo("#track", { opacity: 0 },
+        { opacity: 1, duration: 0.3, ease: "power2.out", immediateRender: false }, 2.55);
+      tl.fromTo("#readout", { opacity: 0 },
+        { opacity: 1, duration: 0.25, ease: "power2.out", immediateRender: false }, 2.6);
+      for (let i = 0; i < 8; i++) {
+        tl.fromTo("#cell" + i, { opacity: 0, scaleX: 0.4 },
+          { opacity: 1, scaleX: 1, duration: 0.18, ease: "power3.out", immediateRender: false },
+          2.7 + i * 0.15);
+      }
+      // readout swaps — stacked values, touch only outgoing+incoming (never tween text)
+      tl.set("#r0", { opacity: 1 }, 2.7);
+      tl.set("#r0", { opacity: 0 }, 3.0); tl.set("#r1", { opacity: 1 }, 3.0);
+      tl.set("#r1", { opacity: 0 }, 3.3); tl.set("#r2", { opacity: 1 }, 3.3);
+      tl.set("#r2", { opacity: 0 }, 3.6); tl.set("#r3", { opacity: 1 }, 3.6);
+      tl.fromTo("#readout", { scale: 0.94 },
+        { scale: 1, duration: 0.3, ease: "back.out(1.5)", immediateRender: false }, 3.6);
+
+      // the pricing chip — tokens are the billing unit
+      tl.fromTo("#price-chip", { opacity: 0, y: 10 },
+        { opacity: 1, y: 0, duration: 0.35, ease: "power3.out", immediateRender: false }, 4.05);
+
+      // ---------- fade: finishes at EXACTLY 4.9, zero buffer ----------
+      tl.fromTo("#fade-wrap", { opacity: 1 },
+        { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 4.6);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

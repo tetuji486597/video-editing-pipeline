@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1080, height=1920" />
+<title>EP27 new component — chaos engineering quest log (takeover)</title>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+  body { font-family: Inter, sans-serif; }
+  #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+  .clip { position: absolute; inset: 0; }
+  .fill { position: absolute; inset: 0; }
+  .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+  /* TAKEOVER. Design band x 95-855, y 255-1250; #scene pushes in 1.00->1.04 about (540,740):
+     x' = 540+(x-540)*1.04 -> 77..868 ; y' = 740+(y-740)*1.04 -> 236..1270. All inside the
+     x70-870 / y200-1280 band. bg/vignette/grain/flash are exempt full-frame layers.
+     Absolute extents (act 1):  headline y 262-322 | quest card x 95-505 y 460-1100 |
+       box x 580-820 y 480-720 | dashboard x 545-855 y 760-1000 | W RIZZ x 545-855 y 1040-1100
+     (turn): FOUND ONE x 150-800 y 1130-1240 (30px under the card, which fades 10.2-10.6)
+       | LUNCH clock x 150-370 y 540-760 (+label 780-830) | 2 AM clock x 620-840 y 540-760 | headline stays
+     (act 2): grid x 258-822 y 500-948 | Ohio outline x 235-845 y 460-1000 | OHIO y 1005-1071
+       | mini dashboard x 300-780 y 1120-1240 (push-in -> 1260) | plane crosses y 380-558 then exits off-canvas */
+
+  #bg-fill { background: radial-gradient(120% 90% at 50% 8%, #03202a 0%, #02121a 45%, #01080c 80%, #000305 100%); }
+  #bg-glow-cyan { position: absolute; left: 50%; top: 34%; width: 1500px; height: 1500px; transform: translate(-50%, -50%);
+    background: radial-gradient(circle, rgba(34, 211, 238, 0.20) 0%, rgba(34, 211, 238, 0) 60%); }
+  #bg-glow-2 { position: absolute; left: 20%; top: 80%; width: 1300px; height: 1300px; transform: translate(-50%, -50%);
+    background: radial-gradient(circle, rgba(57, 255, 20, 0.10) 0%, rgba(57, 255, 20, 0) 60%); }
+  #bg-amber { background: radial-gradient(120% 90% at 50% 10%, #2a1603 0%, #1a0d02 45%, #0a0501 80%, #030200 100%); opacity: 0; }
+  #bg-amber-glow { position: absolute; left: 50%; top: 40%; width: 1600px; height: 1600px; transform: translate(-50%, -50%);
+    background: radial-gradient(circle, rgba(245, 158, 11, 0.26) 0%, rgba(245, 158, 11, 0) 60%); }
+  #vignette { background: radial-gradient(ellipse 760px 980px at 50% 46%, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 48%, rgba(0,0,0,0.55) 80%, rgba(0,0,0,0.9) 100%); }
+  #flash { background: #ffffff; opacity: 0; }
+  #dither { opacity: 1; }
+  #scene { transform-origin: 540px 740px; }
+
+  #headline {
+    position: absolute; left: 0; right: 0; top: 262px;
+    text-align: center; font-size: 48px; line-height: 60px; font-weight: 900; letter-spacing: 2px;
+    color: #67e8f9; text-shadow: 0 0 22px rgba(34, 211, 238, 0.7), 0 3px 8px rgba(0,0,0,0.9);
+    white-space: nowrap; opacity: 0.5; transform: scale(0.94); transform-origin: 50% 50%;
+  }
+
+  /* ---- ACT 1: quest log ---- */
+  #quest {
+    position: absolute; left: 95px; top: 460px; width: 410px; height: 640px;
+    border-radius: 22px; background: linear-gradient(170deg, rgba(8, 30, 40, 0.94), rgba(3, 14, 20, 0.97));
+    border: 3px solid #f5c542; box-shadow: 0 24px 60px rgba(0,0,0,0.6), 0 0 26px rgba(245,197,66,0.25);
+    opacity: 0;
+  }
+  #quest-head { position: absolute; left: 0; right: 0; top: 0; height: 20px; border-radius: 18px 18px 0 0; background: #f5c542; }
+  .q { position: absolute; left: 24px; width: 362px; height: 100px; display: flex; align-items: center; gap: 18px; opacity: 0; }
+  #q1 { top: 50px; }   /* abs 450-550 */
+  #q2 { top: 220px; }  /* abs 620-720 */
+  #q3 { top: 390px; }  /* abs 790-890 */
+  .q .ck { width: 56px; height: 56px; border-radius: 50%; border: 4px solid #f5c542; flex-shrink: 0; position: relative; }
+  .q .ck svg { position: absolute; inset: 8px; opacity: 0; }
+  .q .tx { font-size: 34px; font-weight: 800; letter-spacing: 1px; color: #f1f5f9; white-space: nowrap; }
+  .q .tx small { display: block; font-size: 20px; font-weight: 600; letter-spacing: 3px; color: #f5c542; }
+
+  /* the box being killed */
+  #box { position: absolute; left: 580px; top: 480px; width: 240px; height: 240px; opacity: 0; transform: scale(0.7); transform-origin: 50% 50%; }
+  #eyes { opacity: 0; }
+  #goo { opacity: 0; transform-box: fill-box; transform-origin: 50% 0%; }
+
+  /* dashboard */
+  #dash {
+    position: absolute; left: 545px; top: 760px; width: 310px; height: 240px;
+    border-radius: 18px; background: rgba(6, 20, 26, 0.9); border: 2px solid rgba(34, 211, 238, 0.55);
+    box-shadow: 0 20px 46px rgba(0,0,0,0.5); opacity: 0;
+  }
+  #dash svg { position: absolute; inset: 0; width: 310px; height: 240px; }
+  #line-flat { fill: none; stroke: #22d3ee; stroke-width: 6; stroke-linecap: round; }
+  #line-spike { fill: none; stroke: #ff3b3b; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+  #dash-dot { fill: #22d3ee; opacity: 0; }
+
+  #rizz {
+    position: absolute; left: 545px; top: 1040px; width: 310px; height: 60px; line-height: 60px;
+    border-radius: 30px; background: #ff2fd6; color: #fff; text-align: center;
+    font-size: 36px; font-weight: 900; letter-spacing: 3px; box-shadow: 0 8px 24px rgba(255,47,214,0.5);
+    opacity: 0; transform: scale(1.6); transform-origin: 50% 50%;
+  }
+
+  /* ---- TURN ---- */
+  #found {
+    position: absolute; left: 150px; top: 1130px; width: 650px; height: 110px;
+    display: flex; align-items: center; gap: 24px; opacity: 0; transform: rotate(-6deg) scale(2); transform-origin: 50% 50%;
+  }
+  #moai { width: 100px; height: 110px; flex-shrink: 0; }
+  #found-tx { font-size: 80px; line-height: 90px; font-weight: 900; letter-spacing: 2px; color: #fbbf24;
+    text-shadow: 0 0 26px rgba(251,191,36,0.7), 0 5px 0 #000; white-space: nowrap; }
+
+  .clockw { position: absolute; top: 540px; width: 220px; height: 220px; opacity: 0; transform: scale(0.6); transform-origin: 50% 50%; }
+  #clk-l { left: 150px; }
+  #clk-r { left: 620px; }
+  .clabel { position: absolute; top: 780px; width: 220px; text-align: center; font-size: 40px; line-height: 50px; font-weight: 700; white-space: nowrap; opacity: 0; }
+  #lab-l { left: 150px; color: #fde68a; text-shadow: 0 0 14px rgba(253,230,138,0.7), 0 3px 8px rgba(0,0,0,0.9); }
+  #lab-r { left: 620px; color: #c4b5fd; text-shadow: 0 0 14px rgba(196,181,253,0.7), 0 3px 8px rgba(0,0,0,0.9); }
+  .ctitle { position: absolute; top: 480px; width: 220px; text-align: center; font-size: 26px; line-height: 32px; font-weight: 800; letter-spacing: 5px; opacity: 0; }
+  #tit-l { left: 150px; color: #fde68a; }
+  #tit-r { left: 620px; color: #c4b5fd; }
+  #slash { position: absolute; left: 620px; top: 540px; width: 220px; height: 220px; opacity: 0; }
+
+  /* ---- ACT 2 ---- */
+  #grid { position: absolute; left: 258px; top: 500px; width: 564px; height: 448px; opacity: 0; }
+  .cube { position: absolute; width: 100px; height: 100px; opacity: 0; transform: scale(0.5); transform-origin: 50% 50%; }
+  .cube .xx { opacity: 0; }
+  #plane { position: absolute; left: -340px; top: 380px; width: 330px; height: auto; opacity: 0; filter: drop-shadow(0 8px 16px rgba(0,0,0,0.6)); }
+  .bomb { position: absolute; width: 26px; height: 40px; opacity: 0; }
+  #ohio { position: absolute; left: 235px; top: 460px; width: 610px; height: 540px; opacity: 0; }
+  #ohio path { fill: none; stroke: #fbbf24; stroke-width: 8; stroke-linejoin: round; stroke-linecap: round; }
+  #ohio-lab { position: absolute; left: 0; right: 0; top: 1005px; text-align: center; font-size: 60px; line-height: 66px; font-weight: 900; letter-spacing: 6px;
+    color: #fbbf24; text-shadow: 0 0 22px rgba(251,191,36,0.7), 0 4px 0 #000; opacity: 0; }
+  #mini {
+    position: absolute; left: 300px; top: 1120px; width: 480px; height: 120px; border-radius: 16px;
+    background: rgba(6, 26, 12, 0.9); border: 2px solid rgba(57, 255, 20, 0.7); opacity: 0;
+    display: flex; align-items: center; gap: 18px; padding: 0 22px;
+  }
+  #mini svg { width: 300px; height: 70px; flex-shrink: 0; }
+  #mini span { font-size: 26px; font-weight: 800; letter-spacing: 3px; color: #39ff14; text-shadow: 0 0 10px rgba(57,255,20,0.8); white-space: nowrap; }
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="main" data-start="0" data-duration="18.0666" data-width="1080" data-height="1920">
+  <section id="main-clip" class="clip" data-start="0" data-duration="18.0666" data-track-index="1">
+    <div id="content-all" class="fill">
+      <div id="bg-fill" class="fill"><div id="bg-glow-cyan"></div><div id="bg-glow-2"></div></div>
+      <div id="bg-amber" class="fill"><div id="bg-amber-glow"></div></div>
+      <div id="vignette" class="fill"></div>
+
+      <div id="scene" class="fill">
+        <div id="headline">CHAOS ENGINEERING</div>
+
+        <!-- ACT 1 -->
+        <div id="act1" class="fill">
+          <div id="quest">
+            <div id="quest-head"></div>
+            <div class="q" id="q1"><div class="ck"><svg viewBox="0 0 24 24"><path d="M4 12.5L9.5 18L20 6" stroke="#39ff14" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="tx"><small>QUEST 1</small>GUESS</div></div>
+            <div class="q" id="q2"><div class="ck"><svg viewBox="0 0 24 24"><path d="M4 12.5L9.5 18L20 6" stroke="#39ff14" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="tx"><small>QUEST 2</small>KILL ONE BOX</div></div>
+            <div class="q" id="q3"><div class="ck"><svg viewBox="0 0 24 24"><path d="M4 12.5L9.5 18L20 6" stroke="#39ff14" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="tx"><small>QUEST 3</small>WATCH</div></div>
+          </div>
+
+          <svg id="box" viewBox="0 0 240 240">
+            <polygon points="120,20 220,70 120,120 20,70" fill="#8fd3e6" stroke="#0e7490" stroke-width="4" stroke-linejoin="round"/>
+            <polygon points="20,70 120,120 120,220 20,170" fill="#4fb3cf" stroke="#0e7490" stroke-width="4" stroke-linejoin="round"/>
+            <polygon points="220,70 120,120 120,220 220,170" fill="#2a8aa6" stroke="#0e7490" stroke-width="4" stroke-linejoin="round"/>
+            <g id="eyes" stroke="#ff3b3b" stroke-width="6" stroke-linecap="round">
+              <path d="M52 110 L72 130 M72 110 L52 130" /><path d="M150 110 L170 130 M170 110 L150 130" />
+            </g>
+            <path id="goo" d="M60,40 C80,30 160,30 190,45 C200,70 190,110 180,130 C175,150 165,120 160,140 C150,175 140,135 132,150 C120,190 108,140 100,160 C90,185 80,150 76,140 C60,120 50,80 60,40 Z" fill="#39ff14" opacity="0.92" stroke="#1f9d0c" stroke-width="3"/>
+          </svg>
+
+          <div id="dash">
+            <svg viewBox="0 0 310 240">
+              <path id="line-flat" d="M24,150 L286,150" />
+              <path id="line-spike" d="M150,150 L164,60 L178,200 L192,150" />
+              <circle id="dash-dot" cx="286" cy="150" r="10" />
+            </svg>
+          </div>
+          <div id="rizz">W RIZZ</div>
+        </div>
+
+        <!-- TURN -->
+        <div id="turn" class="fill">
+          <div id="found">
+            <svg id="moai" viewBox="0 0 100 110">
+              <path d="M30 8 L70 8 L78 40 L74 96 L26 96 L22 40 Z" fill="#8a8f98" stroke="#3b3f46" stroke-width="4" stroke-linejoin="round"/>
+              <path d="M34 42 L48 40 L48 74 L40 74 Z" fill="#6b7079"/>
+              <path d="M30 30 L70 30" stroke="#3b3f46" stroke-width="5" stroke-linecap="round"/>
+              <path d="M56 40 L66 40" stroke="#3b3f46" stroke-width="5" stroke-linecap="round"/>
+              <path d="M40 84 L60 84" stroke="#3b3f46" stroke-width="5" stroke-linecap="round"/>
+            </svg>
+            <div id="found-tx">FOUND ONE</div>
+          </div>
+
+          <div class="ctitle" id="tit-l">LUNCH</div>
+          <div class="ctitle" id="tit-r">NIGHT</div>
+          <svg class="clockw" id="clk-l" viewBox="0 0 220 220">
+            <circle cx="110" cy="110" r="100" fill="rgba(0,0,0,0.35)" stroke="#fde68a" stroke-width="6"/>
+            <g id="ticks-l" stroke="#fde68a" stroke-width="4" stroke-linecap="round"></g>
+            <line id="hl" x1="110" y1="110" x2="110" y2="60" stroke="#fff" stroke-width="10" stroke-linecap="round"/>
+            <line id="ml" x1="110" y1="110" x2="110" y2="34" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+            <circle cx="110" cy="110" r="8" fill="#fde68a"/>
+          </svg>
+          <svg class="clockw" id="clk-r" viewBox="0 0 220 220">
+            <circle cx="110" cy="110" r="100" fill="rgba(0,0,0,0.35)" stroke="#c4b5fd" stroke-width="6"/>
+            <g id="ticks-r" stroke="#c4b5fd" stroke-width="4" stroke-linecap="round"></g>
+            <line id="hr" x1="110" y1="110" x2="110" y2="60" stroke="#fff" stroke-width="10" stroke-linecap="round"/>
+            <line id="mr" x1="110" y1="110" x2="110" y2="34" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+            <circle cx="110" cy="110" r="8" fill="#c4b5fd"/>
+          </svg>
+          <svg id="slash" viewBox="0 0 220 220"><path d="M30 190 L190 30" stroke="#ff3b3b" stroke-width="16" stroke-linecap="round"/></svg>
+          <div class="clabel mono" id="lab-l">12:30</div>
+          <div class="clabel mono" id="lab-r">2:00 AM</div>
+        </div>
+
+        <!-- ACT 2 -->
+        <div id="act2" class="fill">
+          <div id="grid"></div>
+          <svg id="ohio" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <!-- simplified Ohio silhouette: Lake Erie shore along the top, straight PA/west borders, the Ohio River meander down to the southern tip -->
+            <path id="ohio-path" d="M8,12 L30,10 L44,6 L58,12 L70,6 L84,4 L86,18 L88,36 L90,50 L86,62 L78,72 L70,80 L62,86 L54,92 L46,96 L40,96 L34,92 L26,86 L20,80 L14,74 L12,72 L10,60 L8,40 Z" />
+          </svg>
+          <img id="plane" src="assets/bombardiro_crocodilo_render.png" alt="" data-layout-allow-overflow="true" />
+          <div id="ohio-lab">OHIO</div>
+          <div id="mini">
+            <svg viewBox="0 0 300 70"><path d="M10,40 L290,40" fill="none" stroke="#39ff14" stroke-width="6" stroke-linecap="round"/><circle cx="290" cy="40" r="9" fill="#39ff14"/></svg>
+            <span>ALL GOOD</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="flash" class="fill"></div>
+      <div id="dither" class="fill"></div>
+    </div>
+  </section>
+</div>
+
+<svg width="0" height="0" style="position: absolute">
+  <filter id="grain-filter" x="0%" y="0%" width="100%" height="100%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+    <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.04 0" />
+  </filter>
+</svg>
+
+<script>
+  gsap.defaults({ lazy: false });
+  document.getElementById("dither").style.filter = "url(#grain-filter)";
+  window.__timelines = window.__timelines || {};
+  const tl = gsap.timeline({ paused: true });
+  const D = 18.0666, FADE = 0.28, FADE_AT = D - FADE;   // 17.7866 + 0.28 = 18.0666 (542 frames @30fps)
+  const NS = "http://www.w3.org/2000/svg";
+
+  // ---- deterministic build: clock ticks, box grid, bombs ----
+  ["ticks-l", "ticks-r"].forEach((id) => {
+    const g = document.getElementById(id);
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2, r0 = i % 3 === 0 ? 82 : 90, r1 = 96;
+      const l = document.createElementNS(NS, "line");
+      l.setAttribute("x1", (110 + Math.sin(a) * r0).toFixed(2)); l.setAttribute("y1", (110 - Math.cos(a) * r0).toFixed(2));
+      l.setAttribute("x2", (110 + Math.sin(a) * r1).toFixed(2)); l.setAttribute("y2", (110 - Math.cos(a) * r1).toFixed(2));
+      g.appendChild(l);
+    }
+  });
+  // hands written via trig in onUpdate (never GSAP rotation on a <line>)
+  const hands = { hl: 0, ml: 0, hr: 0, mr: 0 };
+  function setHand(id, deg, len) {
+    const el = document.getElementById(id), a = (deg * Math.PI) / 180;
+    el.setAttribute("x2", (110 + Math.sin(a) * len).toFixed(2));
+    el.setAttribute("y2", (110 - Math.cos(a) * len).toFixed(2));
+  }
+  function writeHands() { setHand("hl", hands.hl, 50); setHand("ml", hands.ml, 76); setHand("hr", hands.hr, 50); setHand("mr", hands.mr, 76); }
+  writeHands();
+
+  const grid = document.getElementById("grid");
+  const cubes = [];
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 5; c++) {
+    const d = document.createElement("div");
+    d.className = "cube"; d.id = "cube" + (r * 5 + c);
+    d.style.left = (c * 116) + "px"; d.style.top = (r * 116) + "px";
+    d.innerHTML = '<svg viewBox="0 0 100 100"><polygon points="50,8 92,30 50,52 8,30" fill="#fcd34d" stroke="#92400e" stroke-width="3" stroke-linejoin="round"/>' +
+      '<polygon points="8,30 50,52 50,94 8,72" fill="#f59e0b" stroke="#92400e" stroke-width="3" stroke-linejoin="round"/>' +
+      '<polygon points="92,30 50,52 50,94 92,72" fill="#d97706" stroke="#92400e" stroke-width="3" stroke-linejoin="round"/>' +
+      '<g class="xx"><rect x="14" y="14" width="72" height="72" rx="10" fill="rgba(0,0,0,0.55)"/><path d="M30 30 L70 70 M70 30 L30 70" stroke="#ff3b3b" stroke-width="10" stroke-linecap="round"/></g></svg>';
+    grid.appendChild(d); cubes.push(d);
+  }
+  // bombs: literal targets (cube index), each dropped from the plane's path
+  const act2 = document.getElementById("act2");
+  // (cube index, drop time) chosen so each bomb leaves the plane while it is over that column
+  const bombPlan = [[0, 14.95], [10, 15.0], [6, 15.2], [12, 15.55], [3, 15.8], [18, 15.85], [9, 16.15], [14, 16.2]];
+  const bombs = bombPlan.map((b, i) => {
+    const el = document.createElement("div"); el.className = "bomb"; el.id = "bomb" + i;
+    const cx = 258 + (b[0] % 5) * 116 + 50, cy = 500 + Math.floor(b[0] / 5) * 116 + 50;
+    el.style.left = (cx - 13) + "px"; el.style.top = "510px";
+    el.innerHTML = '<svg viewBox="0 0 26 40"><ellipse cx="13" cy="24" rx="12" ry="15" fill="#1f2937" stroke="#000" stroke-width="2"/><rect x="9" y="4" width="8" height="8" fill="#6b7280"/><path d="M13 4 L13 0" stroke="#fbbf24" stroke-width="3"/></svg>';
+    act2.appendChild(el);
+    return { el, cy, t: b[1], idx: b[0] };
+  });
+  // Ohio outline: line-draw setup (measured at load)
+  const op = document.getElementById("ohio-path"); const olen = op.getTotalLength();
+  op.style.strokeDasharray = String(olen); op.style.strokeDashoffset = String(olen);
+
+  // ---- push-in under everything ----
+  tl.fromTo("#scene", { scale: 1 }, { scale: 1.04, duration: D, ease: "sine.inOut" }, 0);
+
+  // ================= ACT 1 (cyan) =================
+  tl.fromTo("#headline", { opacity: 0.5, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.55, ease: "power3.out" }, 0);   // "chaos engineering" 0.648
+  tl.fromTo("#bg-glow-cyan", { opacity: 1 }, { opacity: 0.55, duration: 1.4, ease: "sine.inOut", yoyo: true, repeat: 5, immediateRender: false }, 0.5); // ends 8.9
+  tl.fromTo("#quest", { opacity: 0, x: -40 }, { opacity: 1, x: 0, duration: 0.5, ease: "power3.out", immediateRender: false }, 1.3);
+  tl.fromTo("#q1", { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 2.0);
+  tl.fromTo("#q1 .ck svg", { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)", immediateRender: false }, 2.5);
+  // "unalive this box" 2.698: the box appears, quest 2 lands
+  tl.fromTo("#box", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.45, ease: "back.out(1.4)", immediateRender: false }, 2.65);
+  tl.fromTo("#q2", { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 2.75);
+  tl.fromTo("#eyes", { opacity: 0 }, { opacity: 1, duration: 0.2, immediateRender: false }, 3.3);
+  tl.fromTo("#box", { y: 0 }, { y: -10, duration: 0.25, ease: "sine.inOut", yoyo: true, repeat: 5, immediateRender: false }, 3.4);   // ends 4.9
+  // "slime out" 5.088: goo drips over the box, quest 2 checks
+  tl.fromTo("#goo", { opacity: 0, scaleY: 0.2 }, { opacity: 1, scaleY: 1, duration: 0.5, ease: "power2.out", immediateRender: false }, 5.05);
+  tl.fromTo("#q2 .ck svg", { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)", immediateRender: false }, 5.4);
+  // quest 3 WATCH + the dashboard line draws flat
+  tl.fromTo("#q3", { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 5.75);
+  tl.fromTo("#dash", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out", immediateRender: false }, 6.0);
+  const lf = document.getElementById("line-flat"), lflen = lf.getTotalLength();
+  lf.style.strokeDasharray = String(lflen); lf.style.strokeDashoffset = String(lflen);
+  tl.to("#line-flat", { strokeDashoffset: 0, duration: 1.0, ease: "none" }, 6.3);
+  tl.fromTo("#dash-dot", { opacity: 0 }, { opacity: 1, duration: 0.2, immediateRender: false }, 7.25);
+  tl.fromTo("#q3 .ck svg", { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)", immediateRender: false }, 7.3);
+  // "W rizz" 7.688
+  tl.fromTo("#rizz", { opacity: 0, scale: 1.6 }, { opacity: 1, scale: 1, duration: 0.25, ease: "power4.out", immediateRender: false }, 7.65);
+  tl.fromTo("#rizz", { boxShadow: "0 8px 24px rgba(255,47,214,0.5)" }, { boxShadow: "0 8px 40px rgba(255,47,214,0.95)", duration: 0.4, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 7.95);
+
+  // ================= TURN: "something did break" (~9.1) =================
+  tl.fromTo("#line-spike", { opacity: 0 }, { opacity: 1, duration: 0.08, immediateRender: false }, 9.05);
+  tl.fromTo("#flash", { opacity: 0 }, { opacity: 0.55, duration: 0.05, immediateRender: false }, 9.08);
+  tl.fromTo("#flash", { opacity: 0.55 }, { opacity: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 9.13);
+  tl.fromTo("#dash", { x: 0 }, { x: 8, duration: 0.05, yoyo: true, repeat: 5, immediateRender: false }, 9.05);
+  tl.fromTo("#rizz", { opacity: 1 }, { opacity: 0, duration: 0.25, immediateRender: false }, 9.1);
+  tl.fromTo("#bg-amber", { opacity: 0 }, { opacity: 0.6, duration: 0.6, immediateRender: false }, 9.1);
+  // FOUND ONE stamp (9.5)
+  tl.fromTo("#found", { opacity: 0, rotation: -6, scale: 2 }, { opacity: 1, rotation: -6, scale: 1, duration: 0.22, ease: "power4.in", immediateRender: false }, 9.45);
+  tl.fromTo("#scene", { y: 0 }, { y: 8, duration: 0.05, yoyo: true, repeat: 3, immediateRender: false }, 9.67);
+  // the act-1 stage clears for the clocks ("found out at lunch" 10.708)
+  tl.fromTo("#act1", { opacity: 1 }, { opacity: 0, duration: 0.4, ease: "power2.in", immediateRender: false }, 10.2);
+  tl.fromTo("#tit-l", { opacity: 0, y: -10 }, { opacity: 1, y: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 10.6);
+  tl.fromTo("#clk-l", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(1.5)", immediateRender: false }, 10.65);
+  tl.to(hands, { hl: 15, ml: 180, duration: 0.7, ease: "power3.out", onUpdate: writeHands }, 10.7);   // 12:30
+  tl.fromTo("#lab-l", { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 11.2);
+  // "two AM" 12.448: the night clock, then slashed
+  tl.fromTo("#tit-r", { opacity: 0, y: -10 }, { opacity: 1, y: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 12.3);
+  tl.fromTo("#clk-r", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(1.5)", immediateRender: false }, 12.35);
+  tl.to(hands, { hr: 60, mr: 360, duration: 0.7, ease: "power3.out", onUpdate: writeHands }, 12.4);    // 2:00
+  tl.fromTo("#lab-r", { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 12.85);
+  tl.fromTo("#slash", { opacity: 0, scale: 1.8 }, { opacity: 1, scale: 1, duration: 0.2, ease: "power4.out", immediateRender: false }, 13.2);
+
+  // ================= ACT 2 (amber): "yeeting way more boxes" 14.628 =================
+  tl.fromTo("#turn", { opacity: 1 }, { opacity: 0, duration: 0.35, ease: "power2.in", immediateRender: false }, 13.85);
+  tl.fromTo("#bg-amber", { opacity: 0.6 }, { opacity: 1, duration: 0.4, immediateRender: false }, 14.0);
+  tl.fromTo("#grid", { opacity: 0 }, { opacity: 1, duration: 0.2, immediateRender: false }, 14.1);
+  cubes.forEach((c, i) => {
+    tl.fromTo(c, { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.6)", immediateRender: false }, 14.15 + i * 0.02);
+  });
+  // Bombardiro crosses left->right above the grid (y 340-518), inside the band by 14.75
+  tl.fromTo("#plane", { opacity: 0, x: 0 }, { opacity: 1, x: 400, duration: 0.3, ease: "power2.out", immediateRender: false }, 14.45);   // rests off-canvas (-340), lands x 60-390
+  tl.fromTo("#plane", { x: 400 }, { x: 1160, duration: 1.9, ease: "none", immediateRender: false }, 14.75);   // centre x = 225 + 400*(t-14.75)
+  // exit: keep flying fully off-canvas and fade, so it never parks in the rail (past x=870 only 15.95-16.95, 30/542 frames = 5.5%)
+  tl.fromTo("#plane", { x: 1160 }, { x: 1520, duration: 0.35, ease: "power1.in", immediateRender: false }, 16.65);
+  tl.fromTo("#plane", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.in", immediateRender: false }, 16.65);
+  tl.fromTo("#plane", { y: 0 }, { y: -12, duration: 0.3, ease: "sine.inOut", yoyo: true, repeat: 5, immediateRender: false }, 14.75);
+  bombs.forEach((b) => {
+    tl.fromTo(b.el, { opacity: 0, y: 0 }, { opacity: 1, y: 30, duration: 0.08, immediateRender: false }, b.t);
+    tl.fromTo(b.el, { y: 30 }, { y: b.cy - 510 - 20, duration: 0.28, ease: "power2.in", immediateRender: false }, b.t + 0.08);
+    tl.fromTo(b.el, { opacity: 1 }, { opacity: 0, duration: 0.05, immediateRender: false }, b.t + 0.36);
+    tl.fromTo("#cube" + b.idx + " .xx", { opacity: 0 }, { opacity: 1, duration: 0.08, immediateRender: false }, b.t + 0.36);
+    tl.fromTo("#cube" + b.idx, { scale: 1 }, { scale: 1.18, duration: 0.08, yoyo: true, repeat: 1, immediateRender: false }, b.t + 0.36);
+  });
+  // "Ohio of boxes" 16.768: the state outline draws around the grid, label, dashboard still green
+  tl.fromTo("#ohio", { opacity: 0 }, { opacity: 1, duration: 0.1, immediateRender: false }, 16.6);
+  tl.to("#ohio-path", { strokeDashoffset: 0, duration: 0.7, ease: "power2.inOut" }, 16.6);
+  tl.fromTo("#ohio-lab", { opacity: 0, scale: 1.5 }, { opacity: 1, scale: 1, duration: 0.25, ease: "power4.out", immediateRender: false }, 16.75);
+  tl.fromTo("#mini", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.35, ease: "power3.out", immediateRender: false }, 17.0);
+
+  // ---------- fade: leaves only, finishing at EXACTLY D ----------
+  ["#bg-fill", "#bg-amber", "#vignette", "#scene", "#dither"].forEach((s) => {
+    tl.fromTo(s, { opacity: 1 }, { opacity: 0, duration: FADE, ease: "power3.out", immediateRender: false }, FADE_AT);
+  });
+
+  window.__timelines["main"] = tl;
+</script>
+</body>
+</html>

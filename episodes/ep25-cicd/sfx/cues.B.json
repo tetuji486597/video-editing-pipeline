@@ -1,0 +1,104 @@
+{
+  "cues": [
+    {
+      "at": 6.078,
+      "sfx": "tt_sheesh",
+      "vol": 0.55,
+      "why": "HOOK voice meme: 'thousands of times a day'"
+    },
+    {
+      "at": 8.138,
+      "sfx": "ding",
+      "vol": 0.39,
+      "why": "HOOK: all-green + FAILED TODAY: 0 -- bright bell (variety)"
+    },
+    {
+      "at": 17.008,
+      "sfx": "buildup",
+      "vol": 0.45,
+      "why": "PROBLEM: riser into the lever-pull turn"
+    },
+    {
+      "at": 17.078,
+      "sfx": "tt_camera_shutter",
+      "vol": 0.58,
+      "why": "PROBLEM: the white flash at the turn"
+    },
+    {
+      "at": 19.368,
+      "sfx": "tt_metal_pipe",
+      "vol": 0.4,
+      "why": "PROBLEM: the crate teeters, risk gauge pins"
+    },
+    {
+      "at": 22.698,
+      "sfx": "tt_click_trim",
+      "vol": 0.95,
+      "why": "CI: BUILD station flips green on 'built'"
+    },
+    {
+      "at": 23.188,
+      "sfx": "pop_bubble",
+      "vol": 0.48,
+      "why": "CI: TEST station flips green on 'tested' (variety)"
+    },
+    {
+      "at": 28.728,
+      "sfx": "tt_bubble_pop",
+      "vol": 0.45,
+      "why": "CD: BUILD station ding on 'Build,'"
+    },
+    {
+      "at": 29.228,
+      "sfx": "pop_balloon",
+      "vol": 0.32,
+      "why": "CD: TEST station on 'test,' (variety)"
+    },
+    {
+      "at": 30.148,
+      "sfx": "swoosh_elec",
+      "vol": 0.75,
+      "why": "CD: SCAN station -- an electronic sweep IS a scan (variety)"
+    },
+    {
+      "at": 30.548,
+      "sfx": "tt_correct_ding",
+      "vol": 0.75,
+      "why": "CD: DEPLOY station green on 'deploy'"
+    },
+    {
+      "at": 32.808,
+      "sfx": "tt_whoosh",
+      "vol": 0.5,
+      "why": "CD: the hand-glyph gate lifts on 'no human hands'"
+    },
+    {
+      "at": 35.358,
+      "sfx": "tt_wrong_buzzer",
+      "vol": 0.29,
+      "why": "ROLLBACK: red lamp catches the bad change"
+    },
+    {
+      "at": 35.958,
+      "sfx": "tt_swoosh",
+      "vol": 0.5,
+      "why": "ROLLBACK: the U-turn revert flip on 'roll back'"
+    },
+    {
+      "at": 41.858,
+      "sfx": "tt_sparkle_trim",
+      "vol": 0.72,
+      "why": "AI_ANGLE: new_test.py materialises on 'generating tests'"
+    },
+    {
+      "at": 45.208,
+      "sfx": "tt_vine_boom",
+      "vol": 0.3,
+      "why": "PAYOFF: the crate shatters into green steps"
+    }
+  ],
+  "_vol_note": "Volumes = 0.45 * 10^(0.6*(-18-mean)/20) clamped [0.15,0.95] (the shipped TIKTOK_SFX_NOTES calibration), with the usual manual overrides: bass-heavy (vine/bass_drop/bass_hit) held <=0.45, voice memes carry the x1.25 speech bump, sparkle boosted (broadband shimmer masks easily). Diversity pass 2026-08-28: no sound repeats within an episode except deliberate anchors; underused files (ding, riser, swoosh_elec/double/deep, pop_balloon/bubble, bass_hit, impact_trim, shutter, whoosh_trim) rotated in per user feedback.",
+  "video": "final_nosfx_B.mp4",
+  "out": "final_B.mp4",
+  "_note": "Variant B: every cue = A - 0.5417s. Voice meme: tt_sheesh. 16 distinct sounds."
+}

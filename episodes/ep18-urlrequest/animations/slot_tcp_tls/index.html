@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+
+      :root {
+        --cy: #22d3ee;
+        --cy-soft: rgba(34, 211, 238, 0.75);
+        --am: #fbbf24;
+      }
+
+      #root { position: relative; }
+      .fill { position: absolute; inset: 0; }
+
+      /* camera push-in target — origin is the CONTENT BAND centre (540, 450),
+         NOT the frame centre, so the push-in cannot walk content past y=180 */
+      #scene { transform-origin: 540px 450px; }
+
+      /* ---------------- headline scrim plate (contains the headline text) ------- */
+      #hl-plate {
+        position: absolute;
+        left: 170px;
+        top: 206px;
+        width: 740px;
+        height: 72px;
+        border-radius: 16px;
+        background: rgba(4, 11, 17, 0.6);
+        border: 1px solid rgba(120, 200, 225, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #dff4fb;
+        font-size: 42px;
+        font-weight: 800;
+        letter-spacing: 5px;
+        white-space: nowrap;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.92), 0 0 6px rgba(0, 0, 0, 0.7);
+        /* frame-0 state comes from CSS — the t=0 entrance animates up from here */
+        opacity: 0.45;
+        transform: translateY(-14px);
+      }
+
+      /* ---------------- nodes ---------------------------------------------------- */
+      .node {
+        position: absolute;
+        top: 500px;
+        width: 132px;
+        height: 152px;
+        border-radius: 22px;
+        background: rgba(5, 13, 19, 0.72);
+        border: 2px solid var(--cy-soft);
+        box-shadow: 0 0 24px rgba(0, 0, 0, 0.5);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding-top: 20px;
+        /* frame-0 state from CSS */
+        opacity: 0.5;
+        transform: scale(0.88);
+      }
+      #node-c { left: 134px; }
+      #node-s { left: 814px; }
+      .node svg { width: 68px; height: 56px; }
+      .ico { fill: none; stroke: var(--cy); stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
+      .ico-f { fill: var(--cy); stroke: none; }
+      .node-label {
+        margin-top: 18px;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 22px;
+        letter-spacing: 3px;
+        color: var(--cy);
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+      }
+
+      /* ---------------- arcs (act 1) --------------------------------------------- */
+      #arcs { position: absolute; inset: 0; width: 1080px; height: 1920px; }
+      .arc {
+        fill: none;
+        stroke: var(--cy);
+        stroke-width: 5;
+        stroke-linecap: round;
+        opacity: 0;
+      }
+      .packet {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #ecfeff;
+        box-shadow: 0 0 8px 2px rgba(34, 211, 238, 0.9);
+        opacity: 0;
+      }
+
+      /* ---------------- channel --------------------------------------------------- */
+      #chan { position: absolute; inset: 0; width: 1080px; height: 1920px; }
+      #chan-dot {
+        fill: none;
+        stroke: rgba(34, 211, 238, 0.9);
+        stroke-width: 6;
+        stroke-linecap: round;
+        stroke-dasharray: 2 20;
+        opacity: 0;
+      }
+      #chan-shield {
+        fill: none;
+        stroke: rgba(251, 191, 36, 0.17);
+        stroke-width: 26;
+        stroke-linecap: butt;
+        opacity: 0;
+      }
+      #chan-solid {
+        fill: none;
+        stroke: rgba(251, 191, 36, 0.95);
+        stroke-width: 9;
+        stroke-linecap: butt;
+        opacity: 0;
+      }
+
+      #shimmer {
+        position: absolute;
+        left: 0;
+        top: 549px;
+        width: 64px;
+        height: 54px;
+        border-radius: 50%;
+        background: radial-gradient(
+          ellipse at center,
+          rgba(255, 255, 255, 0.95) 0%,
+          rgba(251, 191, 36, 0.6) 42%,
+          rgba(251, 191, 36, 0) 72%
+        );
+        opacity: 0;
+      }
+
+      /* ---------------- padlock (act 2) ------------------------------------------- */
+      #lock-glow {
+        position: absolute;
+        left: 350px;
+        top: 350px;
+        width: 380px;
+        height: 380px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(251, 191, 36, 0.3) 0%, rgba(251, 191, 36, 0) 62%);
+        opacity: 0;
+      }
+      #lock {
+        position: absolute;
+        left: 445px;
+        top: 445px;
+        width: 190px;
+        height: 187px;
+        transform-origin: 50% 50%;
+        opacity: 0;
+        transform: scale(0.8);
+      }
+      #lock-shackle {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 190px;
+        height: 120px;
+        transform: translateY(-40px);
+      }
+      #lock-body {
+        position: absolute;
+        left: 0;
+        top: 63px;
+        width: 190px;
+        height: 130px;
+      }
+      #lock-ring {
+        position: absolute;
+        left: 440px;
+        top: 440px;
+        width: 200px;
+        height: 200px;
+        border-radius: 50%;
+        border: 4px solid rgba(251, 191, 36, 0.85);
+        transform-origin: 50% 50%;
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="5.90"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="main-clip" class="clip" data-start="0" data-duration="5.90" data-track-index="1">
+        <div id="scene" class="fill">
+          <!-- amber glow behind the padlock (local, NOT full frame) -->
+          <div id="lock-glow"></div>
+
+          <!-- ACT 1 — three-way handshake arcs -->
+          <svg id="arcs" viewBox="0 0 1080 1920">
+            <defs>
+              <filter id="glow-cy" filterUnits="userSpaceOnUse" x="150" y="290" width="780" height="270">
+                <feGaussianBlur stdDeviation="1.8" result="b" />
+                <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+              </filter>
+            </defs>
+            <g filter="url(#glow-cy)">
+              <!-- SYN     : client -> server, outermost  (peak y = 330) -->
+              <path id="arc1" class="arc" d="M200,500 Q540,160 880,500" />
+              <!-- SYN-ACK : server -> client, middle     (peak y = 387) -->
+              <path id="arc2" class="arc" d="M880,500 Q540,274 200,500" />
+              <!-- ACK     : client -> server, innermost  (peak y = 444) -->
+              <path id="arc3" class="arc" d="M200,500 Q540,388 880,500" />
+            </g>
+          </svg>
+
+          <div class="packet" id="pk1"></div>
+          <div class="packet" id="pk2"></div>
+          <div class="packet" id="pk3"></div>
+
+          <!-- channel: dotted (act 1) -> shielded solid (act 2) -->
+          <svg id="chan" viewBox="0 0 1080 1920">
+            <defs>
+              <!-- userSpaceOnUse: a horizontal <line> has a ZERO-HEIGHT bbox, so a
+                   percentage filter region would collapse and the line would vanish -->
+              <filter id="glow-am" filterUnits="userSpaceOnUse" x="240" y="538" width="600" height="76">
+                <feGaussianBlur stdDeviation="2.2" result="b2" />
+                <feMerge><feMergeNode in="b2" /><feMergeNode in="SourceGraphic" /></feMerge>
+              </filter>
+            </defs>
+            <line id="chan-shield" x1="266" y1="576" x2="814" y2="576" />
+            <line id="chan-dot" x1="266" y1="576" x2="266" y2="576" />
+            <line id="chan-solid" x1="266" y1="576" x2="814" y2="576" filter="url(#glow-am)" />
+          </svg>
+
+          <div id="shimmer"></div>
+
+          <div class="node" id="node-c">
+            <svg viewBox="0 0 68 56">
+              <rect class="ico" x="2.5" y="4.5" width="63" height="47" rx="7" />
+              <path class="ico" d="M2.5,18 L65.5,18" />
+              <circle class="ico-f" cx="11" cy="11.2" r="2.6" />
+              <circle class="ico-f" cx="19" cy="11.2" r="2.6" />
+              <circle class="ico-f" cx="27" cy="11.2" r="2.6" />
+            </svg>
+            <span class="node-label">YOU</span>
+          </div>
+
+          <div class="node" id="node-s">
+            <svg viewBox="0 0 68 56">
+              <rect class="ico" x="6.5" y="3.5" width="55" height="13" rx="4" />
+              <rect class="ico" x="6.5" y="21.5" width="55" height="13" rx="4" />
+              <rect class="ico" x="6.5" y="39.5" width="55" height="13" rx="4" />
+              <circle class="ico-f" cx="15" cy="10" r="2.6" />
+              <circle class="ico-f" cx="15" cy="28" r="2.6" />
+              <circle class="ico-f" cx="15" cy="46" r="2.6" />
+            </svg>
+            <span class="node-label">SERVER</span>
+          </div>
+
+          <!-- ACT 2 — hand-built SVG padlock (no emoji) -->
+          <div id="lock">
+            <svg id="lock-shackle" viewBox="0 0 190 120">
+              <path
+                d="M52,94 L52,52 A43,43 0 0 1 138,52 L138,94"
+                fill="none"
+                stroke="#fbbf24"
+                stroke-width="18"
+                stroke-linecap="round"
+              />
+            </svg>
+            <svg id="lock-body" viewBox="0 0 190 130">
+              <rect
+                x="8" y="12" width="174" height="112" rx="24"
+                fill="rgba(9,20,28,0.94)" stroke="#fbbf24" stroke-width="4"
+              />
+              <circle cx="95" cy="58" r="13" fill="#fbbf24" />
+              <path d="M89,68 L101,68 L104,94 L86,94 Z" fill="#fbbf24" />
+              <rect
+                id="lock-sheen"
+                x="8" y="12" width="174" height="112" rx="24"
+                fill="#fff7e0" opacity="0"
+              />
+            </svg>
+          </div>
+
+          <div id="lock-ring"></div>
+
+          <div id="hl-plate">TCP HANDSHAKE, THEN TLS</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+
+      /* ---- deterministic path metrics measured at load (no randomness) ---- */
+      const arcIds = ["arc1", "arc2", "arc3"];
+      const arcEls = arcIds.map(function (id) { return document.getElementById(id); });
+      const arcLens = arcEls.map(function (el) {
+        const L = el.getTotalLength();
+        el.style.strokeDasharray = String(L);
+        el.style.strokeDashoffset = String(L);
+        return L;
+      });
+
+      const chanSolid = document.getElementById("chan-solid");
+      const chanShield = document.getElementById("chan-shield");
+      const CHAN_LEN = 548; // 814 - 266
+      chanSolid.style.strokeDasharray = String(CHAN_LEN);
+      chanSolid.style.strokeDashoffset = String(CHAN_LEN);
+      chanShield.style.strokeDasharray = String(CHAN_LEN);
+      chanShield.style.strokeDashoffset = String(CHAN_LEN);
+
+      const pkEls = ["pk1", "pk2", "pk3"].map(function (id) { return document.getElementById(id); });
+      const shimmer = document.getElementById("shimmer");
+
+      function ramp(p, edge) {
+        const v = Math.min(p / edge, (1 - p) / edge);
+        return v < 0 ? 0 : v > 1 ? 1 : v;
+      }
+
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      /* ---- continuous camera push-in, origin = content-band centre (540,450) ---- */
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.045, duration: 5.9, ease: "sine.inOut" }, 0);
+
+      /* =================== ACT 1 — the three-way handshake =================== */
+
+      // primary entrance BEGINS at t=0 and is NOT at opacity 0 on frame 0
+      tl.fromTo("#hl-plate",
+        { opacity: 0.45, y: -14 },
+        { opacity: 1, y: 0, duration: 0.55, ease: "power3.out" }, 0);
+
+      tl.fromTo("#node-c",
+        { opacity: 0.5, scale: 0.88 },
+        { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.5)", immediateRender: false }, 0.1);
+      tl.fromTo("#node-s",
+        { opacity: 0.5, scale: 0.88 },
+        { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.5)", immediateRender: false }, 0.28);
+
+      // dotted channel stretches between the two nodes (attribute tween, no transform)
+      tl.fromTo("#chan-dot", { opacity: 0 }, { opacity: 1, duration: 0.16, ease: "power2.out", immediateRender: false }, 0.5);
+      tl.to("#chan-dot", { attr: { x2: 814 }, duration: 0.55, ease: "power2.out" }, 0.5);
+      // constant-velocity dot flow — ease "none" is correct here (a flow must not decelerate)
+      tl.to("#chan-dot", { strokeDashoffset: -44, duration: 2.0, ease: "none" }, 1.1);
+
+      // three arcs. Each is a REAL strokeDashoffset property tween (renderer-proven),
+      // with a separate progress proxy driving only its travelling packet.
+      const arcStarts = [1.05, 1.72, 2.39];
+      const ARC_DUR = 0.62;
+      arcIds.forEach(function (id, i) {
+        const el = arcEls[i];
+        const L = arcLens[i];
+        const pk = pkEls[i];
+
+        tl.fromTo("#" + id, { opacity: 0 }, { opacity: 1, duration: 0.12, ease: "power2.out", immediateRender: false }, arcStarts[i]);
+        tl.to("#" + id, { strokeDashoffset: 0, duration: ARC_DUR, ease: "power2.inOut" }, arcStarts[i]);
+
+        const st = { p: 0 };
+        tl.to(st, {
+          p: 1,
+          duration: ARC_DUR,
+          ease: "power2.inOut",
+          onUpdate: function () {
+            const pt = el.getPointAtLength(L * st.p);
+            gsap.set(pk, { x: pt.x - 8, y: pt.y - 8, opacity: ramp(st.p, 0.1) });
+          }
+        }, arcStarts[i]);
+      });
+
+      // destination node acknowledges each arrival (glow flash, odd repeat -> returns to base)
+      tl.to("#node-s", {
+        boxShadow: "0 0 20px 3px rgba(34,211,238,0.9), 0 0 24px rgba(0,0,0,0.5)",
+        duration: 0.16, ease: "power3.out", yoyo: true, repeat: 1
+      }, 1.63);
+      tl.to("#node-c", {
+        boxShadow: "0 0 20px 3px rgba(34,211,238,0.9), 0 0 24px rgba(0,0,0,0.5)",
+        duration: 0.16, ease: "power3.out", yoyo: true, repeat: 1
+      }, 2.3);
+      tl.to("#node-s", {
+        boxShadow: "0 0 20px 3px rgba(34,211,238,0.9), 0 0 24px rgba(0,0,0,0.5)",
+        duration: 0.16, ease: "power3.out", yoyo: true, repeat: 1
+      }, 2.97);
+
+      /* =================== THE TURN — key exchange shimmer =================== */
+
+      // arcs dissolve BEFORE the padlock exists (they never co-occur)
+      tl.fromTo(".arc", { opacity: 1 }, { opacity: 0, duration: 0.28, ease: "power2.in", immediateRender: false }, 3.04);
+
+      tl.fromTo("#chan-shield", { opacity: 0 }, { opacity: 1, duration: 0.14, ease: "power2.out", immediateRender: false }, 3.1);
+      tl.fromTo("#chan-solid", { opacity: 0 }, { opacity: 1, duration: 0.14, ease: "power2.out", immediateRender: false }, 3.1);
+      tl.to("#chan-solid", { strokeDashoffset: 0, duration: 0.8, ease: "power1.inOut" }, 3.1);
+      tl.to("#chan-shield", { strokeDashoffset: 0, duration: 0.8, ease: "power1.inOut" }, 3.1);
+
+      // the shimmer rides the same progress as the draw (separate proxy — cosmetic only)
+      const sh = { p: 0 };
+      tl.to(sh, {
+        p: 1,
+        duration: 0.8,
+        ease: "power1.inOut",
+        onUpdate: function () {
+          gsap.set(shimmer, { x: 266 + 548 * sh.p - 32, opacity: ramp(sh.p, 0.15) });
+        }
+      }, 3.1);
+
+      tl.fromTo("#chan-dot", { opacity: 1 }, { opacity: 0, duration: 0.4, ease: "power2.in", immediateRender: false }, 3.14);
+
+      // colour phase-shift cyan -> amber carries the turn
+      tl.to("#hl-plate", { color: "#fde8b4", duration: 0.55, ease: "power2.out" }, 3.36);
+      tl.to(".ico", { stroke: "#fbbf24", duration: 0.55, ease: "power2.out" }, 3.36);
+      tl.to(".ico-f", { fill: "#fbbf24", duration: 0.55, ease: "power2.out" }, 3.36);
+      tl.to(".node-label", { color: "#fbbf24", duration: 0.55, ease: "power2.out" }, 3.36);
+      tl.to(".node", {
+        borderColor: "rgba(251,191,36,0.8)",
+        boxShadow: "0 0 22px rgba(251,191,36,0.32), 0 0 24px rgba(0,0,0,0.5)",
+        duration: 0.55, ease: "power2.out"
+      }, 3.36);
+
+      /* =================== ACT 2 — the padlock closes =================== */
+
+      // lock arrives OPEN (shackle held at y = -40 by CSS)
+      tl.fromTo("#lock",
+        { opacity: 0, scale: 0.8 },
+        { opacity: 1, scale: 1, duration: 0.46, ease: "back.out(1.5)", immediateRender: false }, 3.42);
+      tl.fromTo("#lock-glow", { opacity: 0 }, { opacity: 1, duration: 0.46, ease: "power3.out", immediateRender: false }, 3.42);
+
+      // *** PAYOFF: the shackle accelerates down and SEATS AT LOCAL t = 4.34 ***
+      //     ("that's the HTTP lock" = output 35.24 = local 4.34)
+      tl.fromTo("#lock-shackle", { y: -40 }, { y: 0, duration: 0.2, ease: "power2.in", immediateRender: false }, 4.14);
+
+      // impact, all firing exactly on 4.34
+      tl.fromTo("#lock-ring",
+        { opacity: 0.9, scale: 0.8 },
+        { opacity: 0, scale: 1.45, duration: 0.55, ease: "power3.out", immediateRender: false }, 4.34);
+      tl.fromTo("#lock-sheen",
+        { opacity: 0.75 },
+        { opacity: 0, duration: 0.42, ease: "power3.out", immediateRender: false }, 4.34);
+      tl.to("#lock-glow", { scale: 1.22, duration: 0.16, ease: "power4.out", yoyo: true, repeat: 1 }, 4.34);
+      tl.to("#chan-solid", { strokeWidth: 14, duration: 0.18, ease: "power4.out", yoyo: true, repeat: 1 }, 4.34);
+
+      // ambient life on the settled state — completes at 5.56, before the fade
+      tl.to("#lock-glow", { opacity: 0.6, duration: 0.42, ease: "sine.inOut", yoyo: true, repeat: 1 }, 4.72);
+
+      /* =================== FADE — built LAST, finishes at exactly 5.900 =========== */
+      // one fade per VISIBLE LEAF; no target is an ancestor of another; anything
+      // already at opacity 0 (arcs, packets, dotted channel, shimmer, ring, sheen)
+      // is excluded so the fade cannot resurrect it.
+      tl.fromTo(
+        ["#hl-plate", "#node-c", "#node-s", "#chan-shield", "#chan-solid", "#lock-glow", "#lock-body", "#lock-shackle"],
+        { opacity: 1 },
+        { opacity: 0, duration: 0.3, ease: "power2.in", immediateRender: false },
+        5.6
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

@@ -1,0 +1,187 @@
+{
+  "version": 1,
+  "sources": {
+    "ep24": "C:/Users/gordo/Downloads/drive-download-20260828T050315Z-1-002/ep24.mp4"
+  },
+  "ranges": [
+    {
+      "source": "ep24",
+      "start": 13.42,
+      "end": 18.02,
+      "beat": "INTRO",
+      "quote": "This is episode twenty-four of Exploring Really Cool Tech. Today we'll be talking about Kubernetes.",
+      "reason": "INTRO VARIANT B (cool-tech framing), the SECOND take at 13.50 chosen over the first at 4.60 on acoustics: take 2 is ~2.8 dB hotter (median RMS -30.4 vs -33.2 dB, peak -24.8 vs -28.6) and ends clean ('Kubernetes.' holds -32 dB then drops to -64 dB in a single 0.1s window at 17.92), while take 1 is soft-spoken and trails ~0.7s of low-level decay (-36 to -42 dB over 8.6-9.3) -- worse SNR after loudnorm and a mushy out-point. Acoustic onset 13.48 vs ASR 'This' at 13.50; acoustic end 17.92 vs ASR 'Kubernetes.' end 17.83.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep24",
+      "start": 82.97,
+      "end": 88.85,
+      "beat": "HOOK",
+      "quote": "So a server crashes at three AM and no engineer wakes up because Kubernetes already handled it. Here's how.",
+      "reason": "The only complete hook take ending with 'Here's how.' -- earlier attempts (47.04, 51.94, 63.60, 72.10) are incomplete, say 'handles' instead of 'handled', or lack the button line. Scribe boxes 'how.' as 88.24-89.76, a 1.52s word; acoustically speech ends sharply at 88.75 (-35 dB to -65 dB in one window), so trusting the ASR box would have shipped a second of dead air.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep24",
+      "start": 95.77,
+      "end": 105.06,
+      "beat": "PROBLEM",
+      "quote": "Once you have hundreds of containers across many machines, doing it by hand is impossible. What restarts crashes? What scales under load? What reroutes around dead hardware?",
+      "reason": "Single clean take; ONE range spanning both phrases. The 0.56s breath after 'impossible.' (100.38-100.94) is the turn into the three rapid-fire questions and stays in. Acoustic onset 95.83 / end 104.96 agree with ASR within 100ms at both edges.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep24",
+      "start": 106.35,
+      "end": 113.59,
+      "beat": "BUILD",
+      "quote": "Kubernetes is an orchestrator. You declare the desired state, 'I want ten copies of this app running,' and it makes reality match.",
+      "reason": "Single clean take; ONE range spanning both phrases across the 0.50s pause after 'running,' (111.72-112.22, acoustically 111.79-112.21). ASR 'match.' ends 113.34 but the decay runs to 113.49 acoustically; end trusts the acoustic edge.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep24",
+      "start": 154.82,
+      "end": 168.21,
+      "beat": "CONTROL",
+      "quote": "A control plane constantly compares actual versus desired. A container dies, it starts a new one. A machine fails, it reschedules those workloads elsewhere. Traffic spikes, it auto-scales up, then back down. It's an air traffic controller that never sleeps.",
+      "reason": "The ONLY complete take. DO NOT swap in the earlier ones: 115.68 aborts at 'A compa...', 123.08 trails off at 'Traffic spikes...', and 140.22 repeats 'It reschedules those workloads elsewhere' twice and never reaches the air-traffic-controller close. ASR 'sleeps.' ends 167.90 vs acoustic decay to 168.11. Largest internal pause is 0.43s ('spikes,' to 'it') -- no dead air over the 0.8s flag line.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep24",
+      "start": 170.27,
+      "end": 177.59,
+      "beat": "AI_ANGLE",
+      "quote": "This is also how AI runs at scale. Kubernetes schedules GPU workloads for training and inference across huge clusters.",
+      "reason": "Only take. Biggest ASR-vs-acoustic disagreement of the episode after HOOK: 'clusters.' is boxed ending 176.72 but the sibilant decays smoothly to 177.49 (-40 to -47 dB slope, no breath bump before the next onset at 178.43), so the end keeps the full tail rather than clipping the s.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep24",
+      "start": 178.37,
+      "end": 184.42,
+      "beat": "PAYOFF",
+      "quote": "So Kubernetes is a robot that babysits your servers. Next, we'll talk about how code goes live a hundred times a day",
+      "reason": "Only take; the next-episode tease ends on 'a hundred times a day' by design. ASR 'day' ends 184.05 vs acoustic decay to 184.32; end trusts the acoustic edge.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    }
+  ],
+  "grade": "eq=contrast=1.15:saturation=1.05,colorbalance=rs=-0.04:gs=0.02:bs=0.05:rm=0.01:gm=0.0:bm=-0.01:rh=0.06:gh=0.02:bh=-0.06,vignette=angle=0.7,unsharp=5:5",
+  "overlays": [
+    {
+      "file": "animations/slot_tiktok_title_b/render.webm",
+      "start_in_output": 0.0,
+      "duration": 4.5
+    },
+    {
+      "file": "animations/slot_hook/render.webm",
+      "start_in_output": 5.2333,
+      "duration": 5.1
+    },
+    {
+      "file": "animations/slot_problem/render.webm",
+      "start_in_output": 11.1333,
+      "duration": 8.9
+    },
+    {
+      "file": "animations/slot_build/render.webm",
+      "start_in_output": 21.4333,
+      "duration": 6.0
+    },
+    {
+      "file": "animations/slot_control/render.webm",
+      "start_in_output": 28.8333,
+      "duration": 10.0
+    },
+    {
+      "file": "animations/slot_ai_angle/render.webm",
+      "start_in_output": 41.2333,
+      "duration": 6.2
+    },
+    {
+      "file": "animations/slot_payoff/render.webm",
+      "start_in_output": 48.6333,
+      "duration": 4.9
+    }
+  ],
+  "subtitles": "master.B.ass",
+  "_variant": "Variant B -- 'Exploring Really Cool Tech' intro. Content after INTRO is identical to edl.A.json; B's intro take is shorter so everything downstream lands earlier.",
+  "_zoom_note": "Slow FACE-ANCHORED zoom, focal (540,730) = eye line, magnitude 1.08, direction alternating so the drift is continuous across cuts. Rebuilt 2026-08-28 per feedback ('zoom shakes, make it stronger'): render.py's zoom chain is now supersampled with the crop offset derived from the frame's actual quantized size, killing the size/offset rounding mismatch that caused the judder; magnitude raised 1.045->1.08 and focal moved from frame centre to the eye line so the stronger zoom displaces the face far less against overlay clearances.",
+  "_edge_note": "Every range START/END measured acoustically (find_dead_air.py relative-RMS, 0.10s windows) -- Scribe pads word boxes badly on this shoot ('how.' boxed as a 1.52s word). Starts sit 50-70ms before acoustic onset (70-120ms before the ASR word start); ends sit 100ms after the acoustic end of speech.",
+  "_beat_windows_output_timeline": {
+    "INTRO": [
+      0.0,
+      4.625
+    ],
+    "HOOK": [
+      4.625,
+      10.5417
+    ],
+    "PROBLEM": [
+      10.5417,
+      19.8333
+    ],
+    "BUILD": [
+      19.8333,
+      27.0833
+    ],
+    "CONTROL": [
+      27.0833,
+      40.5
+    ],
+    "AI_ANGLE": [
+      40.5,
+      47.8333
+    ],
+    "PAYOFF": [
+      47.8333,
+      53.9167
+    ]
+  },
+  "total_duration_s": 53.9167,
+  "_windows_note": "Output-timeline windows on render.py's real 24fps extract grid: each segment's rendered duration is ceil((end-start)*24)/24, not the raw source span. Verified against rendered clips where measurable. Overlay start_in_output values are derived from THESE numbers."
+}

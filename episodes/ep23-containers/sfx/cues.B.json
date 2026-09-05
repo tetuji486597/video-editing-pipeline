@@ -1,0 +1,92 @@
+{
+  "cues": [
+    {
+      "at": 8.783,
+      "sfx": "tt_vine_boom",
+      "vol": 0.3,
+      "why": "HOOK: the container box slams the phrase on 'killed'"
+    },
+    {
+      "at": 9.533,
+      "sfx": "tt_emotional_damage",
+      "vol": 0.55,
+      "why": "HOOK voice meme: R.I.P. 'works on my machine'"
+    },
+    {
+      "at": 16.233,
+      "sfx": "tt_error_glitch",
+      "vol": 0.54,
+      "why": "PROBLEM: glitch hit on the mismatched-version drop"
+    },
+    {
+      "at": 17.133,
+      "sfx": "tt_metal_pipe",
+      "vol": 0.42,
+      "why": "PROBLEM: the stack-trace cascade -- structural failure"
+    },
+    {
+      "at": 22.243,
+      "sfx": "tt_click_trim",
+      "vol": 0.95,
+      "why": "BUILD: runtime chip packs on 'runtime,'"
+    },
+    {
+      "at": 22.843,
+      "sfx": "pop_bubble",
+      "vol": 0.48,
+      "why": "BUILD: libraries chip packs (variety)"
+    },
+    {
+      "at": 23.463,
+      "sfx": "tt_bubble_pop",
+      "vol": 0.45,
+      "why": "BUILD: settings chip packs (variety)"
+    },
+    {
+      "at": 25.783,
+      "sfx": "stamp",
+      "vol": 0.5,
+      "why": "BUILD: the lid closes and the label stamps"
+    },
+    {
+      "at": 28.383,
+      "sfx": "tt_swoosh",
+      "vol": 0.5,
+      "why": "RUNS: hop onto LAPTOP"
+    },
+    {
+      "at": 29.183,
+      "sfx": "swoosh_double",
+      "vol": 0.61,
+      "why": "RUNS: hop onto TEAMMATE'S MACHINE -- distinct swish so the triplet reads (variety)"
+    },
+    {
+      "at": 30.263,
+      "sfx": "whoosh_trim",
+      "vol": 0.34,
+      "why": "RUNS: hop onto THE CLOUD (variety)"
+    },
+    {
+      "at": 36.833,
+      "sfx": "tt_whoosh",
+      "vol": 0.5,
+      "why": "VM: the sweep turn to the container column"
+    },
+    {
+      "at": 37.883,
+      "sfx": "tt_correct_ding",
+      "vol": 0.75,
+      "why": "VM: boot timer snaps done on 'boots in seconds'"
+    },
+    {
+      "at": 42.533,
+      "sfx": "bass_hit",
+      "vol": 0.2,
+      "why": "PAYOFF: the real container-ship photo fills the frame -- cinematic thud (variety)"
+    }
+  ],
+  "_vol_note": "Volumes = 0.45 * 10^(0.6*(-18-mean)/20) clamped [0.15,0.95] (the shipped TIKTOK_SFX_NOTES calibration), with the usual manual overrides: bass-heavy (vine/bass_drop/bass_hit) held <=0.45, voice memes carry the x1.25 speech bump, sparkle boosted (broadband shimmer masks easily). Diversity pass 2026-08-28: no sound repeats within an episode except deliberate anchors; underused files (ding, riser, swoosh_elec/double/deep, pop_balloon/bubble, bass_hit, impact_trim, shutter, whoosh_trim) rotated in per user feedback.",
+  "video": "final_nosfx_B.mp4",
+  "out": "final_B.mp4",
+  "_note": "Variant B: every cue = A - 0.1667s. Voice meme: tt_emotional_damage. 14 distinct sounds."
+}

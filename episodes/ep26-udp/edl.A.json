@@ -1,0 +1,216 @@
+{
+  "version": 1,
+  "sources": {
+    "ep26": "C:/Users/gordo/Downloads/drive-download-20260828T050315Z-1-002/ep26.mp4"
+  },
+  "ranges": [
+    {
+      "source": "ep26",
+      "start": 24.1,
+      "end": 30.42,
+      "beat": "INTRO",
+      "quote": "This is episode 25 of prepping you for your system design interview. Today, we'll be talking about UDP and jitter buffers.",
+      "reason": "INTRO VARIANT A (system-design-interview framing), only take of this variant. KNOWN MISSPEAK: presenter says 'episode 25' but this IS episode 26 -- every intro take on this shoot has the wrong number, so it is kept deliberately, not missed. Acoustic onset ~24.25 vs ASR 'This' at 24.22 (agree); acoustic end ~30.29 vs ASR 'buffers.' end 30.20 -- end padded off the acoustic edge.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep26",
+      "start": 35.7,
+      "end": 41.55,
+      "beat": "HOOK",
+      "quote": "So YouTube almost never glitches. Your video calls glitch constantly. Weirdly, the call is doing it on purpose.",
+      "reason": "Only take. ASR boxes 'purpose.' as 40.90-42.52 (a 1.62s word) but find_dead_air puts the acoustic end at 41.39 -- trusting the ASR box would have shipped ~1s of dead tail. End = 41.55 off the acoustic edge.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep26",
+      "start": 63.26,
+      "end": 75.86,
+      "beat": "PROBLEM",
+      "quote": "Remember the takes and receipts from the URL episode? Reliable delivery means waiting for lost data to be resent, which is fine for a video file, but it's useless for a live call. A word from two seconds ago re-arriving now helps nobody.",
+      "reason": "RETAKE at 63.38, not the broken first attempt at 47.14 (that one dies mid-word at 'A wor...'). One range spanning both phrases: the 0.55s breath after 'episode?' (65.77->66.32) and the 0.48s beat before 'A word' (72.08->72.56) are kept as natural turns inside the beat. Acoustic onset ~63.42 vs ASR 63.38 (agree within window granularity); acoustic end 75.73 vs ASR 'nobody.' end 75.68 (agree).",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep26",
+      "start": 77.5,
+      "end": 83.52,
+      "beat": "BUILD",
+      "quote": "So live calls use UDP. Fire the packets and never look back. No receipts, no resends, no waiting.",
+      "reason": "Only take, clean. Acoustic onset ~77.59 vs ASR 'So' at 77.66; acoustic end 83.41 vs ASR 'waiting.' end 83.36 (agree).",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep26",
+      "start": 143.82,
+      "end": 149.4,
+      "beat": "JITTER",
+      "quote": "Your device keeps a tiny jitter buffer, a fraction of a second of audio to smooth out packets arriving unevenly.",
+      "reason": "Final complete take (143.96); earlier attempts at 84.86 / 96.38 / 104.04 / 121.86 are incomplete or stumble ('re-re-requested', 'being on time, being...'). First half of a zero-gap contiguous pair with ROBOT, split at 149.40 -- the word boundary after 'unevenly.' (acoustic end 149.14, ASR 149.18; 'If' onset 149.40 acoustically vs 149.60 ASR, the difference is a breath). Acoustic onset ~143.91 vs ASR 'Your' at 143.96.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep26",
+      "start": 149.4,
+      "end": 159.14,
+      "beat": "ROBOT",
+      "quote": "If a packet is lost, it isn't re-requested. The moment is skipped or papered over. That's the robot voice. The trade is deliberate. For live conversation, being on time beats being complete.",
+      "reason": "Second half of the zero-gap contiguous pair -- start 149.40 equals JITTER's end exactly, same take, no source frames dropped. Acoustic end 158.97 vs ASR 'complete.' end 158.98 (agree).",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep26",
+      "start": 161.0,
+      "end": 168.62,
+      "beat": "AI_ANGLE",
+      "quote": "Modern calls soften the damage with AI, models that reconstruct the missing milliseconds and strip background noise, so small losses become inaudible.",
+      "reason": "Only take, clean. Acoustic onset ~161.09 vs ASR 'Modern' at 161.14; acoustic end 168.53 vs ASR 'inaudible.' end 168.44 -- end padded off the acoustic edge.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep26",
+      "start": 183.38,
+      "end": 192.6,
+      "beat": "PAYOFF",
+      "quote": "Netflix delivers the past perfectly. A call delivers the present imperfectly, because late is worse than flawed. Next, we'll look at the company that pays people to break its own website.",
+      "reason": "Complete retake at 183.52; earlier attempts at 171.34 ('So Netflix...') and 176.58 (breaks at 'preves...') are false starts. ASR boxes 'website.' as 191.98-193.28 (a 1.30s word) but find_dead_air puts the acoustic end at 192.43 -- end = 192.60 off the acoustic edge, not the ASR box.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    }
+  ],
+  "grade": "eq=contrast=1.15:saturation=1.05,colorbalance=rs=-0.04:gs=0.02:bs=0.05:rm=0.01:gm=0.0:bm=-0.01:rh=0.06:gh=0.02:bh=-0.06,vignette=angle=0.7,unsharp=5:5",
+  "overlays": [
+    {
+      "file": "animations/slot_tiktok_title/render.webm",
+      "start_in_output": 0.0,
+      "duration": 6.0
+    },
+    {
+      "file": "animations/slot_fix26/render.webm",
+      "start_in_output": 0.77,
+      "duration": 4.2
+    },
+    {
+      "file": "animations/slot_hook/render.webm",
+      "start_in_output": 7.0,
+      "duration": 5.2
+    },
+    {
+      "file": "animations/slot_problem/render.webm",
+      "start_in_output": 15.83,
+      "duration": 9.0
+    },
+    {
+      "file": "animations/slot_build/render.webm",
+      "start_in_output": 25.375,
+      "duration": 5.5
+    },
+    {
+      "file": "animations/slot_jitter/render.webm",
+      "start_in_output": 31.4583,
+      "duration": 5.0
+    },
+    {
+      "file": "animations/slot_robot/render.webm",
+      "start_in_output": 37.2,
+      "duration": 9.0
+    },
+    {
+      "file": "animations/slot_ai_angle/render.webm",
+      "start_in_output": 47.2,
+      "duration": 5.6
+    },
+    {
+      "file": "animations/slot_payoff/render.webm",
+      "start_in_output": 54.5,
+      "duration": 6.5
+    }
+  ],
+  "subtitles": "master.A.ass",
+  "_variant": "Variant A -- 'prepping you for your system design interview' intro.",
+  "_misspeak_note": "Presenter says 'episode 25' in the intro of BOTH variants; this is episode 26. Every intro take on the shoot carries the error, so it ships as-is per direction. If it ever needs fixing, it is an audio-only patch on the word '25' (A: source 24.87-25.34, B: source 16.04-16.60), not a recut.",
+  "_zoom_note": "Slow FACE-ANCHORED zoom, focal (540,730) = eye line, magnitude 1.08, direction alternating so the drift is continuous across cuts. Rebuilt 2026-08-28 per feedback ('zoom shakes, make it stronger'): render.py's zoom chain is now supersampled with the crop offset derived from the frame's actual quantized size, killing the size/offset rounding mismatch that caused the judder; magnitude raised 1.045->1.08 and focal moved from frame centre to the eye line so the stronger zoom displaces the face far less against overlay clearances.",
+  "_beat_windows_output_timeline": {
+    "INTRO": [
+      0.0,
+      6.3333
+    ],
+    "HOOK": [
+      6.3333,
+      12.2083
+    ],
+    "PROBLEM": [
+      12.2083,
+      24.8333
+    ],
+    "BUILD": [
+      24.8333,
+      30.875
+    ],
+    "JITTER": [
+      30.875,
+      36.4583
+    ],
+    "ROBOT": [
+      36.4583,
+      46.2083
+    ],
+    "AI_ANGLE": [
+      46.2083,
+      53.8333
+    ],
+    "PAYOFF": [
+      53.8333,
+      63.0833
+    ]
+  },
+  "total_duration_s": 63.0833,
+  "_windows_note": "Output-timeline windows on render.py's real 24fps extract grid: each segment's rendered duration is ceil((end-start)*24)/24, not the raw source span. Verified against rendered clips where measurable. Overlay start_in_output values are derived from THESE numbers."
+}

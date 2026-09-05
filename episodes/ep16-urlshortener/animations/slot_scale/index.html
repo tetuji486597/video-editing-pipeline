@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP16 Scale — three characters vs six</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+
+      :root {
+        --violet: #a78bfa;
+        --violet-lo: #7c3aed;
+        --violet-hi: #ddd6fe;
+        --cyan: #22d3ee;
+        --cyan-lo: #0891b2;
+        --cyan-hi: #cffafe;
+      }
+
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .fill { position: absolute; inset: 0; }
+
+      /* ---------------------------------------------------------------
+         SCENE — the camera push-in target.
+         transform-origin is the CONTENT BAND's own centre, not the frame
+         centre (OVERLAY_SPEC layout rule 2). Content band is y=244 (headline
+         top) to y=1212 (label bottom); centre = (244+1212)/2 = 728;
+         728 / 1920 = 37.9%.
+         --------------------------------------------------------------- */
+      #scene { transform-origin: 50% 37.9%; }
+
+      /* ---------------------------------------------------------------
+         ATMOSPHERE. This beat is a MOTION GRAPHIC, not a takeover — there is
+         deliberately NO opaque #bg-fill. The presenter stays visible through
+         a dark radial wash whose only job is legibility. It is named
+         #vignette because the spec exempts #vignette (and full-frame effect
+         layers) from the y=180/1280 band; it is black-only, so it can only
+         DARKEN the caption band, never lighten it (trap 5).
+         --------------------------------------------------------------- */
+      #vignette {
+        background: radial-gradient(
+          72% 44% at 50% 38%,
+          rgba(0, 0, 0, 0.62) 0%,
+          rgba(0, 0, 0, 0.46) 52%,
+          rgba(0, 0, 0, 0.12) 84%,
+          rgba(0, 0, 0, 0) 100%
+        );
+      }
+      #glow-a {
+        position: absolute;
+        left: 540px;
+        top: 620px;
+        width: 1300px;
+        height: 1300px;
+        transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(167, 139, 250, 0.14) 0%, rgba(167, 139, 250, 0) 62%);
+      }
+      #glow-b {
+        position: absolute;
+        left: 540px;
+        top: 760px;
+        width: 1300px;
+        height: 1300px;
+        transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(34, 211, 238, 0.15) 0%, rgba(34, 211, 238, 0) 62%);
+        opacity: 0;
+      }
+      /* static deterministic grain, breaks gradient banding in the wash */
+      #grain { opacity: 1; pointer-events: none; }
+
+      /* ---------------------------------------------------------------
+         HEADLINE — 4 words, the one headline in this composition.
+         y = 244 .. 308.
+         text-shadow blur is deliberately SMALL. Trap 6: a shadow reaches its
+         FULL blur past the edge. A `0 0 40px` halo would resolve to
+         244 - 40 = 204, and at the 1.045 push-in about y=728 that becomes
+         728 - 524*1.045 = 180.4 — on the limit. `0 3px 10px` resolves to
+         244+3-10 = 237 -> 728 - 491*1.045 = 214.9, a 34.9px margin.
+         --------------------------------------------------------------- */
+      #headline {
+        position: absolute;
+        left: 90px;
+        top: 244px;
+        width: 900px;
+        text-align: center;
+        font-size: 54px;
+        line-height: 64px;
+        font-weight: 800;
+        letter-spacing: 1.5px;
+        color: #ffffff;
+        text-shadow: 0 3px 10px rgba(0, 0, 0, 0.92), 0 0 4px rgba(0, 0, 0, 0.85);
+        opacity: 0.55;
+        transform: translateY(18px);
+      }
+
+      /* ---------------------------------------------------------------
+         THE CODE — six character slots. y = 400 .. 538.
+         Row box: left 136, width 808. Slot 113 wide, 26px gutter:
+         6*113 + 5*26 = 678 + 130 = 808. Slot lefts 0/139/278/417/556/695,
+         so absolute x = 136/275/414/553/692/831, right edges
+         249/388/527/666/805/944.
+         The row starts translateX(208px) so the first THREE slots read
+         centred (136+208=344 .. 527+208=735, centre 539.5); at the turn it
+         tweens to 0 and the other three snap in beside them.
+         The six slots are ONE composite element — a single code display,
+         the way digits of one numeral are — so the 26px gutter is internal,
+         not a gap between independent elements.
+         Glyphs are LETTERS ONLY (q A m | K z R). Deliberate: the "3" and
+         "6" must be counted off the visible slots, and a digit inside a slot
+         would read as a second number on screen.
+         --------------------------------------------------------------- */
+      #slot-row {
+        position: absolute;
+        left: 136px;
+        top: 400px;
+        width: 808px;
+        height: 138px;
+        transform: translateX(208px);
+      }
+      .slot {
+        position: absolute;
+        top: 0;
+        width: 113px;
+        height: 138px;
+        border-radius: 20px;
+        background: rgba(8, 12, 18, 0.78);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transform: scale(0.72);
+      }
+      .slot.v {
+        border: 2px solid rgba(167, 139, 250, 0.55);
+        box-shadow: 0 10px 26px rgba(0, 0, 0, 0.55), 0 0 0px rgba(167, 139, 250, 0);
+      }
+      .slot.c {
+        border: 2px solid rgba(34, 211, 238, 0.55);
+        box-shadow: 0 10px 26px rgba(0, 0, 0, 0.55), 0 0 0px rgba(34, 211, 238, 0);
+      }
+      /* OVERLAY_SPEC: JetBrains Mono FIRST. Leading with ui-monospace makes
+         the renderer's font compiler miss the mapping and silently render
+         proportional Inter — which shows in letters, and these are letters. */
+      .glyph {
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 72px;
+        font-weight: 700;
+        line-height: 1;
+        opacity: 0;
+        transform: translateY(14px);
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+      }
+      .slot.v .glyph { color: var(--violet-hi); }
+      .slot.c .glyph { color: var(--cyan-hi); }
+
+      /* ---------------------------------------------------------------
+         THE AXIS — two bars sharing one track width (808px, x 136..944).
+         #track1 y = 640..686, #track2 y = 730..776 (44px apart).
+         Tracks are border-box with a 2px border, so the inner coordinate
+         space is 804 x 42 and a bar at width:804 exactly fills its track.
+         ACT 1: bar1 (violet) fills the whole axis  — three characters is
+                "everything" while three characters is all there is.
+         ACT 2: the axis is rescaled to six characters. bar1 collapses to a
+                6px stub and bar2 (cyan) slams to full in the same 0.24s.
+                That collapse is the payoff.
+         --------------------------------------------------------------- */
+      .track {
+        position: absolute;
+        left: 136px;
+        width: 808px;
+        height: 46px;
+        border-radius: 23px;
+        border: 2px solid rgba(255, 255, 255, 0.14);
+        background: rgba(255, 255, 255, 0.05);
+        opacity: 0;
+      }
+      #track1 { top: 640px; }
+      #track2 { top: 730px; }
+      .bar {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 42px;
+        width: 0px;
+        border-radius: 21px;
+      }
+      #bar1 {
+        background: linear-gradient(90deg, var(--violet-lo), var(--violet));
+        box-shadow: 0 0 20px rgba(167, 139, 250, 0.55);
+      }
+      #bar2 {
+        background: linear-gradient(90deg, var(--cyan-lo), var(--cyan));
+        box-shadow: 0 0 20px rgba(34, 211, 238, 0.55);
+      }
+
+      /* ---------------------------------------------------------------
+         THE FIGURE — a mechanical odometer, y = 930 .. 1130.
+         The brief forbids tweening innerText (GSAP interpolates it into
+         garbage) and warns that two `set`s on one property at one position
+         render a blank boundary frame. This strip sidesteps BOTH: there are
+         no opacity sets at all. Four pre-rendered rows are stacked 200px
+         apart inside a 200px clipping window and the strip is translated by
+         explicit fromTo y values, so every step is a single tween with
+         absolute endpoints — seek-safe, and structurally incapable of
+         producing a blank or a double-write.
+         It also makes the text budget structural: 238,328 is retired by
+         CLIPPING, so it is never an opacity-0 element that a blanket fade
+         could resurrect.
+         Shadow blurs are kept <= 18px: the glyph band sits ~50px inside the
+         clip window, so no shadow is cut off at the window edge.
+         --------------------------------------------------------------- */
+      #figure {
+        position: absolute;
+        left: 40px;
+        top: 930px;
+        width: 1000px;
+        height: 200px;
+        overflow: hidden;
+        opacity: 0;
+      }
+      #fig-strip {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1000px;
+        transform: translateY(0px);
+      }
+      .fig {
+        height: 200px;
+        line-height: 200px;
+        text-align: center;
+        white-space: nowrap;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-weight: 700;
+        color: #ffffff;
+        text-shadow: 0 4px 16px rgba(0, 0, 0, 0.95), 0 0 8px rgba(0, 0, 0, 0.9);
+      }
+      .fig .num { font-size: 138px; }
+      .fig .unit {
+        font-size: 66px;
+        letter-spacing: 6px;
+        margin-left: 26px;
+        color: var(--cyan-hi);
+      }
+
+      /* y = 1176 .. 1212. Sits BELOW the 138px numeral, never above it —
+         a small label close above a hero numeral is the classic merge
+         failure. 46px of box gap, ~95px of ink gap. */
+      #label {
+        position: absolute;
+        left: 90px;
+        top: 1176px;
+        width: 900px;
+        text-align: center;
+        font-size: 30px;
+        line-height: 36px;
+        font-weight: 600;
+        letter-spacing: 7px;
+        color: rgba(226, 232, 240, 0.88);
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
+        opacity: 0;
+      }
+
+      /* The turn's sweep. Bounded to the graphic band (y 390..790) and held
+         at 0.20 alpha: this beat has no opaque fill, and a bright bar across
+         the presenter's face would read as a compositing glitch. */
+      #sweep {
+        position: absolute;
+        left: 0;
+        top: 390px;
+        width: 190px;
+        height: 400px;
+        background: linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0) 0%,
+          rgba(226, 232, 240, 0.2) 50%,
+          rgba(255, 255, 255, 0) 100%
+        );
+        opacity: 0;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="7.000"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="7.000"
+        data-track-index="1"
+      >
+        <div id="wash" class="fill">
+          <div id="glow-a"></div>
+          <div id="glow-b"></div>
+          <div id="vignette" class="fill"></div>
+        </div>
+
+        <div id="headline">BIG NUMBERS, TINY STRINGS</div>
+
+        <div id="slot-row">
+          <div class="slot v" id="slot-1" style="left: 0px"><span class="glyph" id="g1">q</span></div>
+          <div class="slot v" id="slot-2" style="left: 139px"><span class="glyph" id="g2">A</span></div>
+          <div class="slot v" id="slot-3" style="left: 278px"><span class="glyph" id="g3">m</span></div>
+          <div class="slot c" id="slot-4" style="left: 417px"><span class="glyph" id="g4">K</span></div>
+          <div class="slot c" id="slot-5" style="left: 556px"><span class="glyph" id="g5">z</span></div>
+          <div class="slot c" id="slot-6" style="left: 695px"><span class="glyph" id="g6">R</span></div>
+        </div>
+
+        <div class="track" id="track1"><div class="bar" id="bar1"></div></div>
+        <div class="track" id="track2"><div class="bar" id="bar2"></div></div>
+
+        <!-- The three rows that are not currently in the 200px window are
+             scrolled outside it and clipped away. The layout checker hit-tests
+             their real (off-window) coordinates and reports them as occluded by
+             #vignette and as overlapping #label / the slot glyphs — all of which
+             describe geometry that `overflow:hidden` never paints. These
+             annotations mark that layering as intentional; they are not
+             suppressing a real collision. Every pair of elements that is
+             actually PAINTED at the same time clears 44px or more. -->
+        <div id="figure">
+          <div id="fig-strip" data-layout-allow-overflow="true" data-layout-allow-overlap="true" data-layout-allow-occlusion="true">
+            <div class="fig" data-layout-allow-overlap="true" data-layout-allow-occlusion="true">
+              <span class="num" data-layout-allow-overlap="true" data-layout-allow-occlusion="true">62</span>
+            </div>
+            <div class="fig" data-layout-allow-overlap="true" data-layout-allow-occlusion="true">
+              <span class="num" data-layout-allow-overlap="true" data-layout-allow-occlusion="true">3,844</span>
+            </div>
+            <div class="fig" data-layout-allow-overlap="true" data-layout-allow-occlusion="true">
+              <span class="num" data-layout-allow-overlap="true" data-layout-allow-occlusion="true">238,328</span>
+            </div>
+            <div class="fig" data-layout-allow-overlap="true" data-layout-allow-occlusion="true">
+              <span class="num" data-layout-allow-overlap="true" data-layout-allow-occlusion="true">56.8</span><span class="unit" data-layout-allow-overlap="true" data-layout-allow-occlusion="true">BILLION</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="label">UNIQUE LINKS</div>
+
+        <div id="sweep"></div>
+
+        <div id="grain" class="fill"></div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.035 0" />
+      </filter>
+    </svg>
+
+    <script>
+      document.getElementById("grain").style.filter = "url(#grain-filter)";
+
+      // Required alongside every fromTo fade: the renderer seeks a paused
+      // timeline and screenshots immediately, so a lazy tween can miss its
+      // DOM write entirely.
+      gsap.defaults({ lazy: false });
+
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      /* ================= CAMERA =================
+         1.000 -> 1.045 about the content band's own centre (50% 37.9%).
+         Extremes: top 244 -> 728 - 484*1.045 = 222.2
+                   bottom 1212 -> 728 + 484*1.045 = 1233.8
+         With shadow reach: headline 237 -> 214.9 ; label 1224 -> 1246.3.
+         Both inside 180..1280. */
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.045, duration: 7.0, ease: "sine.inOut" }, 0);
+
+      /* ================= ACT 1 — three characters =================
+         Primary entrance is at local t=0 and is NOT at opacity 0 on frame 0:
+         CSS holds the headline at 0.55 / y18 and it animates up from there. */
+      tl.fromTo("#headline", { opacity: 0.55, y: 18 }, { opacity: 1, y: 0, duration: 0.55, ease: "power3.out" }, 0);
+
+      // slot 1
+      tl.fromTo("#slot-1", { opacity: 0, scale: 0.72 },
+        { opacity: 1, scale: 1, duration: 0.42, ease: "back.out(1.5)", immediateRender: false }, 0.80);
+      tl.fromTo("#g1", { opacity: 0, y: 14 },
+        { opacity: 1, y: 0, duration: 0.28, ease: "power3.out", immediateRender: false }, 0.98);
+
+      // the counter arrives with its label as one unit (0.68s after slot 1)
+      tl.fromTo("#figure", { opacity: 0 },
+        { opacity: 1, duration: 0.35, ease: "power2.out", immediateRender: false }, 1.48);
+      tl.fromTo("#label", { opacity: 0 },
+        { opacity: 1, duration: 0.35, ease: "power2.out", immediateRender: false }, 1.58);
+
+      // slot 2 -> 3,844   (0.70s after the counter unit)
+      tl.fromTo("#slot-2", { opacity: 0, scale: 0.72 },
+        { opacity: 1, scale: 1, duration: 0.42, ease: "back.out(1.5)", immediateRender: false }, 2.18);
+      tl.fromTo("#g2", { opacity: 0, y: 14 },
+        { opacity: 1, y: 0, duration: 0.28, ease: "power3.out", immediateRender: false }, 2.36);
+      tl.fromTo("#fig-strip", { y: 0 },
+        { y: -200, duration: 0.24, ease: "power3.out", immediateRender: false }, 2.40); // lands 2.64
+
+      // the axis appears and bar 1 takes most of it  (0.72s after slot 2)
+      tl.fromTo("#track1", { opacity: 0 },
+        { opacity: 1, duration: 0.40, ease: "power2.out", immediateRender: false }, 2.90);
+      tl.fromTo("#bar1", { width: 0 },
+        { width: 400, duration: 0.44, ease: "power3.out", immediateRender: false }, 2.98);
+
+      // slot 3 -> 238,328, landing exactly on "quarter million links" (3.84)
+      tl.fromTo("#slot-3", { opacity: 0, scale: 0.72 },
+        { opacity: 1, scale: 1, duration: 0.42, ease: "back.out(1.5)", immediateRender: false }, 3.52);
+      tl.fromTo("#bar1", { width: 400 },
+        { width: 804, duration: 0.28, ease: "power3.out", immediateRender: false }, 3.56); // ends 3.84
+      tl.fromTo("#fig-strip", { y: -200 },
+        { y: -400, duration: 0.24, ease: "power3.out", immediateRender: false }, 3.60);    // lands 3.84
+      tl.fromTo("#g3", { opacity: 0, y: 14 },
+        { opacity: 1, y: 0, duration: 0.28, ease: "power3.out", immediateRender: false }, 3.70);
+
+      // ambient breathe on the settled bar. ODD repeat so it ends on the base
+      // value; true end = 4.05 + 2*0.55 = 5.15, well before the fade at 6.70.
+      tl.to("#bar1", { boxShadow: "0 0 28px rgba(167,139,250,0.9)", duration: 0.55, ease: "sine.inOut", yoyo: true, repeat: 1 }, 4.05);
+
+      /* ================= THE TURN @ ~4.5s =================
+         A light sweep confined to the graphic band, the row slides left out
+         of centre, three more slots snap in beside it, and the palette
+         phase-shifts violet -> cyan. */
+      // travel and opacity are kept on separate tweens so the two opacity
+      // tweens (4.42-4.56 and 4.82-4.98) never overlap on the same property.
+      tl.fromTo("#sweep", { x: -220 },
+        { x: 1140, duration: 0.56, ease: "power2.inOut", immediateRender: false }, 4.42);
+      tl.fromTo("#sweep", { opacity: 0 },
+        { opacity: 1, duration: 0.14, ease: "power2.out", immediateRender: false }, 4.42);
+      tl.fromTo("#sweep", { opacity: 1 },
+        { opacity: 0, duration: 0.16, ease: "power1.in", immediateRender: false }, 4.82); // ends 4.98
+
+      tl.fromTo("#slot-row", { x: 208 },
+        { x: 0, duration: 0.55, ease: "power3.out", immediateRender: false }, 4.55);
+
+      tl.fromTo("#glow-b", { opacity: 0 },
+        { opacity: 1, duration: 0.7, ease: "power2.out", immediateRender: false }, 4.55);
+
+      [["#slot-4", 4.62], ["#slot-5", 4.74], ["#slot-6", 4.86]].forEach(function (s) {
+        tl.fromTo(s[0], { opacity: 0, scale: 0.6 },
+          { opacity: 1, scale: 1, duration: 0.38, ease: "back.out(1.8)", immediateRender: false }, s[1]);
+      });
+      [["#g4", 4.70], ["#g5", 4.82], ["#g6", 4.94]].forEach(function (g) {
+        tl.fromTo(g[0], { opacity: 0, y: 14 },
+          { opacity: 1, y: 0, duration: 0.28, ease: "power3.out", immediateRender: false }, g[1]);
+      });
+
+      // the second axis row appears, empty — the measurement that is coming
+      tl.fromTo("#track2", { opacity: 0 },
+        { opacity: 1, duration: 0.40, ease: "power2.out", immediateRender: false }, 5.00);
+
+      /* ================= ACT 2 — six characters =================
+         A count-off pulse walks the six slots left to right. No new text:
+         it is the "six" being counted, wordlessly. ODD repeat on each;
+         last one starts 6.00 and truly ends 6.00 + 2*0.13 = 6.26. */
+      var pulse = [
+        ["#slot-1", "0 10px 26px rgba(0,0,0,0.55), 0 0 30px rgba(167,139,250,0.8)"],
+        ["#slot-2", "0 10px 26px rgba(0,0,0,0.55), 0 0 30px rgba(167,139,250,0.8)"],
+        ["#slot-3", "0 10px 26px rgba(0,0,0,0.55), 0 0 30px rgba(167,139,250,0.8)"],
+        ["#slot-4", "0 10px 26px rgba(0,0,0,0.55), 0 0 30px rgba(34,211,238,0.8)"],
+        ["#slot-5", "0 10px 26px rgba(0,0,0,0.55), 0 0 30px rgba(34,211,238,0.8)"],
+        ["#slot-6", "0 10px 26px rgba(0,0,0,0.55), 0 0 30px rgba(34,211,238,0.8)"]
+      ];
+      pulse.forEach(function (p, i) {
+        tl.to(p[0], { boxShadow: p[1], duration: 0.13, ease: "sine.inOut", yoyo: true, repeat: 1 }, 5.20 + i * 0.16);
+      });
+
+      /* THE RESCALE. Same axis, new maximum: bar1 collapses 804 -> 6px while
+         bar2 slams 0 -> 804 in the same 0.24s. */
+      tl.fromTo("#bar1", { width: 804 },
+        { width: 6, duration: 0.24, ease: "power4.out", immediateRender: false }, 6.24);
+      tl.fromTo("#bar2", { width: 0 },
+        { width: 804, duration: 0.24, ease: "power4.out", immediateRender: false }, 6.24);
+
+      // 238,328 rolls out as 56.8 BILLION rolls in — one tween, landing on
+      // "over fifty billion" at local 6.54.
+      tl.fromTo("#fig-strip", { y: -400 },
+        { y: -600, duration: 0.24, ease: "power3.out", immediateRender: false }, 6.30);
+
+      // single non-repeating glow bump to punctuate the landing (ends 6.68)
+      tl.fromTo("#bar2", { boxShadow: "0 0 20px rgba(34,211,238,0.55)" },
+        { boxShadow: "0 0 30px rgba(34,211,238,0.95)", duration: 0.20, ease: "power2.out", immediateRender: false }, 6.48);
+
+      /* ================= FADE =================
+         6.70 + 0.30 = 7.000 exactly, zero buffer. fromTo with an explicit
+         {opacity:1} start (plus gsap.defaults lazy:false) because a plain
+         tl.to({opacity:0}) can silently fail to render here.
+         Applied to LEAVES — ancestor opacity is not applied uniformly to
+         transformed descendants, and #scene / #slot-row / #fig-strip are all
+         transformed. #sweep is excluded: it is already at opacity 0 and a
+         blanket fade would resurrect it. Nothing else is at opacity 0 by
+         6.70 — 238,328 is retired by clipping, not by opacity, so there is
+         no hidden element for this list to bring back. */
+      tl.fromTo(
+        ["#headline", ".slot", ".glyph", "#track1", "#track2", "#bar1", "#bar2",
+         ".fig", "#label", "#vignette", "#glow-a", "#glow-b", "#grain"],
+        { opacity: 1 },
+        { opacity: 0, duration: 0.30, ease: "power1.in", immediateRender: false },
+        6.70
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

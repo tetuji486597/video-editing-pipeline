@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      /* TRANSPARENT BAND format: no #bg-fill, no full-frame child, no vignette.
+         Live footage must be genuinely visible through the whole frame. */
+      html,
+      body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body {
+        font-family: Inter, sans-serif;
+      }
+
+      /* ---------------- headline ----------------
+         Clean wall band above the hair line (hair top measures y=585 canvas).
+         Line boxes 250-356 and 356-462; ink 262-450. */
+      #headline {
+        position: absolute;
+        left: 60px;
+        top: 250px;
+        width: 960px;
+        text-align: center;
+      }
+      .hl-line {
+        display: block;
+        font-size: 112px;
+        line-height: 106px;
+        font-weight: 800;
+        letter-spacing: 1.5px;
+        color: #eef7ff;
+        /* max blur 24px -> 1.6*24 = 38.4px reach; em-box top 235 - 38 = 197 > 180 */
+        text-shadow: 0 2px 3px rgba(0, 0, 0, 1), 0 4px 10px rgba(0, 0, 0, 0.99),
+          0 0 18px rgba(0, 0, 0, 0.96), 0 0 24px rgba(0, 0, 0, 0.9);
+        /* primary entrance starts here at t=0 -- NOT at opacity 0 on frame 0 */
+        opacity: 0.55;
+      }
+
+      /* ---------------- plot ----------------
+         Both SVGs map 1:1 (viewBox 900x400 -> 900x400 css px) at left 90, top 470.
+         Internal y=220 == canvas y=690 (the converged baseline). */
+      #plot-bg,
+      #plot {
+        position: absolute;
+        left: 90px;
+        top: 470px;
+        width: 900px;
+        height: 400px;
+        pointer-events: none;
+      }
+      /* glow lives as a static CSS drop-shadow -- never tweened, and no SVG
+         <filter> element, so there is no filter region to leak into the frame */
+      #plot {
+        filter: drop-shadow(0 0 10px rgba(186, 230, 253, 0.45))
+          drop-shadow(0 2px 5px rgba(0, 0, 0, 0.92));
+      }
+
+      #guide {
+        fill: none;
+        stroke: #fbbf24;
+        stroke-opacity: 0.22;
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-dasharray: 7 11;
+      }
+
+      .trace {
+        fill: none;
+        stroke: #fbbf24;
+        stroke-width: 5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-dasharray: 1000;
+        stroke-dashoffset: 1000;
+      }
+
+      /* ---------------- converged value ----------------
+         right edge 970; box 762-830; ink ~785-819 */
+      #value {
+        position: absolute;
+        left: 60px;
+        top: 762px;
+        width: 910px;
+        text-align: right;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 62px;
+        line-height: 68px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        color: #e6f9ff;
+        text-shadow: 0 2px 3px rgba(0, 0, 0, 1), 0 4px 10px rgba(0, 0, 0, 0.99),
+          0 0 20px rgba(0, 0, 0, 0.92);
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="5.90"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="5.90"
+        data-track-index="1"
+      >
+        <div id="headline">
+          <!-- one two-line lockup: 112px caps on 106px leading. The em boxes
+               overlap by 29.5px but the ink does not (line-1 baseline 343.75,
+               line-2 cap top 368.35 -> 24.6px of real gap). -->
+          <span
+            class="hl-line"
+            id="hl1"
+            data-layout-allow-overlap="true"
+            data-layout-allow-occlusion="true"
+            >EVENTUAL</span
+          >
+          <span
+            class="hl-line"
+            id="hl2"
+            data-layout-allow-overlap="true"
+            data-layout-allow-occlusion="true"
+            >CONSISTENCY</span
+          >
+        </div>
+
+        <!-- unfiltered layer: the settle-pulse band (translucent, momentary) -->
+        <svg id="plot-bg" viewBox="0 0 900 400">
+          <rect
+            id="pulse"
+            x="20"
+            y="95"
+            width="860"
+            height="250"
+            rx="10"
+            fill="#67e8f9"
+            opacity="0"
+          />
+        </svg>
+
+        <!-- linework layer -->
+        <svg id="plot" viewBox="0 0 900 400">
+          <path id="guide" d="M20,220 L880,220" />
+          <path class="trace" id="tr1" pathLength="1000" />
+          <path class="trace" id="tr2" pathLength="1000" />
+          <path class="trace" id="tr3" pathLength="1000" />
+          <path class="trace" id="tr4" pathLength="1000" />
+          <path class="trace" id="tr5" pathLength="1000" />
+        </svg>
+
+        <div id="value" data-layout-allow-occlusion="true">1,204,336</div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+
+      // ================= authored trace geometry (DETERMINISTIC) =================
+      const BASE = 220; // internal y of the converged line  -> canvas 690
+      const X0 = 20,
+        X1 = 880,
+        NC = 10;
+      const XS = [];
+      for (let i = 0; i < NC; i++) XS.push(X0 + ((X1 - X0) * i) / (NC - 1));
+
+      // Every control point is a hard-coded literal. All five traces share the
+      // same origin offset 0 at x=20 (one true count) and then drift apart.
+      // Extremes: min -118, max +106  ->  canvas 567..801 incl. curve overshoot.
+      const TRACES = [
+        { el: "#tr1", off: [0, -12, -30, -52, -70, -88, -100, -110, -114, -118] },
+        { el: "#tr2", off: [0, 8, 22, 36, 56, 72, 84, 92, 100, 106] },
+        { el: "#tr3", off: [0, -6, -10, -4, 6, 18, 32, 46, 58, 64] },
+        { el: "#tr4", off: [0, 14, 6, -12, -26, -40, -50, -58, -64, -70] },
+        { el: "#tr5", off: [0, -3, 12, 30, 18, 4, -10, -18, -26, -20] },
+      ];
+
+      // Catmull-Rom -> cubic bezier. No rotation is animated on any SVG node;
+      // the traces are drawn by writing `d` from a tweened numeric proxy.
+      function pathFor(off, k) {
+        const p = XS.map((x, i) => ({ x: x, y: BASE + off[i] * k }));
+        let d = "M" + p[0].x.toFixed(2) + "," + p[0].y.toFixed(2);
+        for (let i = 0; i < p.length - 1; i++) {
+          const p0 = i === 0 ? p[0] : p[i - 1];
+          const p1 = p[i];
+          const p2 = p[i + 1];
+          const p3 = i + 2 < p.length ? p[i + 2] : p[i + 1];
+          const c1x = p1.x + (p2.x - p0.x) / 6;
+          const c1y = p1.y + (p2.y - p0.y) / 6;
+          const c2x = p2.x - (p3.x - p1.x) / 6;
+          const c2y = p2.y - (p3.y - p1.y) / 6;
+          d +=
+            " C" +
+            c1x.toFixed(2) +
+            "," +
+            c1y.toFixed(2) +
+            " " +
+            c2x.toFixed(2) +
+            "," +
+            c2y.toFixed(2) +
+            " " +
+            p2.x.toFixed(2) +
+            "," +
+            p2.y.toFixed(2);
+        }
+        return d;
+      }
+
+      const NODES = TRACES.map((t) => document.querySelector(t.el));
+      const proxy = { k: 1 };
+      function redraw() {
+        for (let i = 0; i < TRACES.length; i++) {
+          NODES[i].setAttribute("d", pathFor(TRACES[i].off, proxy.k));
+        }
+      }
+      // frame-0 geometry is written at load time, never from a tl.set at 0
+      redraw();
+
+      // ================= timeline =================
+      // timeline-level onUpdate guarantees `d` is rewritten on every seek,
+      // independent of whether an individual tween's onUpdate fires
+      const tl = gsap.timeline({ paused: true, onUpdate: redraw });
+
+      // ---- ACT 0 / entrance (t=0): headline. Frame 0 shows it at 0.55, not 0.
+      tl.fromTo(
+        ".hl-line",
+        { opacity: 0.55, y: 22 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.58,
+          ease: "power3.out",
+          stagger: 0.1,
+        },
+        0
+      );
+
+      // ---- ACT 1 (amber): the traces scatter and diverge. ONE visual event,
+      //      0.62s after the headline reveal (>= 0.6 stagger).
+      //      last trace lands at 0.62 + 4*0.045 + 0.56 = 1.36
+      tl.fromTo(
+        ".trace",
+        { strokeDashoffset: 1000 },
+        {
+          strokeDashoffset: 0,
+          duration: 0.56,
+          ease: "power2.out",
+          stagger: 0.045,
+          immediateRender: false,
+        },
+        0.62
+      );
+
+      // ---- TURN (1.56): the settle pulse. An uncertainty band collapses onto
+      //      the baseline. Peak alpha 0.30 (<= 0.32). Ends at 2.02, opacity 0.
+      tl.fromTo(
+        "#pulse",
+        { opacity: 0 },
+        { opacity: 0.3, duration: 0.16, ease: "power3.out", immediateRender: false },
+        1.56
+      );
+      tl.fromTo(
+        "#pulse",
+        { attr: { y: 95, height: 250 } },
+        {
+          attr: { y: 214, height: 12 },
+          duration: 0.44,
+          ease: "power3.out",
+          immediateRender: false,
+        },
+        1.56
+      );
+      tl.fromTo(
+        "#pulse",
+        { opacity: 0.3 },
+        { opacity: 0, duration: 0.28, ease: "power2.out", immediateRender: false },
+        1.74
+      );
+
+      // ---- ACT 2 (cyan): the traces converge onto a single line.
+      //      RESOLVES AT LOCAL 2.34 == output 37.24 == "converges to correct in seconds"
+      tl.fromTo(
+        proxy,
+        { k: 1 },
+        {
+          k: 0,
+          duration: 0.72,
+          ease: "power2.inOut",
+          onUpdate: redraw,
+          immediateRender: false,
+        },
+        1.62
+      );
+      tl.fromTo(
+        ".trace",
+        { stroke: "#fbbf24" },
+        {
+          stroke: "#22d3ee",
+          duration: 0.72,
+          ease: "power2.inOut",
+          immediateRender: false,
+        },
+        1.62
+      );
+      tl.fromTo(
+        "#guide",
+        { stroke: "#fbbf24", strokeOpacity: 0.22 },
+        {
+          stroke: "#22d3ee",
+          strokeOpacity: 0.5,
+          duration: 0.72,
+          ease: "power2.inOut",
+          immediateRender: false,
+        },
+        1.62
+      );
+
+      // ---- the moment of agreement
+      tl.fromTo(
+        ".trace",
+        { strokeWidth: 5 },
+        { strokeWidth: 6.5, duration: 0.26, ease: "power3.out", immediateRender: false },
+        2.34
+      );
+      tl.fromTo(
+        ".trace",
+        { strokeWidth: 6.5 },
+        { strokeWidth: 5.2, duration: 0.42, ease: "power2.out", immediateRender: false },
+        2.6
+      );
+
+      // ---- the single converged value (the only number in the composition)
+      tl.fromTo(
+        "#value",
+        { opacity: 0, y: 18 },
+        { opacity: 1, y: 0, duration: 0.42, ease: "power3.out", immediateRender: false },
+        2.96
+      );
+
+      // ---- ambient: "in any instant, it might be approximate" -- a residual
+      //      wobble on the settled line. repeat:1 (ODD) so it lands back on base.
+      //      ends 3.62 + 2*0.55 = 4.72  <  5.50
+      tl.fromTo(
+        proxy,
+        { k: 0 },
+        {
+          k: 0.1,
+          duration: 0.55,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 1,
+          onUpdate: redraw,
+          immediateRender: false,
+        },
+        3.62
+      );
+      // ends 3.70 + 2*0.58 = 4.86  <  5.50
+      tl.fromTo(
+        ".trace",
+        { strokeWidth: 5.2 },
+        {
+          strokeWidth: 6,
+          duration: 0.58,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 1,
+          immediateRender: false,
+        },
+        3.7
+      );
+
+      // ---- FADE: one fromTo per visible leaf, no fading wrapper.
+      //      #pulse is excluded (already at opacity 0 from 2.02).
+      //      5.50 + 0.40 = 5.90 exactly, zero buffer.
+      const FADE_AT = 5.5,
+        FADE_DUR = 0.4;
+      [
+        "#hl1",
+        "#hl2",
+        "#guide",
+        "#tr1",
+        "#tr2",
+        "#tr3",
+        "#tr4",
+        "#tr5",
+        "#value",
+      ].forEach(function (sel) {
+        tl.fromTo(
+          sel,
+          { opacity: 1 },
+          {
+            opacity: 0,
+            duration: FADE_DUR,
+            ease: "power2.out",
+            immediateRender: false,
+          },
+          FADE_AT
+        );
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

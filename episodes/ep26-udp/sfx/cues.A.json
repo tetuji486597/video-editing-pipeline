@@ -1,0 +1,122 @@
+{
+  "cues": [
+    {
+      "at": 0.8,
+      "sfx": "tt_click_trim",
+      "vol": 0.95,
+      "why": "INTRO: the *EPISODE 26 correction sticker pops on the spoken '25'"
+    },
+    {
+      "at": 9.15,
+      "sfx": "tt_error_glitch",
+      "vol": 0.54,
+      "why": "HOOK: the call tile freezes on 'glitch constantly'"
+    },
+    {
+      "at": 9.75,
+      "sfx": "tt_bruh",
+      "vol": 0.55,
+      "why": "HOOK voice meme: the frozen call tile"
+    },
+    {
+      "at": 11.05,
+      "sfx": "stamp",
+      "vol": 0.5,
+      "why": "HOOK: the ON PURPOSE stamp"
+    },
+    {
+      "at": 16.55,
+      "sfx": "swoosh_double",
+      "vol": 0.61,
+      "why": "PROBLEM: the re-send loop -- a there-and-back double swish (variety)"
+    },
+    {
+      "at": 21.0,
+      "sfx": "tt_camera_shutter",
+      "vol": 0.58,
+      "why": "PROBLEM: the +2s clock-spin turn"
+    },
+    {
+      "at": 23.95,
+      "sfx": "tt_wrong_buzzer",
+      "vol": 0.29,
+      "why": "PROBLEM: the late word lands in a dead slot on 'helps nobody'"
+    },
+    {
+      "at": 26.25,
+      "sfx": "tt_swoosh",
+      "vol": 0.5,
+      "why": "BUILD: the UDP lane opens"
+    },
+    {
+      "at": 28.8,
+      "sfx": "pop_bubble",
+      "vol": 0.48,
+      "why": "BUILD: 'receipts' struck (variety)"
+    },
+    {
+      "at": 29.5,
+      "sfx": "tt_bubble_pop",
+      "vol": 0.45,
+      "why": "BUILD: 'resends' struck (variety)"
+    },
+    {
+      "at": 30.3,
+      "sfx": "pop_balloon",
+      "vol": 0.32,
+      "why": "BUILD: 'waiting' struck (variety)"
+    },
+    {
+      "at": 32.0,
+      "sfx": "drip",
+      "vol": 0.55,
+      "why": "JITTER: packets pour into the buffer tank"
+    },
+    {
+      "at": 34.0,
+      "sfx": "swoosh_elec",
+      "vol": 0.75,
+      "why": "JITTER: the outflow valve opens (variety)"
+    },
+    {
+      "at": 37.9,
+      "sfx": "bass_hit",
+      "vol": 0.2,
+      "why": "ROBOT: the waveform gap opens -- low dread thud (variety)"
+    },
+    {
+      "at": 41.2,
+      "sfx": "robot_garble",
+      "vol": 0.75,
+      "why": "ROBOT: the actual robot-voice demo on 'robot voice'"
+    },
+    {
+      "at": 44.65,
+      "sfx": "tt_vine_boom",
+      "vol": 0.3,
+      "why": "ROBOT: ON TIME > COMPLETE settles -- the thesis"
+    },
+    {
+      "at": 48.9,
+      "sfx": "tt_sparkle_trim",
+      "vol": 0.72,
+      "why": "AI_ANGLE: the shimmer regrows the gap"
+    },
+    {
+      "at": 50.8,
+      "sfx": "swoosh_deep",
+      "vol": 0.33,
+      "why": "AI_ANGLE: the noise fuzz strips away (variety)"
+    },
+    {
+      "at": 56.9,
+      "sfx": "whoosh_trim",
+      "vol": 0.34,
+      "why": "PAYOFF: PAST/PRESENT labels swap in (variety)"
+    }
+  ],
+  "_vol_note": "Volumes = 0.45 * 10^(0.6*(-18-mean)/20) clamped [0.15,0.95] (the shipped TIKTOK_SFX_NOTES calibration), with the usual manual overrides: bass-heavy (vine/bass_drop/bass_hit) held <=0.45, voice memes carry the x1.25 speech bump, sparkle boosted (broadband shimmer masks easily). Diversity pass 2026-08-28: no sound repeats within an episode except deliberate anchors; underused files (ding, riser, swoosh_elec/double/deep, pop_balloon/bubble, bass_hit, impact_trim, shutter, whoosh_trim) rotated in per user feedback.",
+  "video": "final_nosfx_A.mp4",
+  "out": "final_A.mp4",
+  "_note": "Variant A. Voice meme: tt_bruh. robot_garble = the script's robot-voice audio demo. 19 distinct sounds."
+}

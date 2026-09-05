@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+
+      .fill { position: absolute; inset: 0; pointer-events: none; }
+
+      /* ================= BACKGROUND (opaque, on a CHILD div, instant) ================= */
+      #bg-fill {
+        background: radial-gradient(
+          ellipse 980px 1020px at 50% 40%,
+          #111c31 0%,
+          #0a1120 46%,
+          #05080f 78%,
+          #03050a 100%
+        );
+      }
+      #glow-blue-blob {
+        position: absolute;
+        left: 190px;
+        top: 300px;
+        width: 700px;
+        height: 620px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle at 50% 50%,
+          rgba(59, 130, 246, 0.26) 0%,
+          rgba(59, 130, 246, 0.10) 45%,
+          rgba(59, 130, 246, 0) 72%
+        );
+      }
+      #glow-indigo-blob {
+        position: absolute;
+        left: 300px;
+        top: 880px;
+        width: 620px;
+        height: 520px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle at 50% 50%,
+          rgba(99, 102, 241, 0.20) 0%,
+          rgba(79, 70, 229, 0.08) 48%,
+          rgba(79, 70, 229, 0) 74%
+        );
+      }
+      #vignette {
+        background: radial-gradient(
+          ellipse 760px 950px at 50% 46%,
+          rgba(0, 0, 0, 0) 0%,
+          rgba(0, 0, 0, 0) 43%,
+          rgba(2, 3, 6, 0.52) 76%,
+          rgba(1, 2, 5, 0.94) 100%
+        );
+      }
+      #grain { opacity: 1; }
+      #redwash {
+        background: radial-gradient(
+          ellipse 900px 900px at 50% 62%,
+          rgba(220, 38, 38, 0.55) 0%,
+          rgba(153, 27, 27, 0.30) 46%,
+          rgba(69, 10, 10, 0.10) 78%,
+          rgba(40, 5, 5, 0) 100%
+        );
+        opacity: 0;
+      }
+      #flash { background: #fda4a4; opacity: 0; }
+
+      /* ================= CAMERA RIG =================
+         transform-origin = 540px 730px == centre of BOTH the 180-1280 caption-safe
+         content band AND the 300-1160 design band this composition actually uses. */
+      #stage { transform-origin: 50% 730px; }
+
+      /* ================= HEADLINE ================= */
+      #headline {
+        position: absolute;
+        left: 90px;
+        top: 300px;
+        width: 900px;
+        color: #f1f5f9;
+        font-size: 110px;
+        font-weight: 800;
+        line-height: 1.0;
+        letter-spacing: -2px;
+        text-align: center;
+        opacity: 0.5;
+        text-shadow: 0 0 28px rgba(96, 165, 250, 0.32), 0 4px 18px rgba(0, 0, 0, 0.75);
+      }
+      #headline > div { white-space: nowrap; }
+
+      /* ================= SOURCE PASSWORD CHIP ================= */
+      #chip {
+        position: absolute;
+        left: 380px;
+        top: 592px;
+        width: 320px;
+        height: 104px;
+        border-radius: 20px;
+        background: linear-gradient(155deg, rgba(23, 36, 62, 0.97), rgba(10, 16, 30, 0.98));
+        border: 2px solid rgba(96, 165, 250, 0.55);
+        opacity: 0.55;
+        z-index: 5;
+      }
+      #chip-glow {
+        position: absolute;
+        inset: -6px;
+        border-radius: 26px;
+        box-shadow: 0 0 42px 2px rgba(59, 130, 246, 0.55);
+        opacity: 0.45;
+      }
+      #chip-glow-red {
+        position: absolute;
+        inset: -6px;
+        border-radius: 26px;
+        box-shadow: 0 0 44px 4px rgba(239, 68, 68, 0.7);
+        opacity: 0;
+      }
+      #chip-lock { position: absolute; left: 26px; top: 30px; width: 38px; height: 44px; }
+      #chip-label {
+        position: absolute;
+        left: 84px;
+        top: 14px;
+        color: #93c5fd;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 20px;
+        font-weight: 600;
+        line-height: 1.1;
+        letter-spacing: 4px;
+      }
+      #chip-dots {
+        position: absolute;
+        left: 84px;
+        top: 48px;
+        color: #e8f0ff;
+        font-size: 44px;
+        font-weight: 700;
+        letter-spacing: 6px;
+        line-height: 1.0;
+      }
+
+      /* ================= APP CARDS ================= */
+      #card-grid { opacity: 0.5; z-index: 2; }
+      .card {
+        position: absolute;
+        width: 390px;
+        height: 175px;
+        border-radius: 22px;
+        background: linear-gradient(158deg, rgba(19, 27, 44, 0.96), rgba(9, 13, 22, 0.98));
+        border: 2px solid rgba(125, 145, 180, 0.22);
+      }
+      .glow-blue {
+        position: absolute;
+        inset: -4px;
+        border-radius: 26px;
+        box-shadow: 0 0 44px 2px rgba(59, 130, 246, 0.5);
+        opacity: 0;
+      }
+      .glow-red {
+        position: absolute;
+        inset: -4px;
+        border-radius: 26px;
+        box-shadow: 0 0 44px 4px rgba(239, 68, 68, 0.72);
+        opacity: 0;
+      }
+      .card-icon { position: absolute; left: 24px; top: 24px; width: 56px; height: 56px; opacity: 0.4; }
+      .bars { position: absolute; left: 96px; top: 30px; width: 200px; height: 46px; }
+      .bar1 { width: 170px; height: 14px; border-radius: 7px; background: rgba(203, 213, 225, 0.2); }
+      .bar2 { margin-top: 12px; width: 110px; height: 12px; border-radius: 6px; background: rgba(203, 213, 225, 0.13); }
+      .dot {
+        position: absolute;
+        left: 346px;
+        top: 42px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #475569;
+      }
+      .slot {
+        position: absolute;
+        left: 24px;
+        top: 104px;
+        width: 190px;
+        height: 48px;
+        border-radius: 12px;
+        border: 2px dashed rgba(148, 163, 184, 0.3);
+        background: rgba(255, 255, 255, 0.03);
+      }
+      #breach-tag {
+        position: absolute;
+        left: 96px;
+        top: 26px;
+        width: 230px;
+        height: 46px;
+        border-radius: 10px;
+        background: rgba(239, 68, 68, 0.18);
+        border: 2px solid rgba(248, 113, 113, 0.75);
+        color: #fee2e2;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+      }
+
+      /* ================= TRAVELLING COPIES ================= */
+      .fly {
+        position: absolute;
+        left: 420px;
+        top: 612px;
+        width: 240px;
+        height: 64px;
+        border-radius: 14px;
+        background: linear-gradient(155deg, rgba(28, 44, 76, 0.98), rgba(12, 19, 34, 0.98));
+        border: 2px solid rgba(96, 165, 250, 0.75);
+        box-shadow: 0 0 26px 0 rgba(59, 130, 246, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        opacity: 0;
+        z-index: 6;
+      }
+      .fly-dots {
+        color: #e8f0ff;
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: 4px;
+        line-height: 1.0;
+      }
+
+      #leak {
+        position: absolute;
+        left: 154px;
+        top: 1094px;
+        width: 130px;
+        height: 38px;
+        border-radius: 10px;
+        background: linear-gradient(155deg, rgba(76, 18, 22, 0.98), rgba(38, 8, 12, 0.98));
+        border: 2px solid rgba(248, 113, 113, 0.95);
+        box-shadow: 0 0 30px 2px rgba(239, 68, 68, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fecaca;
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: 4px;
+        line-height: 1.0;
+        opacity: 0;
+        z-index: 7;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="6.40"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="6.40"
+        data-track-index="1"
+      >
+        <div id="content-all" class="fill">
+          <!-- opaque base: present instantly, on a CHILD div -->
+          <div id="bg-fill" class="fill">
+            <div id="glow-blue-blob"></div>
+            <div id="glow-indigo-blob"></div>
+          </div>
+          <div id="vignette" class="fill"></div>
+
+          <div id="stage" class="fill">
+            <div id="headline">
+              <div>One Password,</div>
+              <div>Everywhere</div>
+            </div>
+
+            <!-- ---------- the one secret ---------- -->
+            <div id="chip">
+              <div id="chip-glow"></div>
+              <div id="chip-glow-red"></div>
+              <svg id="chip-lock" viewBox="0 0 38 44" fill="none">
+                <rect x="4" y="18" width="30" height="23" rx="6" fill="none" stroke="#93c5fd" stroke-width="3" />
+                <path d="M11 18 V12 a8 8 0 0 1 16 0 V18" fill="none" stroke="#93c5fd" stroke-width="3" stroke-linecap="round" />
+                <circle cx="19" cy="29" r="3.4" fill="#93c5fd" />
+              </svg>
+              <div id="chip-label">PASSWORD</div>
+              <div id="chip-dots" data-layout-allow-overlap="true" data-layout-allow-occlusion="true">••••••••</div>
+            </div>
+
+            <!-- ---------- four apps, told apart by colour + icon shape only ---------- -->
+            <div id="card-grid" class="fill">
+              <div class="card" id="card-a" style="left: 100px; top: 760px">
+                <div class="glow-blue" id="glow-blue-a"></div>
+                <div class="glow-red" id="glow-red-a"></div>
+                <div class="card-icon" id="icon-a">
+                  <svg viewBox="0 0 56 56" fill="none">
+                    <circle cx="28" cy="28" r="21" stroke="#38bdf8" stroke-width="3.5" />
+                    <circle cx="28" cy="28" r="7.5" fill="#38bdf8" />
+                  </svg>
+                </div>
+                <div class="bars" id="bars-a">
+                  <div class="bar1"></div>
+                  <div class="bar2"></div>
+                </div>
+                <div class="dot" id="dot-a"></div>
+                <div class="slot" id="slot-a"></div>
+              </div>
+
+              <div class="card" id="card-b" style="left: 590px; top: 760px">
+                <div class="glow-blue" id="glow-blue-b"></div>
+                <div class="glow-red" id="glow-red-b"></div>
+                <div class="card-icon" id="icon-b">
+                  <svg viewBox="0 0 56 56" fill="none">
+                    <polygon points="28,5 48,16.5 48,39.5 28,51 8,39.5 8,16.5" stroke="#a78bfa" stroke-width="3.5" stroke-linejoin="round" />
+                    <circle cx="28" cy="28" r="5.5" fill="#a78bfa" />
+                  </svg>
+                </div>
+                <div class="bars" id="bars-b">
+                  <div class="bar1"></div>
+                  <div class="bar2"></div>
+                </div>
+                <div class="dot" id="dot-b"></div>
+                <div class="slot" id="slot-b"></div>
+              </div>
+
+              <div class="card" id="card-c" style="left: 100px; top: 985px">
+                <div class="glow-blue" id="glow-blue-c"></div>
+                <div class="glow-red" id="glow-red-c"></div>
+                <div class="card-icon" id="icon-c">
+                  <svg viewBox="0 0 56 56" fill="none">
+                    <polygon points="28,7 50,45 6,45" stroke="#fbbf24" stroke-width="3.5" stroke-linejoin="round" />
+                    <rect x="24.5" y="22" width="7" height="13" rx="3.5" fill="#fbbf24" />
+                  </svg>
+                </div>
+                <div class="bars" id="bars-c">
+                  <div class="bar1"></div>
+                  <div class="bar2"></div>
+                </div>
+                <div class="dot" id="dot-c"></div>
+                <div class="slot" id="slot-c"></div>
+                <div id="breach-tag">BREACHED</div>
+              </div>
+
+              <div class="card" id="card-d" style="left: 590px; top: 985px">
+                <div class="glow-blue" id="glow-blue-d"></div>
+                <div class="glow-red" id="glow-red-d"></div>
+                <div class="card-icon" id="icon-d">
+                  <svg viewBox="0 0 56 56" fill="none">
+                    <rect x="7" y="7" width="18" height="18" rx="5" stroke="#34d399" stroke-width="3.5" />
+                    <rect x="31" y="7" width="18" height="18" rx="5" fill="#34d399" />
+                    <rect x="7" y="31" width="18" height="18" rx="5" fill="#34d399" />
+                    <rect x="31" y="31" width="18" height="18" rx="5" stroke="#34d399" stroke-width="3.5" />
+                  </svg>
+                </div>
+                <div class="bars" id="bars-d">
+                  <div class="bar1"></div>
+                  <div class="bar2"></div>
+                </div>
+                <div class="dot" id="dot-d"></div>
+                <div class="slot" id="slot-d"></div>
+              </div>
+            </div>
+
+            <!-- ---------- four identical copies of the one secret ---------- -->
+            <div class="fly" id="fly-a">
+              <svg viewBox="0 0 24 28" width="22" height="26" fill="none">
+                <rect x="3" y="11" width="18" height="15" rx="4" stroke="#bfdbfe" stroke-width="2.4" />
+                <path d="M7 11 V7.5 a5 5 0 0 1 10 0 V11" stroke="#bfdbfe" stroke-width="2.4" stroke-linecap="round" />
+              </svg>
+              <div class="fly-dots" data-layout-allow-overlap="true" data-layout-allow-occlusion="true">••••••••</div>
+            </div>
+            <div class="fly" id="fly-b">
+              <svg viewBox="0 0 24 28" width="22" height="26" fill="none">
+                <rect x="3" y="11" width="18" height="15" rx="4" stroke="#bfdbfe" stroke-width="2.4" />
+                <path d="M7 11 V7.5 a5 5 0 0 1 10 0 V11" stroke="#bfdbfe" stroke-width="2.4" stroke-linecap="round" />
+              </svg>
+              <div class="fly-dots" data-layout-allow-overlap="true" data-layout-allow-occlusion="true">••••••••</div>
+            </div>
+            <div class="fly" id="fly-c">
+              <svg viewBox="0 0 24 28" width="22" height="26" fill="none">
+                <rect x="3" y="11" width="18" height="15" rx="4" stroke="#bfdbfe" stroke-width="2.4" />
+                <path d="M7 11 V7.5 a5 5 0 0 1 10 0 V11" stroke="#bfdbfe" stroke-width="2.4" stroke-linecap="round" />
+              </svg>
+              <div class="fly-dots" data-layout-allow-overlap="true" data-layout-allow-occlusion="true">••••••••</div>
+            </div>
+            <div class="fly" id="fly-d">
+              <svg viewBox="0 0 24 28" width="22" height="26" fill="none">
+                <rect x="3" y="11" width="18" height="15" rx="4" stroke="#bfdbfe" stroke-width="2.4" />
+                <path d="M7 11 V7.5 a5 5 0 0 1 10 0 V11" stroke="#bfdbfe" stroke-width="2.4" stroke-linecap="round" />
+              </svg>
+              <div class="fly-dots" data-layout-allow-overlap="true" data-layout-allow-occlusion="true">••••••••</div>
+            </div>
+
+            <div id="leak">••••</div>
+          </div>
+
+          <div id="grain" class="fill"></div>
+          <div id="redwash" class="fill"></div>
+          <div id="flash" class="fill"></div>
+        </div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="7" stitchTiles="stitch" result="noise" />
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.042 0" />
+      </filter>
+    </svg>
+
+    <script>
+      document.getElementById("grain").style.filter = "url(#grain-filter)";
+
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      /* ---------------- clock ----------------
+         local 0.95  = output  8.35  "Give every app your Google password"
+         local 3.40  = the turn (red flash)
+         local 5.48  = output 12.91  "a breach exposes everything" resolves
+         local 6.10 -> 6.40 fade, finishing exactly on the declared duration. */
+      const HAND = 0.95;
+      const TURN = 3.4;
+      const FADE = 6.1;
+
+      /* ---------------- frame-0 state that GSAP owns (build-time set, not tl.set) ---- */
+      gsap.set("#headline", { y: 14 });
+      gsap.set("#chip", { scale: 0.94, transformOrigin: "50% 50%" });
+      gsap.set(".fly", { x: 0, y: 0, scale: 0.9, transformOrigin: "50% 50%" });
+      gsap.set("#leak", { x: 0, y: 0, scale: 0.5, transformOrigin: "50% 50%" });
+      gsap.set(".card", { transformOrigin: "50% 50%" });
+
+      /* ---------------- continuous camera push-in, 1.000 -> 1.050 ----------------
+         origin 540px/730px = centre of the content band, so the design band
+         300..1160 resolves to 278.5..1181.5 at full push. */
+      tl.fromTo(
+        "#stage",
+        { scale: 1, transformOrigin: "50% 730px" },
+        { scale: 1.05, transformOrigin: "50% 730px", duration: 6.4, ease: "sine.inOut" },
+        0
+      );
+
+      /* ================= ACT 1 (blue) — one secret, copied everywhere ================= */
+
+      // primary content is already on screen at frame 0 and animates UP
+      tl.to("#headline", { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 0);
+      tl.to("#chip", { opacity: 1, scale: 1, duration: 0.6, ease: "power3.out" }, 0.05);
+      tl.to("#card-grid", { opacity: 1, duration: 0.7, ease: "power3.out" }, 0.12);
+
+      // ambient life on the source chip. odd repeat -> lands back on base.
+      // true end = 0.75 + 4 * 0.5 = 2.75s, well before the fade.
+      tl.to(
+        "#chip-glow",
+        { opacity: 0.95, duration: 0.5, ease: "sine.inOut", yoyo: true, repeat: 3 },
+        0.75
+      );
+
+      // fly copy home centre = (540, 644); each card's password slot centre below.
+      const HANDOFFS = [
+        { fly: "#fly-a", card: "#card-a", gb: "#glow-blue-a", ic: "#icon-a", dot: "#dot-a", slot: "#slot-a", dx: -321, dy: 244 },
+        { fly: "#fly-b", card: "#card-b", gb: "#glow-blue-b", ic: "#icon-b", dot: "#dot-b", slot: "#slot-b", dx: 169, dy: 244 },
+        { fly: "#fly-c", card: "#card-c", gb: "#glow-blue-c", ic: "#icon-c", dot: "#dot-c", slot: "#slot-c", dx: -321, dy: 469 },
+        { fly: "#fly-d", card: "#card-d", gb: "#glow-blue-d", ic: "#icon-d", dot: "#dot-d", slot: "#slot-d", dx: 169, dy: 469 },
+      ];
+
+      HANDOFFS.forEach((h, i) => {
+        const depart = HAND + i * 0.62; // 0.95 / 1.57 / 2.19 / 2.81
+        const arrive = depart + 0.36; //   1.31 / 1.93 / 2.55 / 3.17  -> 0.62s apart
+
+        // the source chip kicks as a copy peels off it
+        tl.fromTo(
+          "#chip",
+          { scale: 1 },
+          { scale: 1.05, duration: 0.12, ease: "power4.out", immediateRender: false },
+          depart
+        );
+        tl.to("#chip", { scale: 1, duration: 0.3, ease: "power3.out" }, depart + 0.12);
+
+        // the copy travels and shrinks into the app's password field
+        tl.fromTo(
+          h.fly,
+          { opacity: 0.15, scale: 0.9, x: 0, y: 0 },
+          {
+            opacity: 1,
+            scale: 0.62,
+            x: h.dx,
+            y: h.dy,
+            duration: 0.36,
+            ease: "power2.inOut",
+            immediateRender: false,
+          },
+          depart
+        );
+
+        // the app accepts it
+        tl.to(h.card, { borderColor: "rgba(96,165,250,0.85)", duration: 0.28, ease: "power3.out" }, arrive);
+        tl.fromTo(
+          h.gb,
+          { opacity: 0 },
+          { opacity: 1, duration: 0.14, ease: "power4.out", immediateRender: false },
+          arrive
+        );
+        tl.to(h.gb, { opacity: 0.6, duration: 0.5, ease: "power3.out" }, arrive + 0.14);
+        tl.to(h.ic, { opacity: 1, duration: 0.35, ease: "power3.out" }, arrive);
+        tl.to(h.dot, { backgroundColor: "#60a5fa", duration: 0.3, ease: "power3.out" }, arrive);
+        tl.to(h.slot, { borderColor: "rgba(96,165,250,0.7)", duration: 0.3, ease: "power3.out" }, arrive);
+        tl.fromTo(
+          h.card,
+          { scale: 1 },
+          { scale: 1.035, duration: 0.12, ease: "power4.out", immediateRender: false },
+          arrive
+        );
+        tl.to(h.card, { scale: 1, duration: 0.34, ease: "power3.out" }, arrive + 0.12);
+      });
+
+      /* ================= TURN @ 3.40 — red flash, 4-step ================= */
+      const flashTl = gsap.timeline();
+      flashTl
+        .to("#flash", { opacity: 0.48, duration: 0.05, ease: "power3.out" })
+        .to("#flash", { opacity: 0.1, duration: 0.08, ease: "power3.out" })
+        .to("#flash", { opacity: 0.36, duration: 0.05, ease: "power3.out" })
+        .to("#flash", { opacity: 0, duration: 0.16, ease: "power3.out" });
+      tl.add(flashTl, TURN); // ends 3.74
+
+      tl.fromTo(
+        "#redwash",
+        { opacity: 0 },
+        { opacity: 0.3, duration: 0.55, ease: "power3.out", immediateRender: false },
+        TURN + 0.02
+      );
+      tl.to(".glow-blue", { opacity: 0.1, duration: 0.4, ease: "power3.out" }, TURN + 0.02);
+
+      // the master secret itself is now compromised
+      tl.to("#chip", { borderColor: "rgba(248,113,113,0.9)", duration: 0.3, ease: "power3.out" }, TURN + 0.04);
+      tl.to("#chip-label", { color: "#fca5a5", duration: 0.3, ease: "power3.out" }, TURN + 0.04);
+      tl.to("#chip-dots", { color: "#fee2e2", duration: 0.3, ease: "power3.out" }, TURN + 0.04);
+      tl.to("#chip-glow", { opacity: 0, duration: 0.25, ease: "power3.out" }, TURN + 0.04);
+      tl.fromTo(
+        "#chip-glow-red",
+        { opacity: 0 },
+        { opacity: 0.85, duration: 0.3, ease: "power3.out", immediateRender: false },
+        TURN + 0.04
+      );
+
+      /* ================= ACT 2 (red) — one card breaches, the rest chain ============= */
+      const BREACH = 3.5;
+
+      tl.to("#card-c", { borderColor: "rgba(239,68,68,0.9)", duration: 0.25, ease: "power3.out" }, BREACH);
+      tl.fromTo(
+        "#glow-red-c",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.16, ease: "power4.out", immediateRender: false },
+        BREACH
+      );
+      tl.to("#glow-red-c", { opacity: 0.78, duration: 0.5, ease: "power3.out" }, BREACH + 0.16);
+      tl.fromTo(
+        "#card-c",
+        { scale: 1 },
+        { scale: 1.035, duration: 0.12, ease: "power4.out", immediateRender: false },
+        BREACH
+      );
+      tl.to("#card-c", { scale: 1, duration: 0.34, ease: "power3.out" }, BREACH + 0.12);
+      tl.to("#icon-c", { opacity: 0.55, duration: 0.3, ease: "power3.out" }, BREACH);
+      tl.to("#dot-c", { backgroundColor: "#ef4444", duration: 0.25, ease: "power3.out" }, BREACH);
+      // bars and the BREACHED banner never co-occur: cross-fade in the same card slot
+      tl.to("#bars-c", { opacity: 0, duration: 0.2, ease: "power3.out" }, BREACH);
+      tl.fromTo(
+        "#breach-tag",
+        { opacity: 0, scale: 0.9 },
+        { opacity: 1, scale: 1, duration: 0.3, ease: "power3.out", immediateRender: false },
+        BREACH + 0.16
+      );
+      // the copy stored in that app is the thing that leaked
+      tl.to("#fly-c", { borderColor: "rgba(248,113,113,0.95)", backgroundColor: "rgba(64,15,20,0.98)", duration: 0.25, ease: "power3.out" }, BREACH);
+      tl.to("#fly-c .fly-dots", { color: "#fecaca", duration: 0.25, ease: "power3.out" }, BREACH);
+
+      // the leak itself, escaping card C's password field
+      tl.fromTo(
+        "#leak",
+        { opacity: 0, scale: 0.5, x: 0, y: 0 },
+        { opacity: 1, scale: 1, duration: 0.2, ease: "power3.out", immediateRender: false },
+        3.7
+      );
+
+      // chain reaction: C -> A -> B -> D, red events exactly 0.60s apart
+      const CHAIN = [
+        { t0: 3.9, t1: 4.28, x: 0, y: -225, card: "#card-a", gr: "#glow-red-a", gb: "#glow-blue-a", ic: "#icon-a", dot: "#dot-a", fly: "#fly-a" },
+        { t0: 4.5, t1: 4.88, x: 490, y: -225, card: "#card-b", gr: "#glow-red-b", gb: "#glow-blue-b", ic: "#icon-b", dot: "#dot-b", fly: "#fly-b" },
+        { t0: 5.1, t1: 5.48, x: 490, y: 0, card: "#card-d", gr: "#glow-red-d", gb: "#glow-blue-d", ic: "#icon-d", dot: "#dot-d", fly: "#fly-d" },
+      ];
+
+      CHAIN.forEach((c) => {
+        tl.to("#leak", { x: c.x, y: c.y, duration: 0.38, ease: "power2.inOut" }, c.t0);
+
+        tl.to(c.card, { borderColor: "rgba(239,68,68,0.9)", duration: 0.25, ease: "power3.out" }, c.t1);
+        tl.to(c.gb, { opacity: 0, duration: 0.25, ease: "power3.out" }, c.t1);
+        tl.fromTo(
+          c.gr,
+          { opacity: 0 },
+          { opacity: 1, duration: 0.14, ease: "power4.out", immediateRender: false },
+          c.t1
+        );
+        tl.to(c.gr, { opacity: 0.72, duration: 0.5, ease: "power3.out" }, c.t1 + 0.14);
+        tl.to(c.ic, { opacity: 0.55, duration: 0.3, ease: "power3.out" }, c.t1);
+        tl.to(c.dot, { backgroundColor: "#ef4444", duration: 0.25, ease: "power3.out" }, c.t1);
+        tl.fromTo(
+          c.card,
+          { scale: 1 },
+          { scale: 1.03, duration: 0.1, ease: "power4.out", immediateRender: false },
+          c.t1
+        );
+        tl.to(c.card, { scale: 1, duration: 0.3, ease: "power3.out" }, c.t1 + 0.1);
+        // the stored copy in that app goes red — the password is what spread
+        tl.to(c.fly, { borderColor: "rgba(248,113,113,0.95)", backgroundColor: "rgba(64,15,20,0.98)", duration: 0.25, ease: "power3.out" }, c.t1);
+        tl.to(c.fly + " .fly-dots", { color: "#fecaca", duration: 0.25, ease: "power3.out" }, c.t1);
+      });
+
+      // the leak is absorbed by the last card it reaches
+      tl.to("#leak", { opacity: 0, scale: 1.6, duration: 0.28, ease: "power3.out" }, 5.48);
+
+      // one closing bloom. odd repeat, true end = 5.50 + 2 * 0.28 = 6.06 < 6.10.
+      tl.to(
+        "#redwash",
+        { opacity: 0.5, duration: 0.28, ease: "sine.inOut", yoyo: true, repeat: 1 },
+        5.5
+      );
+
+      /* ---------------- FADE — finishes at exactly 6.400, zero buffer ---------------- */
+      tl.fromTo(
+        "#content-all",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.3, ease: "power3.out", immediateRender: false },
+        FADE
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

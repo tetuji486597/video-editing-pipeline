@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP26 problem — reliable is late</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; }
+      .fill { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* ---------- background (TAKEOVER) ---------- */
+      #bg-fill { background: radial-gradient(120% 90% at 50% 10%, #101720 0%, #0a0e14 45%, #05070a 80%, #030405 100%); }
+      #glow-green {
+        position: absolute; left: 50%; top: 26%; width: 1400px; height: 1200px;
+        transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(52, 211, 153, 0.13) 0%, rgba(52, 211, 153, 0) 62%);
+      }
+      #glow-red {
+        position: absolute; left: 50%; top: 76%; width: 1500px; height: 1300px;
+        transform: translate(-50%, -50%); opacity: 0;
+        background: radial-gradient(circle, rgba(239, 68, 68, 0.16) 0%, rgba(239, 68, 68, 0) 60%);
+      }
+      #vignette {
+        background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 13%, rgba(0,0,0,0) 80%, rgba(0,0,0,0.6) 100%);
+      }
+
+      /* ---------- scene: push-in 1 -> 1.06, origin (480,760).
+         Design band x 110-820, y 320-1180 resolves to x 87.8-840.4 (graphics >=60 OK,
+         text kept inside 110-800 pre-push), y 293.6-1205.2. ---------- */
+      #scene { transform-origin: 480px 760px; }
+
+      /* ---------- ACT 1: the reliable lane (green) ---------- */
+      #act1 { position: absolute; inset: 0; transform-origin: 480px 560px; }
+      #lane-line {
+        position: absolute; left: 130px; top: 448px; width: 560px; height: 4px;
+        background: rgba(148, 163, 184, 0.4); border-radius: 2px;
+      }
+      #receiver {
+        position: absolute; left: 700px; top: 396px; width: 96px; height: 104px;
+        border-radius: 14px; background: rgba(10, 22, 18, 0.85);
+        border: 2px solid rgba(52, 211, 153, 0.55);
+        box-shadow: 0 0 14px rgba(52, 211, 153, 0.25);
+        display: flex; align-items: center; justify-content: center;
+      }
+      #receiver svg { width: 54px; height: 54px; }
+      .pkt {
+        position: absolute; left: 0; top: 0; width: 46px; height: 46px;
+        border-radius: 9px; background: rgba(34, 211, 238, 0.85);
+        border: 2px solid rgba(165, 243, 252, 0.8);
+        box-shadow: 0 0 10px rgba(34, 211, 238, 0.5); opacity: 0;
+      }
+      .tick {
+        position: absolute; top: 486px; width: 34px; height: 34px; border-radius: 50%;
+        background: rgba(52, 211, 153, 0.92); opacity: 0;
+        display: flex; align-items: center; justify-content: center;
+      }
+      .tick svg { width: 20px; height: 20px; }
+      #loop-svg { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: visible; }
+      #loop-path {
+        fill: none; stroke: #fbbf24; stroke-width: 5; stroke-linecap: round;
+        stroke-dasharray: 8 12; opacity: 0;
+      }
+      #file-card {
+        position: absolute; left: 220px; top: 650px; width: 420px; height: 116px;
+        border-radius: 16px; background: rgba(10, 16, 24, 0.9);
+        border: 2px solid rgba(148, 163, 184, 0.35);
+        padding: 18px 22px; opacity: 0;
+      }
+      #file-name { font-size: 26px; color: #cbd5e1; letter-spacing: 1px; }
+      #file-track {
+        margin-top: 14px; width: 376px; height: 12px; border-radius: 6px;
+        background: rgba(255, 255, 255, 0.14);
+      }
+      #file-fill {
+        width: 3%; height: 12px; border-radius: 6px; background: #34d399;
+      }
+      #fine-chip {
+        position: absolute; left: 668px; top: 676px; padding: 12px 20px 14px 20px;
+        border-radius: 12px; background: rgba(6, 24, 18, 0.9);
+        border: 2px solid rgba(52, 211, 153, 0.8); color: #6ee7b7;
+        font-size: 34px; font-weight: 800; letter-spacing: 2px; opacity: 0;
+      }
+
+      /* ---------- TURN: the +2s clock ---------- */
+      #clock-wrap { position: absolute; left: 410px; top: 810px; width: 140px; height: 140px; opacity: 0; }
+      #plus2 {
+        position: absolute; left: 580px; top: 852px; font-size: 52px; font-weight: 800;
+        color: #fbbf24; letter-spacing: 1px; opacity: 0;
+        text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
+      }
+      #flash { background: #ffffff; opacity: 0; pointer-events: none; }
+
+      /* ---------- ACT 2: the live conversation strip (red) ---------- */
+      #act2 { position: absolute; inset: 0; opacity: 0; }
+      #strip-label {
+        position: absolute; left: 140px; top: 968px; font-size: 24px; color: #fca5a5;
+        letter-spacing: 3px;
+      }
+      #strip-viewport {
+        position: absolute; left: 130px; top: 1005px; width: 660px; height: 130px;
+        overflow: hidden; border-radius: 12px;
+      }
+      #strip { position: absolute; left: 0; top: 0; width: 1200px; height: 130px; }
+      .slot-w {
+        position: absolute; top: 20px; width: 92px; height: 90px; border-radius: 12px;
+        background: rgba(30, 20, 22, 0.7); border: 2px solid rgba(148, 163, 184, 0.3);
+        display: flex; align-items: center; justify-content: center;
+      }
+      .slot-w svg { width: 60px; height: 40px; }
+      #slot-gap {
+        background: rgba(40, 10, 12, 0.4); border: 2px dashed rgba(239, 68, 68, 0.75);
+      }
+      #late-pkt {
+        position: absolute; left: 23px; top: 22px; width: 46px; height: 46px;
+        border-radius: 9px; background: rgba(239, 68, 68, 0.9);
+        border: 2px solid rgba(254, 202, 202, 0.9);
+        box-shadow: 0 0 12px rgba(239, 68, 68, 0.6); opacity: 0;
+      }
+      #cursor-line {
+        position: absolute; left: 638px; top: 990px; width: 4px; height: 160px;
+        background: rgba(248, 250, 252, 0.9); border-radius: 2px;
+        box-shadow: 0 0 10px rgba(248, 250, 252, 0.5);
+      }
+      #cursor-tri {
+        position: absolute; left: 628px; top: 972px; width: 0; height: 0;
+        border-left: 12px solid transparent; border-right: 12px solid transparent;
+        border-top: 14px solid rgba(248, 250, 252, 0.9);
+      }
+      #gap-x {
+        position: absolute; left: 20px; top: 18px; font-size: 74px; font-weight: 900;
+        color: #ef4444; line-height: 54px; opacity: 0;
+        text-shadow: 0 0 16px rgba(239, 68, 68, 0.6);
+      }
+      #stamp {
+        position: absolute; left: 198px; top: 828px; width: 564px; text-align: center;
+        font-size: 76px; font-weight: 900; letter-spacing: 2px; color: #ef4444;
+        text-shadow: 0 4px 18px rgba(0, 0, 0, 0.85), 0 0 26px rgba(239, 68, 68, 0.4);
+        white-space: nowrap; opacity: 0;
+      }
+
+      #dither { opacity: 1; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="9.0" data-width="1080" data-height="1920">
+      <section id="main-clip" class="clip fill" data-start="0" data-duration="9.0" data-track-index="1">
+        <div id="content-all" class="fill">
+          <div id="bg-fill" class="fill">
+            <div id="glow-green"></div>
+            <div id="glow-red"></div>
+            <div id="vignette" class="fill"></div>
+          </div>
+
+          <div id="scene" class="fill">
+            <!-- ACT 1 -->
+            <div id="act1">
+              <svg id="loop-svg" viewBox="0 0 1080 1920">
+                <path id="loop-path" d="M740,400 C700,320 260,320 220,412" />
+              </svg>
+              <div id="lane-line"></div>
+              <div id="receiver">
+                <svg viewBox="0 0 54 54" fill="none">
+                  <rect x="6" y="16" width="42" height="30" rx="5" stroke="#34d399" stroke-width="3"/>
+                  <path d="M6 22 L27 36 L48 22" stroke="#34d399" stroke-width="3" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <div class="pkt" id="p1"></div>
+              <div class="pkt" id="p2"></div>
+              <div class="pkt" id="p3"></div>
+              <div class="pkt" id="p4"></div>
+              <div class="pkt" id="p5"></div>
+              <div class="pkt" id="p3b"></div>
+              <div class="tick" id="t1" style="left: 600px;"><svg viewBox="0 0 24 24" fill="none"><path d="M4 12.5L9.5 18L20 6" stroke="#04281c" stroke-width="4" stroke-linecap="round"/></svg></div>
+              <div class="tick" id="t2" style="left: 644px;"><svg viewBox="0 0 24 24" fill="none"><path d="M4 12.5L9.5 18L20 6" stroke="#04281c" stroke-width="4" stroke-linecap="round"/></svg></div>
+              <div class="tick" id="t4" style="left: 688px;"><svg viewBox="0 0 24 24" fill="none"><path d="M4 12.5L9.5 18L20 6" stroke="#04281c" stroke-width="4" stroke-linecap="round"/></svg></div>
+              <div class="tick" id="t5" style="left: 732px;"><svg viewBox="0 0 24 24" fill="none"><path d="M4 12.5L9.5 18L20 6" stroke="#04281c" stroke-width="4" stroke-linecap="round"/></svg></div>
+              <div class="tick" id="t3b" style="left: 776px;"><svg viewBox="0 0 24 24" fill="none"><path d="M4 12.5L9.5 18L20 6" stroke="#04281c" stroke-width="4" stroke-linecap="round"/></svg></div>
+
+              <div id="file-card">
+                <div id="file-name" class="mono">video.mp4</div>
+                <div id="file-track"><div id="file-fill"></div></div>
+              </div>
+              <div id="fine-chip">FINE</div>
+            </div>
+
+            <!-- TURN -->
+            <div id="clock-wrap">
+              <svg viewBox="0 0 140 140">
+                <circle cx="70" cy="70" r="62" fill="rgba(20,16,6,0.85)" stroke="#fbbf24" stroke-width="4"/>
+                <circle cx="70" cy="70" r="5" fill="#fbbf24"/>
+                <line id="clock-hand" x1="70" y1="70" x2="70" y2="26" stroke="#fbbf24" stroke-width="5" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div id="plus2" class="mono">+2.0s</div>
+
+            <!-- ACT 2 -->
+            <div id="act2">
+              <div id="strip-label" class="mono">live call</div>
+              <div id="cursor-tri"></div>
+              <div id="cursor-line"></div>
+              <div id="strip-viewport">
+                <div id="strip"></div>
+              </div>
+              <div id="stamp">HELPS NOBODY</div>
+            </div>
+          </div>
+
+          <div id="flash" class="fill"></div>
+          <div id="dither" class="fill"></div>
+        </div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter" x="0%" y="0%" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.04 0" />
+      </filter>
+    </svg>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      document.getElementById("dither").style.filter = "url(#grain-filter)";
+
+      // Build the conversation slots deterministically (hard-coded squiggle heights).
+      // 8 slots at pitch 110; slot index 5 is THE GAP.
+      const strip = document.getElementById("strip");
+      const squig = [
+        [10, 26, 18, 30, 14], [22, 12, 28, 16, 24], [14, 30, 12, 26, 18],
+        [26, 16, 22, 10, 28], [18, 24, 14, 30, 12], null,
+        [24, 14, 26, 18, 10], [12, 28, 16, 24, 20],
+      ];
+      for (let i = 0; i < 8; i++) {
+        const d = document.createElement("div");
+        d.className = "slot-w";
+        d.style.left = (20 + i * 110) + "px";
+        if (i === 5) {
+          d.id = "slot-gap";
+          d.innerHTML = '<div id="late-pkt"></div><div id="gap-x">&#10007;</div>';
+        } else {
+          const h = squig[i];
+          d.innerHTML = '<svg viewBox="0 0 60 40">' +
+            h.map((v, j) => '<rect x="' + (4 + j * 11) + '" y="' + (20 - v / 2) + '" width="7" height="' + v + '" rx="3" fill="rgba(252,165,165,0.7)"/>').join("") +
+            "</svg>";
+        }
+        strip.appendChild(d);
+      }
+
+      // deterministic SVG line-draw setup for the re-send loop
+      const loop = document.getElementById("loop-path");
+      const loopLen = loop.getTotalLength();
+      loop.style.strokeDasharray = String(loopLen);
+      loop.style.strokeDashoffset = String(loopLen);
+
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // slow push-in under everything
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.06, duration: 9.0, ease: "sine.inOut" }, 0);
+
+      // ---------- ACT 1: the dutiful reliable lane ----------
+      // lane + receiver present from frame 0 at 0.55, rise to 1 (entrance at local t=0)
+      tl.fromTo("#act1", { opacity: 0.55 }, { opacity: 1, duration: 0.35, ease: "power3.out" }, 0);
+
+      const laneY = 425;
+      function travel(sel, t0, xFrom, xTo, dur) {
+        tl.fromTo(sel, { x: xFrom, y: laneY, opacity: 0 },
+          { x: xFrom, y: laneY, opacity: 1, duration: 0.15, ease: "power2.out", immediateRender: false }, t0);
+        tl.to(sel, { x: xTo, duration: dur, ease: "sine.inOut" }, t0);
+        tl.to(sel, { opacity: 0, duration: 0.2, ease: "power2.out" }, t0 + dur);
+      }
+      // p1, p2 arrive; ticks pop
+      travel("#p1", 0.10, 140, 715, 1.1);
+      travel("#p2", 0.55, 140, 715, 1.1);
+      // p3 departs, DROPS mid-lane at ~1.35 (lands "waiting for lost data" @0.70-1.62)
+      tl.fromTo("#p3", { x: 140, y: laneY, opacity: 0 }, {x: 140, y: laneY, opacity: 1, duration: 0.15, ease: "power2.out", immediateRender: false }, 0.90);
+      tl.to("#p3", { x: 440, duration: 0.45, ease: "sine.in" }, 0.90);
+      tl.to("#p3", { y: laneY + 165, x: 470, rotation: 42, opacity: 0.35, duration: 0.5, ease: "power2.in" }, 1.35);
+      // p4, p5 keep flowing
+      travel("#p4", 1.50, 140, 715, 1.1);
+      travel("#p5", 2.05, 140, 715, 1.1);
+      // the re-send loop draws (amber) and the replacement re-travels
+      tl.to("#loop-path", { opacity: 1, duration: 0.15, ease: "power2.out" }, 1.55);
+      tl.to("#loop-path", { strokeDashoffset: 0, duration: 0.6, ease: "power3.out" }, 1.55);
+      travel("#p3b", 2.30, 140, 715, 1.1);
+      // receipt ticks (staggered pops, one per arrival)
+      [["#t1", 1.25], ["#t2", 1.70], ["#t4", 2.65], ["#t5", 3.20], ["#t3b", 3.45]].forEach(([s, t]) => {
+        tl.fromTo(s, { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1, duration: 0.22, ease: "back.out(1.6)", immediateRender: false }, t);
+      });
+      // the file is FINE: card + fill + chip ("fine for a video file" ~local 1.6-4.2)
+      tl.fromTo("#file-card", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 2.6);
+      tl.fromTo("#file-fill", { width: "3%" }, { width: "100%", duration: 1.2, ease: "power1.inOut", immediateRender: false }, 2.85);
+      tl.fromTo("#fine-chip", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.28, ease: "back.out(1.8)", immediateRender: false }, 4.1);
+
+      // ---------- TURN @4.5: the clock spins +2s, colour phase-shift ----------
+      tl.fromTo("#clock-wrap", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.5)", immediateRender: false }, 4.45);
+      // shutter flash
+      tl.fromTo("#flash", { opacity: 0 }, { opacity: 0.85, duration: 0.06, ease: "power3.out", immediateRender: false }, 4.5);
+      tl.to("#flash", { opacity: 0, duration: 0.24, ease: "power3.out" }, 4.56);
+      // hand sweep: trig/onUpdate, NEVER GSAP rotation on a zero-width <line> (rule 13)
+      const hand = document.getElementById("clock-hand");
+      const sweep = { a: -90 };
+      tl.to(sweep, {
+        a: 630, duration: 0.95, ease: "power2.inOut",
+        onUpdate: () => {
+          const r = (sweep.a * Math.PI) / 180;
+          hand.setAttribute("x2", String(70 + 44 * Math.cos(r)));
+          hand.setAttribute("y2", String(70 + 44 * Math.sin(r)));
+        },
+      }, 4.55);
+      tl.fromTo("#plus2", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 4.8);
+      // phase shift: green out, red in; act1 recedes
+      tl.to("#glow-green", { opacity: 0.12, duration: 0.9, ease: "sine.inOut" }, 4.6);
+      tl.to("#glow-red", { opacity: 1, duration: 0.9, ease: "sine.inOut" }, 4.6);
+      tl.to("#act1", { scale: 0.88, y: -44, opacity: 0.3, duration: 0.6, ease: "power3.out" }, 4.75);
+
+      // ---------- ACT 2 @5.3: the word arrives two seconds after its slot ----------
+      tl.fromTo("#act2", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power3.out", immediateRender: false }, 5.3);
+      // the conversation keeps moving (constant velocity IS the point)
+      tl.fromTo("#strip", { x: 0 }, { x: -260, duration: 3.1, ease: "none", immediateRender: false }, 5.5);
+      // the gap slot pulses (odd yoyo repeat: 5.8 + 4*0.5 = 7.8 end, before the fade)
+      tl.fromTo("#slot-gap",
+        { borderColor: "rgba(239,68,68,0.45)" },
+        { borderColor: "rgba(239,68,68,0.95)", duration: 0.5, ease: "sine.inOut", yoyo: true, repeat: 3, immediateRender: false }, 5.8);
+      // the re-sent word finally arrives -- into a slot whose moment passed at ~6.76
+      // flight stays inside the strip viewport (overflow hidden clips anything above it)
+      tl.fromTo("#late-pkt", { x: -240, y: -30, opacity: 0 },
+        { x: 0, y: 0, opacity: 1, duration: 0.5, ease: "power2.in", immediateRender: false }, 7.5);
+      // clock exits before the stamp region lights up (no co-visibility with stamp)
+      tl.to("#clock-wrap", { opacity: 0, duration: 0.35, ease: "power2.out" }, 7.15);
+      tl.to("#plus2", { opacity: 0, duration: 0.35, ease: "power2.out" }, 7.15);
+      // the X, then the verdict ("helps nobody" @8.06-8.80)
+      tl.fromTo("#gap-x", { opacity: 0, scale: 1.8 }, { opacity: 1, scale: 1, duration: 0.22, ease: "power4.out", immediateRender: false }, 8.0);
+      tl.fromTo("#stamp", { opacity: 0, scale: 1.45 }, { opacity: 1, scale: 1, duration: 0.26, ease: "power4.out", immediateRender: false }, 8.2);
+      tl.to("#glow-red", { opacity: 0.7, duration: 0.45, ease: "sine.inOut", yoyo: true, repeat: 1 }, 7.6);
+
+      // ---------- fade: finishes at EXACTLY 9.0 (8.7 + 0.3), zero buffer ----------
+      tl.fromTo("#content-all", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 8.7);
+      // transformed layers fade in the same window so none strands past the wrapper fade
+      ["#scene", "#act1", "#act2", "#stamp", "#clock-wrap"].forEach((s) => {
+        tl.to(s, { opacity: 0, duration: 0.3, ease: "power2.out" }, 8.7);
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

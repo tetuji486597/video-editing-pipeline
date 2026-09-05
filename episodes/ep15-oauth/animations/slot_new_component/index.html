@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body {
+        font-family: Inter, sans-serif;
+      }
+
+      :root {
+        --gblue: #1a73e8;
+        --cyan: #22d3ee;
+        --cyan-light: #67e8f9;
+        --slate: #94a3b8;
+      }
+
+      #root {
+        position: relative;
+      }
+      .fill {
+        position: absolute;
+        inset: 0;
+      }
+
+      /* ================= background (sibling of #scene — never pushed in) ============ */
+      #bg-fill {
+        background: radial-gradient(
+          126% 92% at 50% 30%,
+          #131a24 0%,
+          #0a0e14 44%,
+          #05070a 80%,
+          #020305 100%
+        );
+      }
+      /* no transform on these — a transformed layer does not inherit ancestor opacity
+         reliably in this renderer, so the parent #bg-fill fade must reach them */
+      #glow-blue {
+        position: absolute;
+        left: -120px;
+        top: -7px;
+        width: 1320px;
+        height: 1320px;
+        background: radial-gradient(circle, rgba(26, 115, 232, 0.17) 0%, rgba(26, 115, 232, 0) 62%);
+        opacity: 1;
+      }
+      #glow-cyan {
+        position: absolute;
+        left: -180px;
+        top: 470px;
+        width: 1440px;
+        height: 1440px;
+        background: radial-gradient(circle, rgba(34, 211, 238, 0.16) 0%, rgba(34, 211, 238, 0) 60%);
+        opacity: 0.35;
+      }
+      #vignette {
+        background: linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0.58) 0%,
+          rgba(0, 0, 0, 0) 13%,
+          rgba(0, 0, 0, 0) 76%,
+          rgba(0, 0, 0, 0.72) 100%
+        );
+      }
+
+      /* ================= camera push-in target ============ */
+      #scene {
+        transform-origin: 540px 685.5px;
+      }
+
+      /* ================= ACT 1 — the consent sheet ============ */
+      #sheet {
+        position: absolute;
+        left: 150px;
+        top: 262px;
+        width: 780px;
+        height: 803px;
+        border-radius: 26px;
+        background: #ffffff;
+        box-shadow: 0 22px 54px rgba(0, 0, 0, 0.62);
+        opacity: 0.55; /* frame-0 state comes from CSS, animated up from t=0 */
+      }
+
+      /* the REAL Google consent-screen capture, inset as a component of the sheet */
+      #consent-shot {
+        position: absolute;
+        left: 24px;
+        top: 24px;
+        width: 732px;
+        height: 297px;
+        border-radius: 10px;
+        border: 1px solid rgba(15, 23, 42, 0.12);
+        overflow: hidden;
+        background: #ffffff;
+      }
+      #consent-shot img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: 50% 50%;
+        display: block;
+      }
+
+      .scope-row {
+        position: absolute;
+        left: 24px;
+        width: 732px;
+        height: 110px;
+        opacity: 0;
+      }
+      #scope1 {
+        top: 367px;
+      }
+      #scope2 {
+        top: 525px;
+      }
+      .scope-icon {
+        position: absolute;
+        left: 16px;
+        top: 27px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: rgba(26, 115, 232, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .scope-icon svg {
+        width: 32px;
+        height: 32px;
+      }
+      .scope-text {
+        position: absolute;
+        left: 116px;
+        top: 32px;
+        height: 46px;
+        line-height: 46px;
+        color: #202124;
+        font-size: 36px;
+        font-weight: 500;
+        white-space: nowrap;
+      }
+      .scope-box {
+        position: absolute;
+        left: 670px;
+        top: 32px;
+        width: 46px;
+        height: 46px;
+        border-radius: 5px;
+        border: 2px solid #5f6368;
+      }
+      .scope-fill {
+        position: absolute;
+        inset: -2px;
+        border-radius: 5px;
+        background: var(--gblue);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+      }
+      .scope-fill svg {
+        width: 30px;
+        height: 30px;
+      }
+
+      .sheet-rule {
+        position: absolute;
+        left: 24px;
+        width: 732px;
+        height: 1px;
+        background: rgba(32, 33, 36, 0.1);
+      }
+      #rule1 {
+        top: 501px;
+      }
+
+      .sheet-btn {
+        position: absolute;
+        top: 683px;
+        width: 248px;
+        height: 92px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 34px;
+        font-weight: 600;
+      }
+      #btn-cancel {
+        left: 24px;
+        color: #0b57d0;
+        background: #ffffff;
+        border: 1px solid #dadce0;
+      }
+      #btn-allow {
+        left: 508px;
+        color: #ffffff;
+        background: var(--gblue);
+        box-shadow: 0 4px 14px rgba(26, 115, 232, 0.3);
+      }
+
+      /* ================= ACT 2 — token travels, vault stays shut ============ */
+      #vault {
+        position: absolute;
+        left: 90px;
+        top: 640px;
+        width: 380px;
+        height: 420px;
+        border-radius: 22px;
+        background: linear-gradient(160deg, #171c24 0%, #0d1117 100%);
+        border: 2px solid rgba(148, 163, 184, 0.3);
+        box-shadow: 0 22px 56px rgba(0, 0, 0, 0.55);
+        opacity: 0;
+      }
+      #padlock {
+        position: absolute;
+        left: 126px;
+        top: 78px;
+        width: 124px;
+        height: 148px;
+      }
+      #vault-label {
+        position: absolute;
+        left: 0;
+        top: 306px;
+        width: 376px;
+        height: 38px;
+        line-height: 38px;
+        text-align: center;
+        color: #94a3b8;
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: 5px;
+      }
+
+      #app {
+        position: absolute;
+        left: 610px;
+        top: 640px;
+        width: 380px;
+        height: 420px;
+        border-radius: 22px;
+        background: linear-gradient(160deg, rgba(15, 23, 32, 0.96) 0%, rgba(8, 12, 17, 0.98) 100%);
+        border: 2px solid rgba(148, 163, 184, 0.26);
+        box-shadow: 0 22px 56px rgba(0, 0, 0, 0.55);
+        opacity: 0;
+      }
+      #app-bar {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 376px;
+        height: 56px;
+        border-radius: 20px 20px 0 0;
+        background: rgba(148, 163, 184, 0.07);
+        border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+      }
+      .app-dot {
+        position: absolute;
+        top: 21px;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: rgba(148, 163, 184, 0.42);
+      }
+      #dot1 {
+        left: 24px;
+      }
+      #dot2 {
+        left: 48px;
+      }
+      #dot3 {
+        left: 72px;
+      }
+      #slot {
+        position: absolute;
+        left: 18px;
+        top: 176px;
+        width: 340px;
+        height: 120px;
+        border-radius: 16px;
+        border: 2px dashed rgba(148, 163, 184, 0.28);
+      }
+
+      #token-glow {
+        position: absolute;
+        left: 420px;
+        top: 260px;
+        width: 240px;
+        height: 240px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(34, 211, 238, 0.34) 0%, rgba(34, 211, 238, 0) 66%);
+        opacity: 0;
+      }
+
+      #trail-svg {
+        position: absolute;
+        inset: 0;
+        width: 1080px;
+        height: 1920px;
+      }
+      #trail {
+        fill: none;
+        stroke: rgba(34, 211, 238, 0.5);
+        stroke-width: 3;
+        stroke-linecap: round;
+      }
+
+      /* CSS position = the DOCKED position; GSAP x/y carries it back to its origin */
+      #token {
+        position: absolute;
+        left: 630px;
+        top: 818px;
+        width: 340px;
+        height: 120px;
+        border-radius: 16px;
+        background: linear-gradient(150deg, rgba(8, 32, 40, 0.96) 0%, rgba(4, 18, 24, 0.98) 100%);
+        border: 2px solid rgba(34, 211, 238, 0.65);
+        box-shadow: 0 0 18px 1px rgba(34, 211, 238, 0.35), 0 14px 34px rgba(0, 0, 0, 0.5);
+        opacity: 0;
+      }
+      #tk-label {
+        position: absolute;
+        left: 22px;
+        top: 16px;
+        height: 26px;
+        line-height: 26px;
+        color: var(--cyan-light);
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: 4px;
+      }
+      #tk-value {
+        position: absolute;
+        left: 22px;
+        top: 52px;
+        height: 44px;
+        line-height: 44px;
+        color: #e6fbff;
+        font-size: 34px;
+        font-weight: 500;
+        letter-spacing: 1px;
+        font-family: "JetBrains Mono", Menlo, monospace;
+      }
+
+      /* ================= full-frame effect layers (band-exempt) ============ */
+      #flash {
+        background: #ffffff;
+        opacity: 0;
+        pointer-events: none;
+      }
+      #grain {
+        opacity: 1;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="7.30"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="main-clip" class="clip" data-start="0" data-duration="7.30" data-track-index="1">
+        <div id="content-all" class="fill">
+          <div id="bg-fill" class="fill">
+            <div id="glow-blue"></div>
+            <div id="glow-cyan"></div>
+          </div>
+          <div id="vignette" class="fill"></div>
+
+          <div id="scene" class="fill">
+            <!-- ---------- ACT 1: the consent sheet ---------- -->
+            <div id="sheet">
+              <!-- REAL Google-published OAuth consent-screen capture, inset in the sheet -->
+              <div id="consent-shot">
+                <img src="assets/consent_header.png" alt="" />
+              </div>
+
+              <div class="scope-row" id="scope1">
+                <div class="scope-icon">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <rect x="2.5" y="5" width="19" height="14" rx="2.5" stroke="#1a73e8" stroke-width="2" />
+                    <path d="M3.5 7.2L12 13L20.5 7.2" stroke="#1a73e8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </div>
+                <div class="scope-text" data-layout-allow-occlusion="true">See your email address</div>
+                <div class="scope-box">
+                  <div class="scope-fill" id="cb1">
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <path d="M4 12.5L9.5 18L20 6" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <div class="sheet-rule" id="rule1"></div>
+
+              <div class="scope-row" id="scope2">
+                <div class="scope-icon">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="8" r="4" stroke="#1a73e8" stroke-width="2" />
+                    <path d="M4.5 20c0-3.6 3.4-6 7.5-6s7.5 2.4 7.5 6" stroke="#1a73e8" stroke-width="2" stroke-linecap="round" />
+                  </svg>
+                </div>
+                <div class="scope-text" data-layout-allow-occlusion="true">See your name</div>
+                <div class="scope-box">
+                  <div class="scope-fill" id="cb2">
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <path d="M4 12.5L9.5 18L20 6" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <div class="sheet-btn" id="btn-cancel" data-layout-allow-occlusion="true">Cancel</div>
+              <div class="sheet-btn" id="btn-allow" data-layout-allow-occlusion="true">Allow</div>
+            </div>
+
+            <!-- ---------- ACT 2: the token travels; the vault does not ---------- -->
+            <div id="vault">
+              <svg id="padlock" viewBox="0 0 104 124" fill="none">
+                <path d="M30 56V36a22 22 0 0 1 44 0v20" stroke="#94a3b8" stroke-width="11" stroke-linecap="round" />
+                <rect x="14" y="54" width="76" height="60" rx="13" fill="#1f2733" stroke="#94a3b8" stroke-width="4" />
+                <circle cx="52" cy="78" r="8" fill="#94a3b8" />
+                <rect x="48" y="80" width="8" height="18" rx="4" fill="#94a3b8" />
+              </svg>
+              <div id="vault-label">PASSWORD</div>
+            </div>
+
+            <div id="app">
+              <div id="app-bar"></div>
+              <div class="app-dot" id="dot1"></div>
+              <div class="app-dot" id="dot2"></div>
+              <div class="app-dot" id="dot3"></div>
+              <div id="slot"></div>
+            </div>
+
+            <div id="token-glow"></div>
+
+            <svg id="trail-svg" viewBox="0 0 1080 1920">
+              <path id="trail" d="M540,380 Q800,380 800,818" />
+              <circle id="trail-origin" cx="540" cy="380" r="8" fill="#22d3ee" opacity="0" />
+            </svg>
+
+            <div id="token">
+              <div id="tk-label">ACCESS TOKEN</div>
+              <div id="tk-value">ya29.a0Af4x7L</div>
+            </div>
+          </div>
+
+          <div id="flash" class="fill"></div>
+          <div id="grain" class="fill"></div>
+        </div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.042 0" />
+      </filter>
+    </svg>
+
+    <script>
+      document.getElementById("grain").style.filter = "url(#grain-filter)";
+
+      // deterministic SVG line-draw setup (measured at load, no randomness)
+      const trailEl = document.getElementById("trail");
+      const trailLen = trailEl.getTotalLength();
+      trailEl.style.strokeDasharray = String(trailLen);
+      trailEl.style.strokeDashoffset = String(trailLen);
+
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // token origin offset: docked centre (800,878) -> emit centre (540,380)
+      const OX = -260,
+        OY = -498;
+
+      // ---------- continuous slow camera push-in (origin = content-band centre) ----------
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.045, duration: 7.3, ease: "sine.inOut" }, 0);
+
+      // ================= ACT 1 — the consent sheet rises =================
+      // starts at t=0 from the CSS frame-0 state (opacity .55), never at 0
+      tl.fromTo(
+        "#sheet",
+        { opacity: 0.55, y: 26, scale: 0.968 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.6, ease: "power3.out" },
+        0
+      );
+
+      // ambient life on the primary action while the question is being asked
+      tl.to(
+        "#btn-allow",
+        {
+          boxShadow: "0 6px 26px rgba(26,115,232,0.62)",
+          duration: 0.7,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 3,
+        },
+        0.35
+      ); // ends 0.35 + 4*0.70 = 3.15
+
+      // scope rows list in, 0.75s apart, across the consent question (local 0.09-2.16)
+      tl.fromTo(
+        "#scope1",
+        { opacity: 0, x: -28 },
+        { opacity: 1, x: 0, duration: 0.5, ease: "power3.out", immediateRender: false },
+        0.95
+      );
+      tl.fromTo(
+        "#scope2",
+        { opacity: 0, x: -28 },
+        { opacity: 1, x: 0, duration: 0.5, ease: "power3.out", immediateRender: false },
+        1.7
+      );
+
+      // ================= THE TURN — you approve, Allow is pressed, flash =================
+      tl.fromTo(
+        "#cb1",
+        { opacity: 0, scale: 0.4 },
+        { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.8)", immediateRender: false },
+        2.55
+      );
+      tl.fromTo(
+        "#cb2",
+        { opacity: 0, scale: 0.4 },
+        { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.8)", immediateRender: false },
+        2.7
+      );
+
+      tl.fromTo(
+        "#btn-allow",
+        { scale: 1 },
+        { scale: 0.955, duration: 0.14, ease: "power3.out", immediateRender: false },
+        2.95
+      );
+      tl.fromTo(
+        "#btn-allow",
+        { scale: 0.955 },
+        { scale: 1, duration: 0.16, ease: "power4.out", immediateRender: false },
+        3.1
+      );
+
+      // sheet dismisses, condensing toward the point the token will be emitted from
+      tl.fromTo(
+        "#sheet",
+        { opacity: 1, y: 0, scale: 1 },
+        { opacity: 0, y: -215, scale: 0.2, duration: 0.34, ease: "power3.in", immediateRender: false },
+        3.22
+      ); // sheet fully gone at 3.56
+
+      tl.fromTo(
+        "#flash",
+        { opacity: 0 },
+        { opacity: 0.85, duration: 0.07, ease: "power3.out", immediateRender: false },
+        3.2
+      );
+      tl.fromTo(
+        "#flash",
+        { opacity: 0.85 },
+        { opacity: 0, duration: 0.35, ease: "power3.out", immediateRender: false },
+        3.27
+      ); // flash clear at 3.62
+
+      // colour phase-shift: Google blue (act 1) -> token cyan (act 2)
+      tl.fromTo(
+        "#glow-blue",
+        { opacity: 1 },
+        { opacity: 0.25, duration: 0.9, ease: "sine.inOut", immediateRender: false },
+        3.3
+      );
+      tl.fromTo(
+        "#glow-cyan",
+        { opacity: 0.35 },
+        { opacity: 1, duration: 0.9, ease: "sine.inOut", immediateRender: false },
+        3.3
+      );
+
+      // ================= ACT 2 — the stage (one flash-covered scene change) =================
+      tl.fromTo(
+        "#vault",
+        { opacity: 0, y: 22 },
+        { opacity: 1, y: 0, duration: 0.42, ease: "power3.out", immediateRender: false },
+        3.62
+      );
+      tl.fromTo(
+        "#app",
+        { opacity: 0, y: 22 },
+        { opacity: 1, y: 0, duration: 0.42, ease: "power3.out", immediateRender: false },
+        3.74
+      );
+      tl.fromTo(
+        "#token-glow",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.26, ease: "power3.out", immediateRender: false },
+        3.82
+      ); // ends 4.08
+
+      // the token is emitted where the sheet just was
+      tl.fromTo(
+        "#token",
+        { opacity: 0, scale: 0.82, x: OX, y: OY },
+        { opacity: 1, scale: 1, x: OX, y: OY, duration: 0.42, ease: "back.out(1.4)", immediateRender: false },
+        3.86
+      );
+
+      // it waits, breathing, then travels
+      tl.to("#token-glow", { opacity: 0.5, duration: 0.19, ease: "sine.inOut", yoyo: true, repeat: 1 }, 4.1); // ends 4.48
+
+      // ---------- LANDS ON "limited access token" @ local 5.00 ----------
+      // x and y are tweened on SEPARATE eases so the chip arcs out to the right before it
+      // drops. A straight centre-to-centre path clipped to 13.7px of the vault on one frame
+      // (measured on the live DOM); the arc's closest approach is 124.5px.
+      tl.fromTo(
+        "#token",
+        { x: OX },
+        { x: 0, duration: 0.5, ease: "power2.out", immediateRender: false },
+        4.5
+      );
+      tl.fromTo(
+        "#token",
+        { y: OY },
+        { y: 0, duration: 0.5, ease: "power2.inOut", immediateRender: false },
+        4.5
+      ); // docks at 5.00
+
+      // the handover path draws itself under the travelling chip and stays
+      tl.fromTo(
+        "#trail",
+        { strokeDashoffset: trailLen },
+        { strokeDashoffset: 0, duration: 0.5, ease: "power2.out", immediateRender: false },
+        4.5
+      );
+      tl.fromTo(
+        "#trail-origin",
+        { opacity: 0 },
+        { opacity: 0.85, duration: 0.3, ease: "power3.out", immediateRender: false },
+        4.55
+      );
+
+      tl.fromTo(
+        "#token-glow",
+        { opacity: 1 },
+        { opacity: 0.32, duration: 0.4, ease: "power3.out", immediateRender: false },
+        4.5
+      ); // settles to a dim origin marker as the token leaves
+
+      // the app receives it and lights up
+      tl.to(
+        "#app",
+        {
+          borderColor: "rgba(34,211,238,0.7)",
+          boxShadow: "0 22px 56px rgba(0,0,0,0.55), 0 0 40px 2px rgba(34,211,238,0.3)",
+          duration: 0.45,
+          ease: "power3.out",
+        },
+        5.0
+      );
+      tl.fromTo(
+        "#slot",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.3, ease: "power3.out", immediateRender: false },
+        5.02
+      );
+
+      // the vault takes the knock and stays shut — it never opens, never travels
+      tl.to("#vault", { y: -4, duration: 0.11, ease: "power2.out", yoyo: true, repeat: 1 }, 5.06); // ends 5.28
+      tl.to(
+        "#vault",
+        {
+          boxShadow: "0 22px 56px rgba(0,0,0,0.55), 0 0 30px 1px rgba(148,163,184,0.24)",
+          duration: 0.55,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 1,
+        },
+        5.2
+      ); // ends 6.30
+
+      tl.to(
+        "#token",
+        {
+          boxShadow: "0 0 34px 3px rgba(34,211,238,0.55), 0 14px 34px rgba(0,0,0,0.5)",
+          duration: 0.58,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 1,
+        },
+        5.5
+      ); // ends 6.66 — last repeating tween, well clear of the fade
+
+      // ---------- fade FINISHES at exactly 7.300 ----------
+      // Fading the #content-all ancestor was verified BROKEN on the rendered file: GSAP
+      // promotes every element it gives an x/y/scale to (#scene, #vault, #app, #token) to
+      // its own compositing layer, and those layers do not receive the ancestor's opacity.
+      // The first render blacked out the background while the cards and token stayed lit.
+      // Every layer therefore fades on its own tween, each touched exactly once so the
+      // fade stays uniform, all starting at 7.00 and landing on 0 at exactly 7.300.
+      const FADE_AT = 7.0,
+        FADE_DUR = 0.3;
+      [
+        ["#bg-fill", 1],
+        ["#vignette", 1],
+        ["#grain", 1],
+        ["#trail-svg", 1],
+        ["#token-glow", 0.32],
+        ["#vault", 1],
+        ["#app", 1],
+        ["#token", 1],
+      ].forEach(function (pair) {
+        tl.fromTo(
+          pair[0],
+          { opacity: pair[1] },
+          { opacity: 0, duration: FADE_DUR, ease: "power3.out", immediateRender: false },
+          FADE_AT
+        );
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

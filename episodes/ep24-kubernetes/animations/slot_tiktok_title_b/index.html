@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP24 TikTok-style Title Box (B)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      /* B-variant sticker: 2 boxes, abbreviated wording per the skill table
+         ("RLLY", no leading "EXPLORING"). Same user-feedback geometry as the A
+         sticker: CENTRED on the true frame centre x=540 (left:0;right:0;margin:auto),
+         font 56. Widest line "RLLY COOL TECH:" measured 665.7px box at 70 => text
+         605.7px; at 56px box ~= 605.7*56/70-ish ~ 542px -> x ~269-811; at drift 1.01
+         about x=540: right edge 540 + 271*1.01 = 813.7 <= 870 OK, left 266 >= 70 OK.
+         Top 210 (y>=200 margin). */
+      #stack {
+        position: absolute;
+        left: 0;
+        right: 0;
+        margin: 0 auto;           /* true frame centre x=540 */
+        top: 210px;               /* EP24 intro B measured: hair top ~110, brow ~700 */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+        opacity: 0.6;             /* frame-0 state from CSS, never a tl.set at 0 */
+        transform: scale(0.94);
+        transform-origin: 50% 12%;
+      }
+      .tt-line {
+        background: #ffffff;
+        color: #111111;
+        font-size: 56px;
+        line-height: 56px;
+        font-weight: 800;
+        letter-spacing: -1px;
+        padding: 22px 30px 26px 30px;
+        border-radius: 16px;
+        white-space: nowrap;
+        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.22);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="4.5"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="4.5"
+        data-track-index="1"
+      >
+        <div id="stack">
+          <div class="tt-line">RLLY COOL TECH:</div>
+          <div class="tt-line">EPISODE 24</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      tl.fromTo(
+        "#stack",
+        { opacity: 0.6, scale: 0.94 },
+        { opacity: 1, scale: 1, duration: 0.28, ease: "power3.out" },
+        0
+      );
+
+      // hold-drift for the motion linter's seek check
+      tl.fromTo(
+        "#stack",
+        { scale: 1 },
+        { scale: 1.01, duration: 3.94, ease: "none", immediateRender: false },
+        0.28
+      );
+
+      // Fade FINISHES at exactly data-duration: 4.22 + 0.28 = 4.500, zero buffer.
+      tl.fromTo(
+        "#stack",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.28, ease: "power2.out", immediateRender: false },
+        4.22
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

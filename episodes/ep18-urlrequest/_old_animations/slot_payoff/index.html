@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP18 Payoff — A Relay You Never See</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      #content-all { position: absolute; inset: 0; overflow: hidden; }
+
+      /* ============ FULL-BLEED PHOTO SCENE =================================
+         Long-exposure light trails on a night motorway — parallel lanes of
+         moving light, reading as a relay run at speed. Full-bleed layers are
+         exempt from the 180..1280 band, so ONLY this layer takes the push-in. */
+      #photo-wrap {
+        position: absolute; inset: 0;
+        transform-origin: 50% 52%;
+        /* phase-1 cold + dark grade, declared statically so frame 0 is correct */
+        filter: saturate(0.30) brightness(0.62) hue-rotate(-16deg) contrast(1.16);
+        will-change: transform, filter;
+      }
+      #photo-wrap img {
+        position: absolute; inset: 0; width: 1080px; height: 1920px;
+        object-fit: cover; object-position: 50% 46%; display: block;
+      }
+
+      /* legibility scrims — heaviest where the type lands, and dark again under
+         the burned-in caption band (y 1330-1570) so captions never sit on light */
+      #scrim {
+        position: absolute; inset: 0;
+        background: linear-gradient(
+          180deg,
+          rgba(2,5,10,0.74) 0%,
+          rgba(2,5,10,0.80) 18%,
+          rgba(2,5,10,0.74) 34%,
+          rgba(2,5,10,0.48) 44%,
+          rgba(2,5,10,0.30) 52%,
+          rgba(2,5,10,0.28) 60%,
+          rgba(2,5,10,0.48) 66%,
+          rgba(2,5,10,0.66) 70%,
+          rgba(2,5,10,0.80) 83%,
+          rgba(2,5,10,0.88) 100%
+        );
+      }
+      /* starts at y=300 — no layer of any kind sits above the content band */
+      #type-scrim {
+        position: absolute; left: 40px; top: 300px; width: 1000px; height: 540px;
+        background: radial-gradient(ellipse 500px 270px at 50% 50%,
+          rgba(1,3,8,0.74) 0%, rgba(1,3,8,0.50) 54%, rgba(1,3,8,0) 100%);
+      }
+      /* The tease pill's dedicated scrim went with the pill. It was a static dark
+         ellipse over the brightest part of the plate — with nothing sitting on it
+         it reads as a smudge on the photograph, not as contrast support. */
+      #vignette {
+        position: absolute; inset: 0;
+        background: radial-gradient(ellipse 720px 960px at 50% 46%,
+          rgba(0,0,0,0) 0%, rgba(0,0,0,0) 36%, rgba(2,3,8,0.56) 74%, rgba(1,2,5,0.96) 100%);
+      }
+
+      #edge-cool {
+        position: absolute; inset: 0; opacity: 0.34;
+        box-shadow: inset 0 0 220px 56px rgba(22,48,84,0.54), inset 0 0 96px 10px rgba(14,32,58,0.44);
+      }
+      #edge-sky {
+        position: absolute; inset: 0; opacity: 0;
+        box-shadow: inset 0 0 240px 64px rgba(14,165,233,0.38), inset 0 0 100px 10px rgba(125,211,252,0.24);
+      }
+
+      #sweep {
+        position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; opacity: 0;
+        background: linear-gradient(106deg,
+          rgba(14,165,233,0) 36%, rgba(14,165,233,0.34) 46%,
+          rgba(224,242,254,0.62) 50%, rgba(14,165,233,0.34) 54%, rgba(14,165,233,0) 64%);
+      }
+
+      #grain { position: absolute; inset: 0; opacity: 0.045; }
+
+      /* ============================== TYPE ==================================
+         headline block  y  430 ..  706   (two lines, revealed as ONE block)
+      ====================================================================== */
+      .shadowed {
+        text-shadow:
+          0 3px 12px rgba(0,0,0,0.98),
+          0 10px 40px rgba(0,0,0,0.95),
+          0 0 26px rgba(0,0,0,0.94),
+          0 0 88px rgba(0,0,0,0.84);
+      }
+
+      #headline {
+        position: absolute; left: 0; top: 430px; width: 1080px; height: 276px;
+        text-align: center; opacity: 0.5;   /* frame-0 state from CSS */
+        transform-origin: 50% 50%;
+      }
+      #headline div {
+        height: 138px; line-height: 138px; font-size: 118px; font-weight: 800;
+        letter-spacing: -2px; color: #ffffff; white-space: nowrap;
+      }
+      #headline .lit { color: #7dd3fc; }
+
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="5.0"
+         data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="5.0" data-track-index="1">
+        <div id="content-all">
+          <div id="photo-wrap" data-layout-allow-overflow="true">
+            <img src="assets/trails.jpg" alt="" />
+          </div>
+
+          <div id="scrim" data-layout-allow-overflow="true"></div>
+          <div id="type-scrim" data-layout-allow-overflow="true"></div>
+          <div id="vignette" data-layout-allow-overflow="true"></div>
+          <div id="edge-cool" data-layout-allow-overflow="true"></div>
+          <div id="edge-sky" data-layout-allow-overflow="true"></div>
+          <div id="sweep" data-layout-allow-overflow="true"></div>
+
+          <svg id="grain" viewBox="0 0 100 100" preserveAspectRatio="none" data-layout-allow-overflow="true">
+            <filter id="grain-f">
+              <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" />
+              <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.4 0" />
+            </filter>
+            <rect width="100" height="100" filter="url(#grain-f)" />
+          </svg>
+
+          <div id="headline" class="shadowed" data-layout-allow-overflow="true">
+            <div>A <span class="lit">RELAY</span></div>
+            <div>YOU NEVER SEE</div>
+          </div>
+
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      /* ---- slow push-in on the PHOTOGRAPH only (full-bleed layer, exempt from
+             the 180-1280 band). The type layer never scales after its entrance,
+             so type bounds are exactly their CSS boxes.                     ---- */
+      tl.fromTo("#photo-wrap", { scale: 1 }, { scale: 1.08, duration: 5.0, ease: "sine.inOut" }, 0);
+
+      /* ============ the ONE idea, up from frame 0 (0.00 - 0.55) ==============
+         The headline is already legible on frame 0 at 0.5 opacity (CSS, not a
+         tl.set) and simply resolves — it is the whole overlay.                */
+      tl.fromTo("#headline", { opacity: 0.5, y: 20, scale: 1.05 },
+                { opacity: 1, y: 0, scale: 1, duration: 0.55, ease: "power4.out" }, 0);
+
+      /* cold ambient swell — hand-stepped, non-repeating */
+      tl.fromTo("#edge-cool", { opacity: 0.34 },
+                { opacity: 0.56, duration: 0.80, ease: "sine.inOut", immediateRender: false }, 0.70);
+      tl.fromTo("#edge-cool", { opacity: 0.56 },
+                { opacity: 0.40, duration: 0.34, ease: "sine.inOut", immediateRender: false }, 1.50);
+
+      /* ============ TRANSITION @ 1.70 : sky sweep, the grade warms =========== */
+      tl.fromTo("#sweep", { opacity: 0 },
+                { opacity: 1, duration: 0.09, ease: "sine.out", immediateRender: false }, 1.70);
+      tl.fromTo("#sweep", { x: -1500 },
+                { x: 1500, duration: 0.62, ease: "power2.inOut", immediateRender: false }, 1.70);
+      tl.fromTo("#sweep", { opacity: 1 },
+                { opacity: 0, duration: 0.18, ease: "sine.in", immediateRender: false }, 2.14);
+
+      /* cold -> warm colour grade, driven through a proxy object (plain CSS writes) */
+      const grade = { sat: 0.30, bri: 0.62, hue: -16, con: 1.16 };
+      const photoEl = document.getElementById("photo-wrap");
+      const applyGrade = function () {
+        photoEl.style.filter =
+          "saturate(" + grade.sat + ") brightness(" + grade.bri + ") hue-rotate(" + grade.hue + "deg) contrast(" + grade.con + ")";
+      };
+      tl.to(grade, { sat: 1.0, bri: 0.88, hue: 8, con: 1.06,
+                     duration: 0.80, ease: "power3.out", onUpdate: applyGrade }, 1.73);
+
+      tl.fromTo("#edge-cool", { opacity: 0.40 },
+                { opacity: 0, duration: 0.36, ease: "power3.out", immediateRender: false }, 1.84);
+      tl.fromTo("#edge-sky", { opacity: 0 },
+                { opacity: 0.48, duration: 0.50, ease: "power3.out", immediateRender: false }, 1.88);
+
+      /* No tease reveal here. ep6-websockets/project.md records that the payoff
+         overlay stays a purely visual callback — no literal next-episode text. The
+         settle is now genuinely empty from 2.38 to the fade, which is the point:
+         the headline gets held instead of being talked over by a second sentence. */
+
+      /* closing sky glow breathe — ODD repeat so it lands back on the base
+         value, and it COMPLETES at 3.90 + 2*0.18 = 4.26, before the 4.70 fade */
+      tl.to("#edge-sky", { opacity: 0.76, duration: 0.18, ease: "sine.inOut", yoyo: true, repeat: 1 }, 3.90);
+
+      /* ---- fade FINISHES at exactly 5.000 (4.70 + 0.30), zero buffer ---- */
+      tl.fromTo("#content-all", { opacity: 1 },
+                { opacity: 0, duration: 0.30, ease: "power2.out",
+                  immediateRender: false }, 4.70);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

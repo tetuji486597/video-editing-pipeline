@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body {
+        font-family: Inter, sans-serif;
+      }
+
+      /* ---------- master wrapper (opaque fill lives here, never on #root/.clip) ---------- */
+      #content-all {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+
+      /* ===== FULL-FRAME ATMOSPHERIC LAYERS (frame-wide washes, no discrete form) ===== */
+
+      /* the real photograph, FULL-BLEED hero visual */
+      #photo-wrap {
+        position: absolute;
+        inset: 0;
+        transform-origin: 50% 46%;
+        /* phase-1 cold/desaturated grade -- declared statically so every frame
+           before the grade tween starts is already correct */
+        filter: saturate(0.5) brightness(0.58) hue-rotate(-10deg) contrast(1.12);
+        will-change: transform, filter;
+      }
+      #photo-wrap img {
+        position: absolute;
+        inset: 0;
+        width: 1080px;
+        height: 1920px;
+        object-fit: cover;
+        object-position: 50% 50%;
+        display: block;
+      }
+
+      /* darkening scrim -- the primary legibility guarantee over varying photo luminance */
+      #scrim {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          180deg,
+          rgba(3, 6, 14, 0.38) 0%,
+          rgba(3, 6, 14, 0.44) 26%,
+          rgba(3, 6, 14, 0.5) 52%,
+          rgba(3, 6, 14, 0.44) 76%,
+          rgba(3, 6, 14, 0.34) 100%
+        );
+      }
+
+      #vignette {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 700px 940px at 50% 46%,
+          rgba(0, 0, 0, 0) 0%,
+          rgba(0, 0, 0, 0) 38%,
+          rgba(2, 3, 8, 0.55) 74%,
+          rgba(1, 2, 5, 0.95) 100%
+        );
+      }
+
+      /* restless red edge glow (phase 1) */
+      #edge-red {
+        position: absolute;
+        inset: 0;
+        box-shadow:
+          inset 0 0 210px 54px rgba(239, 68, 68, 0.5),
+          inset 0 0 92px 8px rgba(220, 38, 38, 0.34);
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      /* steady amber edge glow (phase 2) */
+      #edge-amber {
+        position: absolute;
+        inset: 0;
+        box-shadow:
+          inset 0 0 230px 62px rgba(245, 158, 11, 0.44),
+          inset 0 0 100px 10px rgba(251, 191, 36, 0.26);
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      /* warm amber diagonal sweep -- the transition beat */
+      #sweep {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1080px;
+        height: 1920px;
+        background: linear-gradient(
+          112deg,
+          rgba(245, 158, 11, 0) 36%,
+          rgba(251, 191, 36, 0.3) 46%,
+          rgba(254, 243, 199, 0.58) 50%,
+          rgba(251, 191, 36, 0.3) 54%,
+          rgba(245, 158, 11, 0) 64%
+        );
+        opacity: 0;
+        pointer-events: none;
+        will-change: transform;
+      }
+
+      /* deterministic static grain */
+      #grain {
+        position: absolute;
+        inset: 0;
+        opacity: 0.045;
+        pointer-events: none;
+      }
+
+      /* ===== DISCRETE CONTENT LAYERS ===== */
+      #phase1,
+      #phase2 {
+        position: absolute;
+        inset: 0;
+      }
+
+      .shadowed {
+        text-shadow:
+          0 3px 10px rgba(0, 0, 0, 0.95),
+          0 8px 34px rgba(0, 0, 0, 0.9),
+          0 0 70px rgba(0, 0, 0, 0.75);
+      }
+
+      /* ---- PHASE 1 : CHAOS ---- */
+      #kicker {
+        position: absolute;
+        left: 0;
+        top: 520px;
+        width: 1080px;
+        height: 52px;
+        text-align: center;
+        font-size: 42px;
+        line-height: 52px;
+        font-weight: 700;
+        letter-spacing: 11px;
+        text-transform: uppercase;
+        color: #fca5a5;
+        opacity: 0;
+        will-change: opacity, transform;
+      }
+
+      #chaos {
+        position: absolute;
+        left: 0;
+        top: 662px;
+        width: 1080px;
+        height: 230px;
+        text-align: center;
+        font-size: 230px;
+        line-height: 230px;
+        font-weight: 800;
+        letter-spacing: -2px;
+        color: #ffffff;
+        opacity: 0;
+        transform-origin: 50% 50%;
+        will-change: opacity, transform;
+      }
+
+      /* ---- PHASE 2 : THE BUCKET ---- */
+      #bucket-wrap {
+        position: absolute;
+        left: 410px;
+        top: 250px;
+        width: 260px;
+        height: 260px;
+        opacity: 0;
+        will-change: opacity, transform;
+        filter: drop-shadow(0 0 26px rgba(245, 158, 11, 0.55))
+          drop-shadow(0 4px 14px rgba(0, 0, 0, 0.9));
+      }
+
+      #hero {
+        position: absolute;
+        left: 0;
+        top: 600px;
+        width: 1080px;
+        height: 273px;
+      }
+      .hero-line {
+        width: 1080px;
+        height: 136.5px;
+        text-align: center;
+        font-size: 130px;
+        line-height: 136.5px;
+        font-weight: 800;
+        letter-spacing: -1px;
+        color: #ffffff;
+        opacity: 0;
+        transform-origin: 50% 50%;
+        will-change: opacity, transform;
+      }
+
+      #sub {
+        position: absolute;
+        left: 90px;
+        top: 963px;
+        width: 900px;
+        height: 112px;
+        text-align: center;
+        font-size: 40px;
+        line-height: 56px;
+        font-weight: 600;
+        color: #ffffff;
+        opacity: 0;
+        will-change: opacity, transform;
+      }
+
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="4.4"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="4.4"
+        data-track-index="1"
+      >
+        <div id="content-all">
+          <!-- full-bleed real photograph -->
+          <div id="photo-wrap" data-layout-allow-overflow="true">
+            <img src="assets/chaos.jpg" alt="" />
+          </div>
+
+          <div id="scrim"></div>
+          <div id="vignette"></div>
+          <div id="edge-red"></div>
+          <div id="edge-amber"></div>
+          <div id="sweep" data-layout-allow-overflow="true"></div>
+
+          <svg id="grain" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <filter id="grain-f">
+              <feTurbulence
+                type="fractalNoise"
+                baseFrequency="0.9"
+                numOctaves="2"
+                stitchTiles="stitch"
+              />
+              <feColorMatrix
+                type="matrix"
+                values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.4 0"
+              />
+            </filter>
+            <rect width="100" height="100" filter="url(#grain-f)" />
+          </svg>
+
+          <!-- PHASE 1 -->
+          <div id="phase1">
+            <div id="kicker" class="shadowed">Without Limits</div>
+            <div id="chaos" class="shadowed">CHAOS</div>
+          </div>
+
+          <!-- PHASE 2 -->
+          <div id="phase2">
+            <div id="bucket-wrap">
+              <svg viewBox="0 0 260 260" xmlns="http://www.w3.org/2000/svg">
+                <g
+                  fill="none"
+                  stroke="#fbbf24"
+                  stroke-width="7"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    id="bk-handle"
+                    d="M52 56 Q130 -22 208 56"
+                    opacity="0.55"
+                  />
+                  <ellipse id="bk-rim" cx="130" cy="62" rx="88" ry="22" />
+                  <path id="bk-body" d="M42 62 L64 214 Q130 240 196 214 L218 62" />
+                </g>
+                <g id="bk-tokens" fill="#f59e0b" opacity="0">
+                  <circle cx="100" cy="122" r="15" />
+                  <circle cx="152" cy="142" r="15" />
+                  <circle cx="118" cy="172" r="15" />
+                </g>
+              </svg>
+            </div>
+
+            <div id="hero">
+              <div class="hero-line shadowed" id="hero-l1">A BUCKET</div>
+              <div class="hero-line shadowed" id="hero-l2">OF TOKENS</div>
+            </div>
+
+            <div id="sub" class="shadowed">
+              is all that stands between you and chaos.
+            </div>
+
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ---------- initial states ----------
+      gsap.set("#content-all", { opacity: 1 });
+      gsap.set("#photo-wrap", { scale: 1 });
+      gsap.set("#kicker", { opacity: 0, y: 24 });
+      gsap.set("#chaos", { opacity: 0, scale: 1.28 });
+      gsap.set("#edge-red", { opacity: 0 });
+      gsap.set("#edge-amber", { opacity: 0 });
+      gsap.set("#sweep", { opacity: 0, x: -1500 });
+      gsap.set("#bucket-wrap", { opacity: 0, scale: 0.9 });
+      gsap.set("#bk-tokens", { opacity: 0, scale: 0.7, transformOrigin: "50% 50%" });
+      gsap.set("#hero-l1", { opacity: 0, y: 40, scale: 1.12 });
+      gsap.set("#hero-l2", { opacity: 0, y: 40, scale: 1.12 });
+      gsap.set("#sub", { opacity: 0, y: 18 });
+
+      // hard-coded stroke lengths (literal, comfortably >= true path length)
+      gsap.set("#bk-handle", { strokeDasharray: 220, strokeDashoffset: 220 });
+      gsap.set("#bk-rim", { strokeDasharray: 420, strokeDashoffset: 420 });
+      gsap.set("#bk-body", { strokeDasharray: 500, strokeDashoffset: 500 });
+
+      // ---------- continuous slow push-in on the photo (whole 4.4s) ----------
+      tl.to("#photo-wrap", { scale: 1.08, duration: 4.4, ease: "sine.inOut" }, 0);
+
+      // ---------- PHASE 1 : CHAOS (0 -> 2.20) ----------
+      // primary entrance at local t = 0
+      tl.to(
+        "#kicker",
+        { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" },
+        0
+      );
+      tl.to(
+        "#chaos",
+        { opacity: 1, scale: 1, duration: 0.6, ease: "power4.out" },
+        0.18
+      );
+
+      // restless red edge flicker -- hard-coded deterministic steps
+      const redFlicker = [
+        [0.0, 0.34, 0.12],
+        [0.14, 0.62, 0.06],
+        [0.22, 0.3, 0.1],
+        [0.36, 0.78, 0.05],
+        [0.43, 0.36, 0.14],
+        [0.62, 0.55, 0.08],
+        [0.74, 0.28, 0.16],
+        [0.94, 0.7, 0.06],
+        [1.02, 0.33, 0.18],
+        [1.26, 0.6, 0.07],
+        [1.36, 0.29, 0.15],
+        [1.55, 0.82, 0.05],
+        [1.62, 0.38, 0.12],
+        [1.8, 0.58, 0.09],
+        [1.94, 0.34, 0.14],
+      ];
+      redFlicker.forEach(function (f) {
+        tl.to("#edge-red", { opacity: f[1], duration: f[2], ease: "sine.inOut" }, f[0]);
+      });
+
+      // CHAOS restless micro-throb (never static)
+      tl.to("#chaos", { scale: 1.035, duration: 0.42, ease: "sine.inOut" }, 1.1);
+      tl.to("#chaos", { scale: 1.0, duration: 0.4, ease: "sine.inOut" }, 1.55);
+
+      // phase 1 fully clears at exactly 2.20, before phase 2's first element at 2.25
+      tl.to("#phase1", { opacity: 0, duration: 0.2, ease: "power3.out" }, 2.0);
+
+      // ---------- TRANSITION BEAT (~2.20) : warm amber sweep + grade shift ----------
+      tl.to("#sweep", { opacity: 1, duration: 0.1, ease: "sine.inOut" }, 2.02);
+      tl.to("#sweep", { x: 1500, duration: 0.62, ease: "power2.inOut" }, 2.02);
+      tl.to("#sweep", { opacity: 0, duration: 0.16, ease: "sine.inOut" }, 2.48);
+
+      // cold -> warm colour grade, driven through a proxy object (writes plain CSS)
+      const grade = { sat: 0.5, bri: 0.58, hue: -10, con: 1.12 };
+      const photoEl = document.getElementById("photo-wrap");
+      const applyGrade = function () {
+        photoEl.style.filter =
+          "saturate(" +
+          grade.sat +
+          ") brightness(" +
+          grade.bri +
+          ") hue-rotate(" +
+          grade.hue +
+          "deg) contrast(" +
+          grade.con +
+          ")";
+      };
+      tl.to(
+        grade,
+        {
+          sat: 1.0,
+          bri: 0.72,
+          hue: 12,
+          con: 1.05,
+          duration: 0.75,
+          ease: "power3.out",
+          onUpdate: applyGrade,
+        },
+        2.05
+      );
+
+      // red flicker resolves into a steady amber
+      tl.to("#edge-red", { opacity: 0, duration: 0.35, ease: "power3.out" }, 2.05);
+      tl.to("#edge-amber", { opacity: 0.55, duration: 0.5, ease: "power3.out" }, 2.15);
+
+      // ---------- PHASE 2 : THE BUCKET (2.25 -> 4.40) ----------
+      tl.to(
+        "#bucket-wrap",
+        { opacity: 1, scale: 1, duration: 0.28, ease: "power3.out" },
+        2.25
+      );
+      tl.to("#bk-rim", { strokeDashoffset: 0, duration: 0.55, ease: "power3.out" }, 2.25);
+      tl.to("#bk-body", { strokeDashoffset: 0, duration: 0.7, ease: "power3.out" }, 2.4);
+      tl.to(
+        "#bk-handle",
+        { strokeDashoffset: 0, duration: 0.5, ease: "power3.out" },
+        2.55
+      );
+
+      // hero line lands hard
+      tl.to(
+        "#hero-l1",
+        { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: "power4.out" },
+        2.55
+      );
+      tl.to(
+        "#hero-l2",
+        { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: "power4.out" },
+        2.7
+      );
+
+      tl.to(
+        "#bk-tokens",
+        { opacity: 0.9, scale: 1, duration: 0.4, ease: "power3.out" },
+        2.95
+      );
+
+      tl.to("#sub", { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 3.05);
+      /* No next-episode tease. ep6-websockets/project.md records the series
+         convention, set on EP1/EP4: the payoff overlay is a purely visual callback
+         and never carries literal next-episode text -- the narration already says
+         it. See OVERLAY_SPEC.md. */
+
+      // steady amber glow breathe to close (3.55 -> 4.11)
+      tl.to(
+        "#edge-amber",
+        { opacity: 0.78, duration: 0.28, ease: "sine.inOut", yoyo: true, repeat: 1 },
+        3.55
+      );
+      tl.to(
+        "#bucket-wrap",
+        { scale: 1.03, duration: 0.28, ease: "sine.inOut", yoyo: true, repeat: 1 },
+        3.55
+      );
+
+      // ---------- fade-out FINISHES at exactly 4.400 (4.10 + 0.30) ----------
+      tl.to("#content-all", { opacity: 0, duration: 0.3, ease: "power3.out" }, 4.1);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

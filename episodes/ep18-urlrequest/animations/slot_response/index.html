@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+
+      :root {
+        --cyan: #22d3ee;
+        --violet: #a78bfa;
+        --amber: #f59e0b;
+        --green: #34d399;
+      }
+
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+      .fill { position: absolute; inset: 0; }
+
+      /* ============ BACKGROUND (opaque, on a child div) ============ */
+      #bg-fill {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(125% 95% at 50% 30%,
+          #131a22 0%, #0b0f14 44%, #060809 76%, #030405 100%);
+      }
+      #glow-a {
+        position: absolute;
+        left: 300px; top: 470px;
+        width: 1200px; height: 1200px;
+        margin-left: -600px; margin-top: -600px;
+        background: radial-gradient(circle, rgba(34,211,238,0.15) 0%, rgba(34,211,238,0) 62%);
+      }
+      #glow-b {
+        position: absolute;
+        left: 820px; top: 900px;
+        width: 1000px; height: 1000px;
+        margin-left: -500px; margin-top: -500px;
+        background: radial-gradient(circle, rgba(167,139,250,0.13) 0%, rgba(167,139,250,0) 62%);
+      }
+      #vignette {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(ellipse 760px 940px at 50% 44%,
+            rgba(0,0,0,0) 0%, rgba(0,0,0,0) 48%, rgba(2,3,4,0.55) 80%, rgba(2,3,4,0.93) 100%),
+          linear-gradient(to bottom,
+            rgba(0,0,0,0.50) 0%, rgba(0,0,0,0) 13%,
+            rgba(0,0,0,0) 60%, rgba(0,0,0,0.86) 100%);
+      }
+
+      /* ============ SCENE (camera push-in) ============ */
+      #scene {
+        position: absolute;
+        inset: 0;
+        transform-origin: 50% 722px;
+      }
+
+      /* ---------- headline ---------- */
+      #headline {
+        position: absolute;
+        left: 100px; top: 236px;
+        width: 880px;
+        text-align: center;
+        white-space: nowrap;
+        font-size: 64px;
+        font-weight: 800;
+        letter-spacing: 1px;
+        line-height: 78px;
+        color: #e8f4f8;
+        text-shadow: 0 2px 14px rgba(0,0,0,0.70), 0 0 16px rgba(34,211,238,0.22);
+        opacity: 0;
+      }
+
+      /* ---------- browser window ---------- */
+      #browser {
+        position: absolute;
+        left: 100px; top: 396px;
+        width: 880px; height: 784px;
+        border-radius: 24px;
+        background: linear-gradient(170deg, #0e141b 0%, #090c11 100%);
+        border: 1.5px solid rgba(255,255,255,0.09);
+        box-shadow: 0 12px 26px rgba(0,0,0,0.50);
+        opacity: 0.55;
+        transform: translateY(18px);
+      }
+      #frame-glow {
+        position: absolute;
+        inset: -2px;
+        border-radius: 26px;
+        box-shadow: 0 0 24px 0 rgba(34,211,238,0.10);
+        pointer-events: none;
+      }
+
+      /* window chrome */
+      #chrome {
+        position: absolute;
+        left: 0; top: 0;
+        width: 880px; height: 70px;
+        border-bottom: 1px solid rgba(255,255,255,0.07);
+      }
+      .wdot {
+        position: absolute;
+        top: 30px;
+        width: 10px; height: 10px;
+        border-radius: 50%;
+        background: #3d4654;
+      }
+      #addr {
+        position: absolute;
+        left: 140px; top: 15px;
+        width: 600px; height: 40px;
+        border-radius: 20px;
+        background: rgba(255,255,255,0.045);
+        border: 1px solid rgba(255,255,255,0.07);
+      }
+      #lock {
+        position: absolute;
+        left: 22px; top: 9px;
+        width: 22px; height: 22px;
+        opacity: 0.35;
+      }
+      #addr-text {
+        position: absolute;
+        left: 56px; top: 17px;
+        width: 224px; height: 6px;
+        border-radius: 3px;
+        background: rgba(255,255,255,0.16);
+      }
+
+      /* ---------- ACT 1: route topology ---------- */
+      #topology {
+        position: absolute;
+        left: 0; top: 0;
+        width: 880px; height: 784px;
+        transform-origin: 50% 404px;
+      }
+      #rail-svg { position: absolute; left: 0; top: 0; width: 880px; height: 784px; }
+      #rail { fill: none; stroke: rgba(34,211,238,0.42); stroke-width: 3; stroke-linecap: round; }
+
+      .node {
+        position: absolute;
+        top: 344px;
+        width: 120px; height: 120px;
+        border-radius: 22px;
+        background: rgba(11,17,24,0.96);
+        border: 2px solid rgba(34,211,238,0.34);
+        box-shadow: 0 0 0 0 rgba(34,211,238,0);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transform: scale(0.72);
+      }
+      .node svg { width: 68px; height: 68px; }
+      .node-label {
+        position: absolute;
+        top: 494px;
+        width: 120px;
+        text-align: center;
+        font-size: 24px;
+        letter-spacing: 3px;
+        color: rgba(34,211,238,0.88);
+        opacity: 0;
+      }
+      .led { opacity: 0.25; }
+
+      #packet {
+        position: absolute;
+        left: 0; top: 0;
+        width: 14px; height: 14px;
+        border-radius: 50%;
+        background: #a5f3fc;
+        box-shadow: 0 0 14px 4px rgba(34,211,238,0.80);
+        opacity: 0;
+      }
+
+      /* ---------- response document glyph ---------- */
+      #glyph {
+        position: absolute;
+        left: 712px; top: 381px;
+        width: 36px; height: 46px;
+        border-radius: 6px;
+        background: linear-gradient(160deg, #0f3b46, #08222a);
+        border: 1.5px solid rgba(34,211,238,0.75);
+        box-shadow: 0 0 16px 2px rgba(34,211,238,0.35);
+        opacity: 0;
+        z-index: 6;
+      }
+      #glyph i {
+        position: absolute;
+        left: 7px;
+        height: 3px;
+        border-radius: 2px;
+        background: rgba(165,243,252,0.65);
+      }
+
+      /* ---------- ACT 2a: mock viewport (light) ---------- */
+      #viewport {
+        position: absolute;
+        left: 12px; top: 82px;
+        width: 856px; height: 322px;
+        border-radius: 10px;
+        background: #f4f6f8;
+        overflow: hidden;
+        opacity: 0;
+      }
+      .vp-block {
+        position: absolute;
+        background: #dfe3ea;
+        border-radius: 6px;
+        opacity: 0;
+      }
+      .vp-paint {
+        position: absolute;
+        inset: 0;
+        border-radius: 6px;
+        overflow: hidden;
+        opacity: 0;
+      }
+      .vp-paint img { width: 100%; height: 100%; object-fit: cover; display: block; }
+      #vp-shimmer {
+        position: absolute;
+        left: 0; top: 0;
+        width: 260px; height: 322px;
+        background: linear-gradient(105deg,
+          rgba(255,255,255,0) 0%, rgba(140,190,215,0.34) 50%, rgba(255,255,255,0) 100%);
+        transform: translateX(-280px);
+      }
+
+      /* ---------- ACT 2b: network waterfall panel ---------- */
+      #panel {
+        position: absolute;
+        left: 12px; top: 428px;
+        width: 856px; height: 340px;
+        border-radius: 10px;
+        background: #0b0f15;
+        border: 1px solid rgba(255,255,255,0.06);
+        opacity: 0;
+      }
+      .wf-row { position: absolute; left: 0; width: 856px; height: 38px; }
+      .wf-dot {
+        position: absolute;
+        left: 18px; top: 14px;
+        width: 10px; height: 10px;
+        border-radius: 50%;
+        opacity: 0;
+      }
+      .wf-name {
+        position: absolute;
+        left: 38px; top: 8px;
+        font-size: 22px;
+        letter-spacing: 1px;
+        color: #b8c6d4;
+        opacity: 0;
+      }
+      .wf-namebar {
+        position: absolute;
+        left: 38px; top: 14px;
+        height: 10px;
+        border-radius: 5px;
+        background: rgba(255,255,255,0.15);
+        opacity: 0;
+      }
+      .wf-track {
+        position: absolute;
+        left: 160px; top: 12px;
+        width: 678px; height: 14px;
+        border-radius: 7px;
+        background: rgba(255,255,255,0.045);
+        opacity: 0;
+      }
+      .wf-bar {
+        position: absolute;
+        top: 0;
+        height: 14px;
+        border-radius: 7px;
+        transform: scaleX(0);
+        transform-origin: left center;
+      }
+      #status-200 {
+        position: absolute;
+        left: 362px; top: 9px;
+        height: 22px;
+        line-height: 20px;
+        padding: 0 10px;
+        font-size: 18px;
+        letter-spacing: 1px;
+        color: #22d3ee;
+        background: rgba(34,211,238,0.10);
+        border: 1px solid rgba(34,211,238,0.40);
+        border-radius: 5px;
+        box-shadow: 0 0 0 0 rgba(34,211,238,0);
+        opacity: 0;
+      }
+      .spawn {
+        position: absolute;
+        left: 0; top: 0;
+        width: 10px; height: 10px;
+        border-radius: 50%;
+        background: #67e8f9;
+        box-shadow: 0 0 12px 3px rgba(34,211,238,0.70);
+        opacity: 0;
+      }
+      #wf-divider {
+        position: absolute;
+        left: 18px; top: 266px;
+        width: 820px; height: 1px;
+        background: rgba(255,255,255,0.07);
+        opacity: 0;
+      }
+      #summary {
+        position: absolute;
+        left: 538px; top: 280px;
+        width: 300px;
+        text-align: right;
+        font-size: 36px;
+        line-height: 42px;
+        letter-spacing: 1px;
+        color: #dbe7ee;
+        opacity: 0;
+      }
+
+      #grain { position: absolute; inset: 0; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="11.40"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="main-clip" class="clip" data-start="0" data-duration="11.40" data-track-index="1">
+        <!-- opaque takeover background -->
+        <div id="bg-fill">
+          <div id="glow-a"></div>
+          <div id="glow-b"></div>
+          <div id="vignette"></div>
+        </div>
+
+        <div id="scene">
+          <div id="headline">ONE BECOMES MANY</div>
+
+          <div id="browser">
+            <div id="frame-glow"></div>
+
+            <div id="chrome">
+              <div class="wdot" style="left: 32px"></div>
+              <div class="wdot" style="left: 62px"></div>
+              <div class="wdot" style="left: 92px"></div>
+              <div id="addr">
+                <svg id="lock" viewBox="0 0 24 24" fill="none">
+                  <rect x="5" y="10.5" width="14" height="10" rx="2.5" stroke="#7dd3fc" stroke-width="1.8" />
+                  <path d="M8.4 10.5V7.6a3.6 3.6 0 0 1 7.2 0v2.9" stroke="#7dd3fc" stroke-width="1.8" stroke-linecap="round" />
+                </svg>
+                <div id="addr-text"></div>
+              </div>
+            </div>
+
+            <!-- ACT 1 -->
+            <div id="topology">
+              <svg id="rail-svg" viewBox="0 0 880 784">
+                <path id="rail" d="M50,404 L830,404" />
+              </svg>
+
+              <div class="node" id="n-cdn" style="left: 90px">
+                <svg viewBox="0 0 68 68" fill="none">
+                  <circle cx="34" cy="34" r="24" stroke="#22d3ee" stroke-width="2.4" />
+                  <ellipse cx="34" cy="34" rx="10" ry="24" stroke="#22d3ee" stroke-width="1.8" opacity="0.75" />
+                  <path d="M11 26h46M11 42h46" stroke="#22d3ee" stroke-width="1.8" opacity="0.75" />
+                  <circle cx="34" cy="10" r="4" fill="#22d3ee" />
+                  <circle cx="13" cy="46" r="4" fill="#22d3ee" />
+                  <circle cx="55" cy="46" r="4" fill="#22d3ee" />
+                </svg>
+              </div>
+              <div class="node" id="n-lb" style="left: 380px">
+                <svg viewBox="0 0 68 68" fill="none">
+                  <path d="M34 8v14" stroke="#22d3ee" stroke-width="2.6" stroke-linecap="round" />
+                  <circle cx="34" cy="28" r="7" stroke="#22d3ee" stroke-width="2.4" />
+                  <path d="M34 35v6M34 41H13v8M34 41h21v8M34 41v8" stroke="#22d3ee" stroke-width="2.2" stroke-linecap="round" />
+                  <rect x="5" y="49" width="16" height="12" rx="3" fill="#22d3ee" opacity="0.85" />
+                  <rect x="26" y="49" width="16" height="12" rx="3" fill="#22d3ee" opacity="0.85" />
+                  <rect x="47" y="49" width="16" height="12" rx="3" fill="#22d3ee" opacity="0.85" />
+                </svg>
+              </div>
+              <div class="node" id="n-srv" style="left: 670px">
+                <svg viewBox="0 0 68 68" fill="none">
+                  <rect x="8" y="10" width="52" height="14" rx="3.5" stroke="#22d3ee" stroke-width="2.2" />
+                  <rect x="8" y="28" width="52" height="14" rx="3.5" stroke="#22d3ee" stroke-width="2.2" />
+                  <rect x="8" y="46" width="52" height="14" rx="3.5" stroke="#22d3ee" stroke-width="2.2" />
+                  <rect class="led" x="14" y="15" width="5" height="4" rx="1.5" fill="#67e8f9" />
+                  <rect class="led" x="14" y="33" width="5" height="4" rx="1.5" fill="#67e8f9" />
+                  <rect class="led" x="14" y="51" width="5" height="4" rx="1.5" fill="#67e8f9" />
+                  <path d="M44 17h10M44 35h10M44 53h10" stroke="#22d3ee" stroke-width="2" stroke-linecap="round" opacity="0.6" />
+                </svg>
+              </div>
+
+              <div class="node-label mono" id="lbl-cdn" style="left: 90px">CDN</div>
+              <div class="node-label mono" id="lbl-lb" style="left: 380px">LB</div>
+
+              <div id="packet"></div>
+            </div>
+
+            <!-- ACT 2a: the page paints -->
+            <div id="viewport">
+              <div class="vp-block" id="vp-nav" style="left: 16px; top: 14px; width: 824px; height: 30px">
+                <div class="vp-paint" style="background: #1f2b3a"></div>
+              </div>
+              <div class="vp-block" id="vp-hero" style="left: 16px; top: 58px; width: 412px; height: 122px">
+                <div class="vp-paint" style="background: linear-gradient(135deg, #0ea5e9, #6366f1)"></div>
+              </div>
+              <div class="vp-block" id="vp-ta" style="left: 444px; top: 58px; width: 196px; height: 122px">
+                <div class="vp-paint"><img src="assets/img_a.jpg" alt="" /></div>
+              </div>
+              <div class="vp-block" id="vp-tb" style="left: 656px; top: 58px; width: 184px; height: 122px">
+                <div class="vp-paint"><img src="assets/img_b.jpg" alt="" /></div>
+              </div>
+              <div class="vp-block" id="vp-l1" style="left: 16px; top: 196px; width: 700px; height: 12px">
+                <div class="vp-paint" style="background: #9aa5b4"></div>
+              </div>
+              <div class="vp-block" id="vp-l2" style="left: 16px; top: 218px; width: 560px; height: 12px">
+                <div class="vp-paint" style="background: #9aa5b4"></div>
+              </div>
+              <div class="vp-block" id="vp-l3" style="left: 16px; top: 240px; width: 380px; height: 12px">
+                <div class="vp-paint" style="background: #9aa5b4"></div>
+              </div>
+              <div class="vp-block" id="vp-btn" style="left: 16px; top: 270px; width: 188px; height: 34px">
+                <div class="vp-paint" style="background: #0891b2"></div>
+              </div>
+              <div id="vp-shimmer" data-layout-allow-overflow="true"></div>
+            </div>
+
+            <!-- ACT 2b: network waterfall -->
+            <div id="panel">
+              <div class="wf-row" id="wf-r0" style="top: 12px">
+                <div class="wf-dot wf-fade0" style="background: #22d3ee"></div>
+                <div class="wf-name mono wf-fade0">HTML</div>
+                <div class="wf-track wf-fade0">
+                  <div class="wf-bar" id="bar0" style="left: 0px; width: 190px; background: #22d3ee"></div>
+                </div>
+                <div id="status-200" class="mono">200</div>
+              </div>
+
+              <div class="wf-row" id="wf-r1" style="top: 50px">
+                <div class="wf-dot wf-fade1" style="background: #a78bfa"></div>
+                <div class="wf-name mono wf-fade1">CSS</div>
+                <div class="wf-track wf-fade1">
+                  <div class="wf-bar" id="bar1" style="left: 193px; width: 136px; background: #a78bfa"></div>
+                </div>
+              </div>
+
+              <div class="wf-row" id="wf-r2" style="top: 88px">
+                <div class="wf-dot wf-fade2" style="background: #a78bfa"></div>
+                <div class="wf-namebar wf-fade2" style="width: 92px"></div>
+                <div class="wf-track wf-fade2">
+                  <div class="wf-bar" id="bar2" style="left: 214px; width: 85px; background: #a78bfa"></div>
+                </div>
+              </div>
+
+              <div class="wf-row" id="wf-r3" style="top: 126px">
+                <div class="wf-dot wf-fade3" style="background: #f59e0b"></div>
+                <div class="wf-namebar wf-fade3" style="width: 76px"></div>
+                <div class="wf-track wf-fade3">
+                  <div class="wf-bar" id="bar3" style="left: 234px; width: 203px; background: #f59e0b"></div>
+                </div>
+              </div>
+
+              <div class="wf-row" id="wf-r4" style="top: 164px">
+                <div class="wf-dot wf-fade4" style="background: #f59e0b"></div>
+                <div class="wf-namebar wf-fade4" style="width: 104px"></div>
+                <div class="wf-track wf-fade4">
+                  <div class="wf-bar" id="bar4" style="left: 268px; width: 119px; background: #f59e0b"></div>
+                </div>
+              </div>
+
+              <div class="wf-row" id="wf-r5" style="top: 202px">
+                <div class="wf-dot wf-fade5" style="background: #34d399"></div>
+                <div class="wf-namebar wf-fade5" style="width: 84px"></div>
+                <div class="wf-track wf-fade5">
+                  <div class="wf-bar" id="bar5" style="left: 298px; width: 285px; background: #34d399"></div>
+                </div>
+              </div>
+
+              <div class="spawn" id="sp1"></div>
+              <div class="spawn" id="sp2"></div>
+              <div class="spawn" id="sp3"></div>
+              <div class="spawn" id="sp4"></div>
+              <div class="spawn" id="sp5"></div>
+
+              <div id="wf-divider"></div>
+              <div id="summary" class="mono">0.4s</div>
+            </div>
+
+            <!-- response document glyph (above panel, morphs into the first bar) -->
+            <div id="glyph">
+              <i style="top: 9px; width: 22px"></i>
+              <i style="top: 17px; width: 18px"></i>
+              <i style="top: 25px; width: 21px"></i>
+              <i style="top: 33px; width: 14px"></i>
+            </div>
+          </div>
+        </div>
+
+        <div id="grain"></div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.042 0" />
+      </filter>
+    </svg>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      document.getElementById("grain").style.filter = "url(#grain-filter)";
+
+      // deterministic line-draw setup (measured at load, no randomness)
+      (function () {
+        const rail = document.getElementById("rail");
+        const len = rail.getTotalLength();
+        rail.style.strokeDasharray = String(len);
+        rail.style.strokeDashoffset = String(len);
+      })();
+
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      const NODE_OFF = "0 0 0 0 rgba(34,211,238,0)";
+      const NODE_ON = "0 0 30px 6px rgba(34,211,238,0.55)";
+
+      /* ================= continuous motion ================= */
+      // slow camera push-in, origin pinned to the content band's own centre (y=722)
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.04, duration: 11.4, ease: "sine.inOut" }, 0);
+      // ambient background drift (repeat 1 = odd -> lands on base; ends 10.00)
+      tl.fromTo("#glow-a", { x: 0, y: 0 }, { x: 44, y: -30, duration: 5.0, ease: "sine.inOut", yoyo: true, repeat: 1 }, 0);
+      tl.fromTo("#glow-b", { x: 0, y: 0 }, { x: -38, y: 26, duration: 5.0, ease: "sine.inOut", yoyo: true, repeat: 1 }, 0);
+
+      /* ================= ACT 1 : the request goes out ================= */
+      // primary entrance at t=0, starting at 0.55 opacity (never 0 on frame 0)
+      tl.fromTo("#browser", { opacity: 0.55, y: 18 }, { opacity: 1, y: 0, duration: 0.55, ease: "power3.out" }, 0);
+
+      // frame rim breathe: 0.60 + 6*1.50 = 9.60
+      tl.fromTo(
+        "#frame-glow",
+        { boxShadow: "0 0 24px 0 rgba(34,211,238,0.10)" },
+        { boxShadow: "0 0 24px 0 rgba(34,211,238,0.24)", duration: 1.5, ease: "sine.inOut", yoyo: true, repeat: 5, immediateRender: false },
+        0.6
+      );
+      // padlock callback pulse: 0.70 + 2*0.50 = 1.70
+      tl.fromTo("#lock", { opacity: 0.35 }, { opacity: 1, duration: 0.5, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 0.7);
+
+      // the route draws
+      tl.to("#rail", { strokeDashoffset: 0, duration: 0.75, ease: "power3.out" }, 1.0);
+      tl.fromTo("#n-cdn", { opacity: 0, scale: 0.72 }, { opacity: 1, scale: 1, duration: 0.42, ease: "back.out(1.5)", immediateRender: false }, 1.25);
+      tl.fromTo("#n-lb", { opacity: 0, scale: 0.72 }, { opacity: 1, scale: 1, duration: 0.42, ease: "back.out(1.5)", immediateRender: false }, 1.6);
+      tl.fromTo("#n-srv", { opacity: 0, scale: 0.72 }, { opacity: 1, scale: 1, duration: 0.42, ease: "back.out(1.5)", immediateRender: false }, 1.95);
+      // server LEDs blink: 1.95 + 8*0.32 = 4.51 (odd repeat -> lands on base)
+      tl.fromTo(".led", { opacity: 0.25 }, { opacity: 1, duration: 0.32, ease: "sine.inOut", yoyo: true, repeat: 7, immediateRender: false }, 1.95);
+
+      tl.fromTo("#lbl-cdn", { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 2.15);
+      tl.fromTo("#lbl-lb", { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 2.27);
+
+      // request packet leaves the address bar and hops CDN -> LB -> SERVER
+      tl.fromTo("#packet", { x: 166, y: 28, opacity: 0, scale: 1 }, { x: 43, y: 397, opacity: 1, duration: 0.45, ease: "power2.in", immediateRender: false }, 2.4);
+      tl.to("#packet", { x: 143, duration: 0.5, ease: "power2.inOut" }, 2.85);
+      tl.to("#packet", { x: 433, duration: 0.5, ease: "power2.inOut" }, 3.35);
+      tl.to("#packet", { x: 723, duration: 0.5, ease: "power2.inOut" }, 3.85);
+
+      // hop pulses (explicit from-value; never tween a shadow from a computed none)
+      [["#n-cdn", 3.3], ["#n-lb", 3.8], ["#n-srv", 4.28]].forEach(function (h) {
+        tl.fromTo(h[0], { boxShadow: NODE_OFF }, { boxShadow: NODE_ON, duration: 0.24, ease: "power3.out", immediateRender: false }, h[1]);
+        tl.to(h[0], { boxShadow: NODE_OFF, duration: 0.42, ease: "power2.out" }, h[1] + 0.24);
+      });
+
+      /* =========== TURN part 1 : HTML returns as the first bar =========== */
+      tl.to("#packet", { opacity: 0, scale: 0.4, duration: 0.25, ease: "power2.in" }, 4.35);
+      tl.fromTo("#glyph", { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.6)", immediateRender: false }, 4.4);
+      tl.to("#glyph", { x: -544, y: 55, duration: 0.48, ease: "power2.inOut" }, 4.5);
+
+      // topology recedes (fully gone at 4.90, before the panel opens at 4.95)
+      tl.fromTo("#topology", { opacity: 1, scale: 1, y: 0 }, { opacity: 0, scale: 0.94, y: -30, duration: 0.35, ease: "power2.in", immediateRender: false }, 4.55);
+
+      // the network panel opens
+      tl.fromTo("#panel", { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out", immediateRender: false }, 4.95);
+      tl.fromTo(".wf-fade0", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power3.out", immediateRender: false }, 5.5);
+      // the glyph collapses into the bar's left edge as the bar draws
+      tl.fromTo("#bar0", { scaleX: 0 }, { scaleX: 1, duration: 0.5, ease: "power2.out", immediateRender: false }, 5.7);
+      tl.to("#glyph", { x: -558, scale: 0.22, opacity: 0, duration: 0.28, ease: "power2.in" }, 5.7);
+      tl.fromTo("#status-200", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.28, ease: "back.out(1.6)", immediateRender: false }, 6.0);
+      // status pill breathe: 6.30 + 2*0.60 = 7.50
+      tl.fromTo(
+        "#status-200",
+        { boxShadow: "0 0 0 0 rgba(34,211,238,0)" },
+        { boxShadow: "0 0 18px 2px rgba(34,211,238,0.45)", duration: 0.6, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false },
+        6.3
+      );
+
+      /* =========== ACT 2 : the page and the waterfall =========== */
+      // blank page arrives (HTML is in, nothing referenced has loaded yet)
+      tl.fromTo("#viewport", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power3.out", immediateRender: false }, 6.9);
+      // loading shimmer: 7.10 + 3*1.10 = 10.40, ends parked off the right edge
+      tl.fromTo("#vp-shimmer", { x: -280 }, { x: 900, duration: 1.1, ease: "sine.inOut", repeat: 2, immediateRender: false }, 7.1);
+
+      // TURN part 2 : the HTML bar spawns child requests
+      const spawnT = [
+        { id: "#sp1", x: 348, y: 64 },
+        { id: "#sp2", x: 369, y: 102 },
+        { id: "#sp3", x: 389, y: 140 },
+        { id: "#sp4", x: 423, y: 178 },
+        { id: "#sp5", x: 453, y: 216 }
+      ];
+      spawnT.forEach(function (s, i) {
+        tl.fromTo(
+          s.id,
+          { x: 345, y: 26, opacity: 0 },
+          { x: s.x, y: s.y, opacity: 1, duration: 0.45, ease: "power2.inOut", immediateRender: false },
+          7.6 + i * 0.09
+        );
+      });
+
+      tl.fromTo("#headline", { opacity: 0, y: -18 }, { opacity: 1, y: 0, duration: 0.55, ease: "power3.out", immediateRender: false }, 8.25);
+
+      // the waterfall fills (ONE visual event, tight internal stagger)
+      const barT = [8.9, 9.03, 9.16, 9.29, 9.42];
+      barT.forEach(function (t, i) {
+        tl.fromTo(".wf-fade" + (i + 1), { opacity: 0 }, { opacity: 1, duration: 0.28, ease: "power3.out", immediateRender: false }, t - 0.04);
+        tl.fromTo("#bar" + (i + 1), { scaleX: 0 }, { scaleX: 1, duration: 0.42, ease: "power2.out", immediateRender: false }, t);
+        tl.to(spawnT[i].id, { opacity: 0, duration: 0.25, ease: "power2.in" }, t);
+      });
+      // skeleton placeholders appear in the page as each resource is requested
+      const vpBlocks = ["#vp-nav", "#vp-hero", "#vp-ta", "#vp-tb", "#vp-l1", "#vp-l2", "#vp-l3", "#vp-btn"];
+      vpBlocks.forEach(function (sel, i) {
+        tl.fromTo(sel, { opacity: 0 }, { opacity: 1, duration: 0.28, ease: "power3.out", immediateRender: false }, 8.95 + i * 0.075);
+      });
+      // load-complete summary (tail of the same waterfall event)
+      tl.fromTo("#wf-divider", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power3.out", immediateRender: false }, 9.86);
+      tl.fromTo("#summary", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.35, ease: "power3.out", immediateRender: false }, 9.9);
+
+      /* =========== PAYOFF : the page paints, completing at 11.065 =========== */
+      vpBlocks.forEach(function (sel, i) {
+        tl.fromTo(sel + " .vp-paint", { opacity: 0 }, { opacity: 1, duration: 0.28, ease: "power3.out", immediateRender: false }, 10.4 + i * 0.055);
+      });
+
+      /* =========== FADE : finishes at exactly 11.400 =========== */
+      // one fade per top-level visible branch; no nesting, so no multiplied opacity
+      ["#bg-fill", "#scene", "#grain"].forEach(function (sel) {
+        tl.fromTo(sel, { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 11.1);
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

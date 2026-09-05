@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP18 Problem — The Name Is Not The Address</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+
+      /* JetBrains Mono FIRST — leading with ui-monospace silently falls through
+         to proportional Inter in this renderer's font compiler.                */
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      #scene { position: absolute; inset: 0; overflow: hidden; }
+
+      /* ==================== BACKGROUND (full-frame, exempt) ==================== */
+      /* Opaque fill on a CHILD div, present at full strength on frame 0.        */
+      #bg-fill {
+        position: absolute; inset: 0; opacity: 1;
+        background: radial-gradient(125% 92% at 50% 30%,
+          #13161d 0%, #0b0e14 44%, #06080c 76%, #030406 100%);
+      }
+      /* two coloured glow blobs per phase, crossfaded at the turn */
+      #glow-warm {
+        position: absolute; inset: 0; opacity: 1; transform-origin: 50% 50%;
+        background:
+          radial-gradient(circle 620px at 26% 27%, rgba(245,158,11,0.155) 0%, rgba(245,158,11,0) 66%),
+          radial-gradient(circle 680px at 76% 63%, rgba(239,68,68,0.115) 0%, rgba(239,68,68,0) 64%);
+      }
+      #glow-cool {
+        position: absolute; inset: 0; opacity: 0; transform-origin: 50% 50%;
+        background:
+          radial-gradient(circle 700px at 50% 62%, rgba(34,211,238,0.165) 0%, rgba(34,211,238,0) 64%),
+          radial-gradient(circle 600px at 74% 24%, rgba(56,189,248,0.115) 0%, rgba(56,189,248,0) 66%);
+      }
+      #vignette {
+        position: absolute; inset: 0; opacity: 1;
+        background:
+          radial-gradient(ellipse 760px 940px at 50% 47%,
+            rgba(0,0,0,0) 0%, rgba(0,0,0,0) 48%, rgba(2,3,6,0.55) 80%, rgba(1,2,4,0.94) 100%),
+          linear-gradient(to bottom,
+            rgba(0,0,0,0.60) 0%, rgba(0,0,0,0) 13%, rgba(0,0,0,0) 76%, rgba(0,0,0,0.70) 100%);
+      }
+      #grain { position: absolute; inset: 0; opacity: 0.045; pointer-events: none; }
+
+      /* ==================== STAGE (camera push-in target) ====================
+         transform-origin pinned to the CONTENT BAND's own centre:
+         band y = 236..1180  ->  centre y = 708 ; centre x = 540              */
+      #stage { position: absolute; inset: 0; transform-origin: 540px 708px; }
+
+      /* ---------------------- headline : y 236..448 ------------------------- */
+      #headline {
+        position: absolute; left: 0; top: 236px; width: 1080px; height: 212px;
+        text-align: center; opacity: 0;
+      }
+      #headline div {
+        height: 106px; line-height: 106px; font-size: 96px; font-weight: 800;
+        letter-spacing: -1.5px; color: #f2f5f9; white-space: nowrap;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+      }
+
+      /* ---------------- browser window : x 60..1020, y 488..824 -------------
+         Frame-0 opacity comes from CSS (0.55), never from a tl.set at 0.      */
+      #panel {
+        position: absolute; left: 60px; top: 488px; width: 960px; height: 336px;
+        border-radius: 26px; opacity: 0.55;
+        background: linear-gradient(180deg, #24272d 0%, #1c1f25 44%, #15181d 100%);
+        border: 1px solid rgba(148,163,184,0.20);
+        box-shadow: 0 24px 60px rgba(0,0,0,0.62);
+      }
+      #panel-glow-warm {
+        position: absolute; inset: -2px; border-radius: 28px; opacity: 1;
+        box-shadow: 0 0 46px rgba(245,158,11,0.20); pointer-events: none;
+      }
+      #panel-glow-cool {
+        position: absolute; inset: -2px; border-radius: 28px; opacity: 0;
+        box-shadow: 0 0 46px rgba(34,211,238,0.26); pointer-events: none;
+      }
+
+      /* window header : y 488..564 */
+      #panel-header {
+        position: absolute; left: 0; top: 0; width: 960px; height: 76px;
+        border-radius: 26px 26px 0 0; background: rgba(255,255,255,0.030);
+        border-bottom: 1px solid rgba(148,163,184,0.14);
+      }
+      .dot { position: absolute; top: 29px; width: 18px; height: 18px; border-radius: 50%; }
+      #dot1 { left: 40px;  background: #ff5f57; }
+      #dot2 { left: 76px;  background: #febc2e; }
+      #dot3 { left: 112px; background: #28c840; }
+      #tab {
+        position: absolute; left: 180px; top: 12px; width: 320px; height: 64px;
+        border-radius: 12px 12px 0 0; background: rgba(255,255,255,0.065);
+        border-top: 1px solid rgba(255,255,255,0.07);
+      }
+      #tab-fav {
+        position: absolute; left: 200px; top: 35px; width: 18px; height: 18px;
+        border-radius: 5px; background: rgba(125,211,252,0.55);
+      }
+      #tab-bar {
+        position: absolute; left: 232px; top: 40px; width: 178px; height: 10px;
+        border-radius: 5px; background: rgba(255,255,255,0.17);
+      }
+
+      /* URL field : x 92..648, y 624..752 */
+      #url-pill {
+        position: absolute; left: 32px; top: 136px; width: 556px; height: 128px;
+        border-radius: 64px; background: #2b2f36;
+        border: 1px solid rgba(148,163,184,0.18);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+      }
+      #url-icon { position: absolute; left: 24px; top: 42px; width: 44px; height: 44px; }
+      #url-text {
+        position: absolute; left: 112px; top: 0; height: 128px; line-height: 128px;
+        font-size: 66px; font-weight: 500; letter-spacing: 0; color: #e8eaed;
+        white-space: nowrap;
+      }
+
+      /* dashed link between the two fields : x 688..748, y 658..718 */
+      #link {
+        position: absolute; left: 628px; top: 170px; width: 60px; height: 60px;
+        color: #f59e0b; opacity: 0;
+        filter: drop-shadow(0 0 8px rgba(245,158,11,0.55));
+      }
+
+      /* destination field : x 788..988, y 604..772  (BESIDE the URL field) */
+      #dest-box {
+        position: absolute; left: 728px; top: 116px; width: 200px; height: 168px;
+        border-radius: 22px; opacity: 0;
+        border: 3px dashed rgba(245,158,11,0.62);
+        background: rgba(245,158,11,0.05);
+        box-shadow: inset 0 0 24px rgba(245,158,11,0.10), 0 0 24px rgba(245,158,11,0.16);
+      }
+      #q-wrap {
+        position: absolute; inset: 0; display: flex; align-items: center;
+        justify-content: center; opacity: 1;
+      }
+      #q-mark {
+        font-size: 140px; font-weight: 700; line-height: 1; color: #fbbf24; opacity: 1;
+        text-shadow: 0 0 26px rgba(245,158,11,0.55);
+      }
+
+      /* travelling probe : x 654..672 -> 770..788, y 679..697 */
+      #probe {
+        position: absolute; left: 594px; top: 191px; width: 18px; height: 18px;
+        border-radius: 50%; background: #fde68a; opacity: 0;
+        box-shadow: 0 0 16px 3px rgba(245,158,11,0.85);
+      }
+
+      /* ------------- status chip : x 400..680, y 868..912 -------------------- */
+      #chip {
+        position: absolute; left: 400px; top: 868px; width: 280px; height: 44px;
+        border-radius: 10px; opacity: 0;
+        background: rgba(245,158,11,0.13);
+        border: 1px solid rgba(245,158,11,0.52);
+        color: #fbbf24; font-size: 24px; letter-spacing: 3px; line-height: 42px;
+        text-align: center;
+      }
+
+      /* ------------- answer plate : x 60..1020, y 960..1180 ------------------ */
+      #plate {
+        position: absolute; left: 60px; top: 960px; width: 960px; height: 220px;
+        border-radius: 28px; opacity: 0;
+        background: linear-gradient(180deg, rgba(19,24,31,0.94), rgba(10,13,18,0.97));
+        box-shadow: 0 12px 26px rgba(0,0,0,0.55);
+      }
+      #plate-dash {
+        position: absolute; inset: 0; border-radius: 28px; opacity: 1;
+        border: 3px dashed rgba(245,158,11,0.55);
+      }
+      #plate-solid {
+        position: absolute; inset: 0; border-radius: 28px; opacity: 0;
+        border: 3px solid rgba(34,211,238,0.80);
+      }
+      #plate-glow-warm {
+        position: absolute; inset: -3px; border-radius: 30px; opacity: 1;
+        box-shadow: 0 0 26px rgba(245,158,11,0.26);
+      }
+      #plate-glow-cool {
+        position: absolute; inset: -3px; border-radius: 30px; opacity: 0;
+        box-shadow: 0 0 30px rgba(34,211,238,0.42);
+      }
+      #plate-flare {
+        position: absolute; inset: -3px; border-radius: 30px; opacity: 0;
+        box-shadow: 0 0 26px rgba(34,211,238,0.95);
+      }
+      #ip-row {
+        position: absolute; inset: 0; display: flex; align-items: center;
+        justify-content: center; white-space: nowrap;
+        font-size: 110px; font-weight: 700; letter-spacing: -3px; color: #e9fbff;
+        text-shadow: 0 0 18px rgba(34,211,238,0.50), 0 2px 10px rgba(0,0,0,0.8);
+      }
+      /* every octet occupies its layout box from frame 0 (opacity only), so the
+         centred string never slides sideways as it prints in.                  */
+      #ip-row span { display: inline-block; opacity: 0; }
+
+      /* ==================== TURN / EFFECT LAYERS (full-frame) ================= */
+      #sweep {
+        position: absolute; left: 0; top: 0; width: 1080px; height: 420px; opacity: 0;
+        background: linear-gradient(to bottom,
+          rgba(34,211,238,0) 0%, rgba(34,211,238,0.16) 34%,
+          rgba(186,250,255,0.62) 50%, rgba(34,211,238,0.16) 66%, rgba(34,211,238,0) 100%);
+        pointer-events: none;
+      }
+      #flash {
+        position: absolute; inset: 0; opacity: 0; pointer-events: none;
+        background: #d8f6ff;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="6.4"
+         data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="6.4" data-track-index="1">
+
+        <div id="bg-fill"></div>
+        <div id="glow-warm" data-layout-allow-overflow="true"></div>
+        <div id="glow-cool" data-layout-allow-overflow="true"></div>
+        <div id="vignette"></div>
+        <div id="grain"></div>
+
+        <div id="stage" data-layout-allow-overflow="true">
+
+          <div id="headline">
+            <div>NAMES ARE</div>
+            <div>FOR HUMANS</div>
+          </div>
+
+          <div id="panel">
+            <div id="panel-glow-warm"></div>
+            <div id="panel-glow-cool"></div>
+
+            <div id="panel-header"></div>
+            <div class="dot" id="dot1"></div>
+            <div class="dot" id="dot2"></div>
+            <div class="dot" id="dot3"></div>
+            <div id="tab"></div>
+            <div id="tab-fav"></div>
+            <div id="tab-bar"></div>
+
+            <div id="url-pill">
+              <svg id="url-icon" viewBox="0 0 44 44" fill="none">
+                <rect x="10" y="19" width="24" height="17" rx="4"
+                      stroke="#9aa0a6" stroke-width="3" />
+                <path d="M15.5 19 V14.5 a6.5 6.5 0 0 1 13 0 V19"
+                      stroke="#9aa0a6" stroke-width="3" stroke-linecap="round" fill="none" />
+              </svg>
+              <div id="url-text" class="mono">google.com</div>
+            </div>
+
+            <svg id="link" viewBox="0 0 60 60" fill="none">
+              <line x1="2" y1="30" x2="38" y2="30" stroke="currentColor"
+                    stroke-width="5" stroke-linecap="round" stroke-dasharray="9 10" />
+              <path d="M42 20 L54 30 L42 40" stroke="currentColor" stroke-width="5"
+                    fill="none" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+
+            <div id="dest-box">
+              <div id="q-wrap"><div id="q-mark" class="mono">?</div></div>
+            </div>
+
+            <div id="probe"></div>
+          </div>
+
+          <div id="chip" class="mono">NO ADDRESS</div>
+
+          <div id="plate">
+            <div id="plate-glow-warm"></div>
+            <div id="plate-glow-cool"></div>
+            <div id="plate-flare"></div>
+            <div id="plate-dash"></div>
+            <div id="plate-solid"></div>
+            <div id="ip-row" class="mono"><span id="oct1">172</span><span id="oct2">.217</span><span id="oct3">.72</span><span id="oct4">.139</span></div>
+          </div>
+
+        </div>
+
+        <div id="sweep" data-layout-allow-overflow="true"></div>
+        <div id="flash"></div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2"
+                      stitchTiles="stitch" result="noise" />
+        <feColorMatrix in="noise" type="matrix"
+                       values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.05 0" />
+      </filter>
+    </svg>
+
+    <script>
+      document.getElementById("grain").style.filter = "url(#grain-filter)";
+
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      /* =====================================================================
+         CAMERA — slow push-in over the whole beat, origin pinned to the
+         content band's own centre (540, 708).  scale 1 -> 1.05
+         top    : 708 + (236-708)*1.05 = 212.4   (>180)
+         bottom : 708 + (1180-708)*1.05 = 1203.6 (<1280)
+         ===================================================================== */
+      tl.fromTo("#stage", { scale: 1 },
+                { scale: 1.05, duration: 6.4, ease: "sine.inOut" }, 0);
+
+      /* =====================================================================
+         ACT 1 — "THE NAME, AND NO ADDRESS"        0.00 - 3.51
+         ===================================================================== */
+
+      /* 0.00  primary entrance: the browser window with google.com already in
+               it.  Frame-0 opacity is 0.55 (CSS), animating up — never 0.     */
+      tl.fromTo("#panel", { opacity: 0.55, y: 16, scale: 0.988 },
+                { opacity: 1, y: 0, scale: 1, duration: 0.50, ease: "power3.out" }, 0);
+
+      /* ambient: warm glow breathes (explicit fromTo pair, no repeat:) */
+      tl.fromTo("#glow-warm", { scale: 1 },
+                { scale: 1.05, duration: 1.20, ease: "sine.inOut",
+                  immediateRender: false }, 0.60);
+      tl.fromTo("#glow-warm", { scale: 1.05 },
+                { scale: 1, duration: 1.20, ease: "sine.inOut",
+                  immediateRender: false }, 1.80);
+
+      /* 0.70  headline */
+      tl.fromTo("#headline", { opacity: 0, y: -22 },
+                { opacity: 1, y: 0, duration: 0.50, ease: "power3.out",
+                  immediateRender: false }, 0.70);
+
+      /* 1.40 / 1.55  the destination side of the form: the dashed link draws,
+               then the empty destination field lands beside the URL field.
+               One connected gesture (path -> its target), not two ideas.       */
+      tl.fromTo("#link", { opacity: 0, x: -14 },
+                { opacity: 1, x: 0, duration: 0.35, ease: "power3.out",
+                  immediateRender: false }, 1.40);
+      tl.fromTo("#dest-box", { opacity: 0, scale: 0.88 },
+                { opacity: 1, scale: 1, duration: 0.45, ease: "back.out(1.5)",
+                  immediateRender: false }, 1.55);
+
+      /* 1.80 - 3.36  the "?" blinks.  Written as six explicit fromTo halves
+               instead of yoyo/repeat so every frame is seek-deterministic.
+               Halves are spaced 0.26 apart but last 0.25, so consecutive
+               tweens never write opacity at the same instant.
+               End time = 3.10 + 0.25 = 3.35, i.e. 0.37s before the turn and
+               2.75s before the fade starts.                                    */
+      const blinkT = [1.80, 2.06, 2.32, 2.58, 2.84, 3.10];
+      for (let i = 0; i < 6; i++) {
+        const from = (i % 2 === 0) ? 1 : 0.10;
+        const to   = (i % 2 === 0) ? 0.10 : 1;
+        tl.fromTo("#q-mark", { opacity: from },
+                  { opacity: to, duration: 0.25, ease: "sine.inOut",
+                    immediateRender: false }, blinkT[i]);
+      }
+
+      /* ---- lookup attempt 1 : 1.95 -> 2.33, rejected ---- */
+      tl.fromTo("#probe", { x: 0, opacity: 0, scale: 1 },
+                { x: 116, opacity: 1, scale: 1, duration: 0.38, ease: "power2.in",
+                  immediateRender: false }, 1.95);
+      tl.fromTo("#probe", { opacity: 1, scale: 1 },
+                { opacity: 0, scale: 2.2, duration: 0.20, ease: "power3.out",
+                  immediateRender: false }, 2.33);
+      tl.fromTo("#dest-box", { x: 0 },
+                { x: -10, duration: 0.06, ease: "power4.out",
+                  immediateRender: false }, 2.33);
+      tl.fromTo("#dest-box", { x: -10 },
+                { x: 9, duration: 0.09, ease: "sine.inOut",
+                  immediateRender: false }, 2.39);
+      tl.fromTo("#dest-box", { x: 9 },
+                { x: 0, duration: 0.13, ease: "power2.out",
+                  immediateRender: false }, 2.48);
+      tl.fromTo("#dest-box", { borderColor: "rgba(245,158,11,0.62)" },
+                { borderColor: "rgba(239,68,68,0.95)", duration: 0.08,
+                  ease: "power4.out", immediateRender: false }, 2.33);
+      tl.fromTo("#dest-box", { borderColor: "rgba(239,68,68,0.95)" },
+                { borderColor: "rgba(245,158,11,0.62)", duration: 0.45,
+                  ease: "power2.out", immediateRender: false }, 2.45);
+
+      /* 2.60  the one supporting label */
+      tl.fromTo("#chip", { opacity: 0, y: 12 },
+                { opacity: 1, y: 0, duration: 0.36, ease: "power3.out",
+                  immediateRender: false }, 2.60);
+
+      /* ---- lookup attempt 2 : 2.95 -> 3.31, rejected harder ----
+              from-vars reset x AND scale, which attempt 1 left dirty at 2.2   */
+      tl.fromTo("#probe", { x: 0, opacity: 0, scale: 1 },
+                { x: 116, opacity: 1, scale: 1, duration: 0.36, ease: "power2.in",
+                  immediateRender: false }, 2.95);
+      tl.fromTo("#probe", { opacity: 1, scale: 1 },
+                { opacity: 0, scale: 2.6, duration: 0.20, ease: "power3.out",
+                  immediateRender: false }, 3.31);
+      tl.fromTo("#dest-box", { x: 0 },
+                { x: -14, duration: 0.06, ease: "power4.out",
+                  immediateRender: false }, 3.31);
+      tl.fromTo("#dest-box", { x: -14 },
+                { x: 12, duration: 0.09, ease: "sine.inOut",
+                  immediateRender: false }, 3.37);
+      tl.fromTo("#dest-box", { x: 12 },
+                { x: 0, duration: 0.14, ease: "power2.out",
+                  immediateRender: false }, 3.46);
+      tl.fromTo("#dest-box", { borderColor: "rgba(245,158,11,0.62)" },
+                { borderColor: "rgba(239,68,68,0.98)", duration: 0.08,
+                  ease: "power4.out", immediateRender: false }, 3.31);
+      tl.fromTo("#chip", { scale: 1 },
+                { scale: 1.06, duration: 0.10, ease: "power4.out",
+                  immediateRender: false }, 3.31);
+      tl.fromTo("#chip", { scale: 1.06 },
+                { scale: 1, duration: 0.26, ease: "power2.out",
+                  immediateRender: false }, 3.41);
+
+      /* =====================================================================
+         THE TURN — colour phase-shift   3.72 - 4.30
+         white-cyan flash + a cyan sweep bar running the full frame, under
+         which every warm surface crossfades to cool.
+         ===================================================================== */
+      tl.fromTo("#sweep", { y: -460 },
+                { y: 1960, duration: 0.66, ease: "power2.inOut",
+                  immediateRender: false }, 3.72);
+      tl.fromTo("#sweep", { opacity: 0 },
+                { opacity: 0.90, duration: 0.10, ease: "power2.out",
+                  immediateRender: false }, 3.72);
+      tl.fromTo("#sweep", { opacity: 0.90 },
+                { opacity: 0, duration: 0.18, ease: "power2.in",
+                  immediateRender: false }, 4.20);
+
+      tl.fromTo("#flash", { opacity: 0 },
+                { opacity: 0.46, duration: 0.07, ease: "power4.out",
+                  immediateRender: false }, 3.75);
+      tl.fromTo("#flash", { opacity: 0.46 },
+                { opacity: 0, duration: 0.34, ease: "power2.out",
+                  immediateRender: false }, 3.82);
+
+      /* background phase-shift */
+      tl.fromTo("#glow-warm", { opacity: 1 },
+                { opacity: 0, duration: 0.55, ease: "sine.inOut",
+                  immediateRender: false }, 3.75);
+      tl.fromTo("#glow-cool", { opacity: 0 },
+                { opacity: 1, duration: 0.55, ease: "sine.inOut",
+                  immediateRender: false }, 3.78);
+      tl.fromTo("#panel-glow-warm", { opacity: 1 },
+                { opacity: 0, duration: 0.45, ease: "power2.out",
+                  immediateRender: false }, 3.78);
+      tl.fromTo("#panel-glow-cool", { opacity: 0 },
+                { opacity: 1, duration: 0.45, ease: "power3.out",
+                  immediateRender: false }, 3.80);
+      tl.fromTo("#url-text", { color: "#e8eaed" },
+                { color: "#d9f4ff", duration: 0.45, ease: "power2.out",
+                  immediateRender: false }, 3.80);
+
+      /* the question, the failed link and the failure label all leave */
+      tl.fromTo("#q-wrap", { opacity: 1, scale: 1 },
+                { opacity: 0, scale: 0.60, duration: 0.26, ease: "power3.in",
+                  immediateRender: false }, 3.75);
+      tl.fromTo("#dest-box", { opacity: 1, scale: 1 },
+                { opacity: 0, scale: 0.82, duration: 0.30, ease: "power3.in",
+                  immediateRender: false }, 3.78);
+      tl.fromTo("#link", { opacity: 1 },
+                { opacity: 0, duration: 0.24, ease: "power2.in",
+                  immediateRender: false }, 3.78);
+      tl.fromTo("#chip", { opacity: 1, y: 0 },
+                { opacity: 0, y: -12, duration: 0.24, ease: "power2.in",
+                  immediateRender: false }, 3.75);
+
+      /* the URL field relaxes out to full width now that the row is its own */
+      tl.fromTo("#url-pill", { width: 556 },
+                { width: 896, duration: 0.52, ease: "power3.inOut",
+                  immediateRender: false }, 3.86);
+
+      /* =====================================================================
+         ACT 2 — "THE ADDRESS RESOLVES"   3.84 - 6.10
+         ===================================================================== */
+      tl.fromTo("#plate", { opacity: 0, y: 24, scale: 0.96 },
+                { opacity: 1, y: 0, scale: 1, duration: 0.46, ease: "power3.out",
+                  immediateRender: false }, 3.84);
+      tl.fromTo("#plate-glow-warm", { opacity: 1 },
+                { opacity: 0, duration: 0.34, ease: "power2.out",
+                  immediateRender: false }, 3.90);
+      tl.fromTo("#plate-dash", { opacity: 1 },
+                { opacity: 0, duration: 0.30, ease: "power2.out",
+                  immediateRender: false }, 3.92);
+      tl.fromTo("#plate-solid", { opacity: 0 },
+                { opacity: 1, duration: 0.36, ease: "power3.out",
+                  immediateRender: false }, 3.96);
+      tl.fromTo("#plate-glow-cool", { opacity: 0 },
+                { opacity: 1, duration: 0.40, ease: "power3.out",
+                  immediateRender: false }, 3.96);
+
+      /* the real address prints octet by octet.  OPACITY ONLY — no transform —
+         so no leaf under the faded #plate is a transformed layer.
+         Full string complete at 4.46 + 0.18 = 4.64, on "found by IP
+         addresses, not name" (output 18.72 = local 4.62).                     */
+      const octT = [4.10, 4.22, 4.34, 4.46];
+      ["#oct1", "#oct2", "#oct3", "#oct4"].forEach(function (sel, i) {
+        tl.fromTo(sel, { opacity: 0 },
+                  { opacity: 1, duration: 0.18, ease: "power3.out",
+                    immediateRender: false }, octT[i]);
+      });
+
+      /* 4.62  it lands */
+      tl.fromTo("#plate", { scale: 1 },
+                { scale: 1.028, duration: 0.11, ease: "power4.out",
+                  immediateRender: false }, 4.62);
+      tl.fromTo("#plate", { scale: 1.028 },
+                { scale: 1, duration: 0.34, ease: "power2.out",
+                  immediateRender: false }, 4.73);
+      tl.fromTo("#plate-flare", { opacity: 0 },
+                { opacity: 1, duration: 0.10, ease: "power4.out",
+                  immediateRender: false }, 4.62);
+      tl.fromTo("#plate-flare", { opacity: 1 },
+                { opacity: 0, duration: 0.45, ease: "power2.out",
+                  immediateRender: false }, 4.72);
+
+      /* ambient life through the settle — explicit fromTo pairs, no repeat:.
+         Both chains END at 6.00, i.e. 0.10s BEFORE the fade begins.            */
+      tl.fromTo("#plate-glow-cool", { opacity: 1 },
+                { opacity: 0.52, duration: 0.55, ease: "sine.inOut",
+                  immediateRender: false }, 4.90);
+      tl.fromTo("#plate-glow-cool", { opacity: 0.52 },
+                { opacity: 1, duration: 0.55, ease: "sine.inOut",
+                  immediateRender: false }, 5.45);
+      tl.fromTo("#glow-cool", { scale: 1 },
+                { scale: 1.055, duration: 1.00, ease: "sine.inOut",
+                  immediateRender: false }, 4.00);
+      tl.fromTo("#glow-cool", { scale: 1.055 },
+                { scale: 1, duration: 1.00, ease: "sine.inOut",
+                  immediateRender: false }, 5.00);
+
+      /* =====================================================================
+         FADE — one fade per still-visible LEAF, never stacked ancestors.
+         6.10 + 0.30 = 6.400 exactly, zero buffer.
+         Excluded because they are already at opacity 0 at 6.10:
+         #glow-warm #panel-glow-warm #plate-glow-warm #plate-dash #plate-flare
+         #chip #q-wrap #dest-box #link #probe #sweep #flash
+         ===================================================================== */
+      const fadeLeaves = ["#bg-fill", "#glow-cool", "#vignette",
+                          "#headline", "#panel", "#plate"];
+      fadeLeaves.forEach(function (sel) {
+        tl.fromTo(sel, { opacity: 1 },
+                  { opacity: 0, duration: 0.30, ease: "power2.out",
+                    immediateRender: false }, 6.10);
+      });
+      tl.fromTo("#grain", { opacity: 0.045 },
+                { opacity: 0, duration: 0.30, ease: "power2.out",
+                  immediateRender: false }, 6.10);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

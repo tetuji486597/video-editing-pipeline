@@ -1,0 +1,206 @@
+{
+ "video": "final_nosfx.mp4",
+ "out": "final.mp4",
+ "cues": [
+  {
+   "at": 0.25,
+   "sfx": "tt_click_trim",
+   "vol": 2.13,
+   "why": "INTRO: sticker pops"
+  },
+  {
+   "at": 3.44,
+   "sfx": "bass_drop",
+   "vol": 0.08,
+   "why": "HOOK: the billion counter spins on the first 'billion'"
+  },
+  {
+   "at": 5.09,
+   "sfx": "tt_bubble_pop",
+   "vol": 0.79,
+   "why": "HOOK: MrBeast cutout pops on 'MrBeast'"
+  },
+  {
+   "at": 6.9,
+   "sfx": "tt_wrong_buzzer",
+   "vol": 0.51,
+   "why": "HOOK: the counter stalls on 'count to a billion'"
+  },
+  {
+   "at": 7.92,
+   "sfx": "br_skibidi_toilet",
+   "vol": 0.26,
+   "why": "HOOK: Skibidi Toilet peeks from the pile on 'skibidi posts'"
+  },
+  {
+   "at": 8.75,
+   "sfx": "pop_balloon",
+   "vol": 0.23,
+   "why": "HOOK: Trippi buried under the pile"
+  },
+  {
+   "at": 9.56,
+   "sfx": "tt_swoosh",
+   "vol": 0.36,
+   "why": "PROBLEM: the Trippi stadium slides in on 'too slow'"
+  },
+  {
+   "at": 11.81,
+   "sfx": "tt_error_glitch",
+   "vol": 0.46,
+   "why": "PROBLEM: the robot judge on 'dumb'"
+  },
+  {
+   "at": 13.44,
+   "sfx": "tt_notif_trim",
+   "vol": 0.47,
+   "why": "PROBLEM: the Livvy post card slides in on 'Livvy Dunn'"
+  },
+  {
+   "at": 16.2,
+   "sfx": "stamp",
+   "vol": 0.35,
+   "why": "PROBLEM: BOOTED stamp on 'booted'"
+  },
+  {
+   "at": 16.75,
+   "sfx": "br_erm_sigma",
+   "vol": 0.57,
+   "why": "PROBLEM voice meme right after the robot's 'erm ... booted'"
+  },
+  {
+   "at": 17.69,
+   "sfx": "tt_correct_ding",
+   "vol": 0.37,
+   "why": "PROBLEM: WRONG flashes, human un-boots with a green check after 'Wrong, buddy'"
+  },
+  {
+   "at": 17.82,
+   "sfx": "tt_camera_shutter",
+   "vol": 0.86,
+   "why": "PROBLEM: SKILL ISSUE stamp on the robot on 'Skill issue'"
+  },
+  {
+   "at": 19.54,
+   "sfx": "tt_whoosh",
+   "vol": 0.37,
+   "why": "BUILD: the funnel draws on 'funnel'"
+  },
+  {
+   "at": 20.98,
+   "sfx": "pop_bubble",
+   "vol": 0.37,
+   "why": "BUILD: the exact-copy pair lights red on 'exact copy'"
+  },
+  {
+   "at": 23.6,
+   "sfx": "br_amongus_sus",
+   "vol": 0.13,
+   "why": "BUILD: SUS chip on 'mad sus' (bass-capped)"
+  },
+  {
+   "at": 24.65,
+   "sfx": "br_tung_sahur",
+   "vol": 0.35,
+   "why": "BUILD: the tung tung tung chant with the three bat stamps -- THE bit"
+  },
+  {
+   "at": 25.52,
+   "sfx": "swoosh_deep",
+   "vol": 0.3,
+   "why": "BUILD: copies drop into the trash chute on 'gone'"
+  },
+  {
+   "at": 27.49,
+   "sfx": "br_fries_in_bag",
+   "vol": 1.26,
+   "why": "BUILD voice meme right after 'fries in the bag'; the fries-bag chip catches the last card"
+  },
+  {
+   "at": 30.18,
+   "sfx": "ding",
+   "vol": 0.25,
+   "why": "NEW_COMPONENT: the score dial appears on 'score'"
+  },
+  {
+   "at": 30.96,
+   "sfx": "br_gigachad",
+   "vol": 0.44,
+   "why": "NEW_COMPONENT: gigachad card scores high on 'Chad' (music bit, low)"
+  },
+  {
+   "at": 32.98,
+   "sfx": "bass_hit",
+   "vol": 0.17,
+   "why": "NEW_COMPONENT: burnt-toast card COOKED on 'cooked'"
+  },
+  {
+   "at": 36.05,
+   "sfx": "tt_record_scratch",
+   "vol": 0.54,
+   "why": "NEW_COMPONENT: the dial wobbles, 'idk chat' on 'I don't know, chat'"
+  },
+  {
+   "at": 36.88,
+   "sfx": "br_six_seven",
+   "vol": 0.23,
+   "why": "NEW_COMPONENT: 6-7 snippet on 'sixty or seventy' + LaMelo pop"
+  },
+  {
+   "at": 38.82,
+   "sfx": "swoosh_double",
+   "vol": 0.51,
+   "why": "NEW_COMPONENT: the card slides down the HUMAN lane on 'actual person'"
+  },
+  {
+   "at": 42.0,
+   "sfx": "whoosh_trim",
+   "vol": 0.18,
+   "why": "NEW_COMPONENT: ROBOT LEARNS loop arrow carries the decision back up"
+  },
+  {
+   "at": 43.7,
+   "sfx": "tt_sparkle_trim",
+   "vol": 1.11,
+   "why": "NEW_COMPONENT: BASED meter +1 on 'based'"
+  },
+  {
+   "at": 46.04,
+   "sfx": "shutter",
+   "vol": 1.3,
+   "why": "AI_ANGLE: HUMAN IN THE LOOP headline on 'human in the loop'"
+  },
+  {
+   "at": 49.14,
+   "sfx": "tt_bruh",
+   "vol": 0.27,
+   "why": "AI_ANGLE voice meme on 'goofy ahh ones'"
+  },
+  {
+   "at": 52.75,
+   "sfx": "riser",
+   "vol": 0.93,
+   "why": "AI_ANGLE: the VOLUME bar rises, landing on 'mogs on volume'"
+  },
+  {
+   "at": 54.24,
+   "sfx": "br_rizz",
+   "vol": 0.19,
+   "why": "AI_ANGLE: the VIBES bar on 'mogs on vibes'"
+  },
+  {
+   "at": 56.74,
+   "sfx": "impact_trim",
+   "vol": 1.07,
+   "why": "PAYOFF: the un-booted post card lands on 'easy ones'"
+  },
+  {
+   "at": 62.6,
+   "sfx": "br_amongus_reveal",
+   "vol": 0.4,
+   "why": "PAYOFF: the YOU crewmate reveal on 'You're the NPC'"
+  }
+ ],
+ "_note": "EP29. 33 cues / 33 distinct. Voice memes: skibidi_toilet, erm_sigma, tung_sahur, fries_in_bag, bruh (+ gigachad music bit). 6-7 anchor x1.",
+ "_vol_note": "Brainrot edition: br_* volumes from sfx_shared/BRAINROT_SFX_NOTES.md (voice memes already carry the x1.25 bump), tt_*/legacy from TIKTOK_SFX_NOTES.md. Rules: no repeated sound within an episode except the deliberate 6-7 anchor; voice memes placed just AFTER the presenter's own word, >=1.5s apart, never over his punchline; bass-heavy files <=0.45 and never within 1s of each other. br_diabolical (uncensored) deliberately NOT used."
+}

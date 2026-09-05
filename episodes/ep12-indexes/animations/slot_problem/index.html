@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP12 Problem — Full Scan</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      #fade-wrap { position: absolute; inset: 0; overflow: hidden; }
+
+      /* ---- opaque takeover base (child div, never #root/.clip) ---- */
+      #bg-fill {
+        position: absolute; inset: 0;
+        background: radial-gradient(
+          ellipse 860px 900px at 50% 40%,
+          #131a28 0%, #0d1320 52%, #0a0e16 100%
+        );
+      }
+      #glow-indigo {
+        position: absolute; left: -160px; top: 180px;
+        width: 780px; height: 780px; border-radius: 50%;
+        background: radial-gradient(circle at 50% 50%,
+          rgba(99,102,241,0.30) 0%, rgba(99,102,241,0.10) 45%, rgba(99,102,241,0) 72%);
+      }
+      #glow-red {
+        position: absolute; left: 380px; top: 700px;
+        width: 900px; height: 900px; border-radius: 50%;
+        background: radial-gradient(circle at 50% 50%,
+          rgba(239,68,68,0.34) 0%, rgba(239,68,68,0.12) 45%, rgba(239,68,68,0) 72%);
+        opacity: 0;
+      }
+      #grain { position: absolute; inset: 0; opacity: 0.042; }
+      #vignette {
+        position: absolute; inset: 0;
+        background: radial-gradient(ellipse 740px 940px at 50% 44%,
+          rgba(0,0,0,0) 0%, rgba(0,0,0,0) 46%,
+          rgba(4,6,10,0.58) 78%, rgba(3,4,8,0.94) 100%);
+      }
+
+      /* ---- push-in wrapper: origin at the content band centre (y=729) ---- */
+      #push-wrap {
+        position: absolute; inset: 0;
+        transform-origin: 50% 729px;
+      }
+
+      /* ================= TABLE CARD : abs y 230-772 ================= */
+      #card {
+        position: absolute;
+        left: 100px; top: 230px; width: 880px; height: 542px;
+        border-radius: 20px;
+        border: 2px solid rgba(99,102,241,0.42);
+        background: linear-gradient(165deg, rgba(21,27,42,0.97), rgba(12,16,26,0.98));
+        overflow: hidden;
+      }
+      /* header strip : card-local 0-84  => abs 230-314 */
+      #card-header {
+        position: absolute; left: 0; top: 0; width: 100%; height: 84px;
+        padding: 0 28px;
+        display: flex; align-items: center; justify-content: space-between;
+        border-bottom: 1px solid rgba(148,163,184,0.16);
+      }
+      #tbl-name {
+        display: flex; align-items: center; gap: 14px;
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 27px; font-weight: 600; color: #e2e8f0; letter-spacing: 0.5px;
+      }
+      #tbl-dot {
+        width: 12px; height: 12px; border-radius: 3px;
+        background: #94a3b8; box-shadow: 0 0 10px rgba(148,163,184,0.7);
+      }
+      #seq-badge {
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 21px; font-weight: 700; letter-spacing: 2.5px; color: #fca5a5;
+        border: 2px solid rgba(239,68,68,0.72); border-radius: 8px;
+        padding: 8px 16px; background: rgba(239,68,68,0.14);
+      }
+      /* column header : card-local 84-140 => abs 314-370 */
+      #col-header {
+        position: absolute; left: 0; top: 84px; width: 100%; height: 56px;
+        padding: 0 28px; display: flex; align-items: center;
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 22px; font-weight: 700; letter-spacing: 2px;
+        color: #8b949e; text-transform: uppercase;
+        border-bottom: 1px solid rgba(148,163,184,0.16);
+        background: rgba(148,163,184,0.05);
+      }
+      /* rows viewport : card-local 140-524 => abs 370-754 (clipped) */
+      #rows-viewport {
+        position: absolute; left: 0; top: 140px; width: 100%; height: 384px;
+        overflow: hidden;
+      }
+      #rows-strip { position: absolute; left: 0; top: 0; width: 100%; }
+      .row {
+        height: 64px; padding: 0 28px; display: flex; align-items: center;
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 25px; color: #cbd5e1;
+        border-bottom: 1px solid rgba(148,163,184,0.09);
+      }
+      .c-id  { width: 126px; color: #8b949e; flex-shrink: 0; }
+      .c-em  { width: 414px; flex-shrink: 0; overflow: hidden;
+               white-space: nowrap; text-overflow: ellipsis; }
+      .c-dt  { width: 280px; color: #94a3b8; flex-shrink: 0; }
+
+      #scan-bar {
+        position: absolute; left: 0; top: 0; width: 100%; height: 64px;
+        background: linear-gradient(90deg,
+          rgba(99,102,241,0.34) 0%, rgba(99,102,241,0.20) 60%, rgba(99,102,241,0.06) 100%);
+        border-top: 2px solid rgba(129,140,248,0.95);
+        border-bottom: 2px solid rgba(129,140,248,0.95);
+        box-shadow: 0 0 26px 2px rgba(99,102,241,0.55);
+        opacity: 0;
+      }
+      #streaks {
+        position: absolute; left: 0; top: -420px; width: 100%; height: 1300px;
+        opacity: 0; pointer-events: none;
+        background: repeating-linear-gradient(to bottom,
+          rgba(248,113,113,0) 0px, rgba(248,113,113,0.55) 2px,
+          rgba(248,113,113,0) 7px, rgba(248,113,113,0) 15px);
+      }
+      /* fast-forward chevrons : abs y 487-637, x 410-670 */
+      #ff-ind {
+        position: absolute; left: 310px; top: 257px;
+        width: 260px; height: 150px; opacity: 0;
+      }
+
+      /* ============ COUNTER LABEL ROW : abs y 820-854 ============ */
+      #label-row {
+        position: absolute; left: 100px; top: 820px; width: 880px; height: 34px;
+        display: flex; align-items: center; justify-content: space-between;
+      }
+      #rows-label {
+        font-size: 26px; font-weight: 700; letter-spacing: 5px;
+        color: #94a3b8; text-transform: uppercase; opacity: 0;
+      }
+      #elapsed-box {
+        position: relative; width: 300px; height: 34px; opacity: 0;
+      }
+      .el-state {
+        position: absolute; right: 0; top: 0; width: 300px; height: 34px;
+        line-height: 34px; text-align: right;
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 25px; font-weight: 600; letter-spacing: 1px; color: #8b949e;
+        white-space: nowrap; opacity: 0;
+      }
+
+      /* ============ COUNTER DIGITS : abs y 894-1034 ============ */
+      #counter-digits {
+        position: absolute; left: 100px; top: 894px; width: 880px; height: 140px;
+        opacity: 0; color: #e2e8f0;
+      }
+      .num-state {
+        position: absolute; left: 0; top: 0; width: 880px; height: 140px;
+        line-height: 140px; text-align: center; white-space: nowrap;
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 140px; font-weight: 700; opacity: 0;
+      }
+      .dgt { display: inline-block; width: 76px; text-align: center; }
+      .cma { display: inline-block; width: 30px; text-align: center; }
+
+      /* ============ HOPELESS STAMP : abs y 1094-1222 ============ */
+      #stamp-wrap {
+        position: absolute; left: 210px; top: 1094px; width: 660px; height: 128px;
+        opacity: 0;
+      }
+      #stamp-glow {
+        position: absolute; inset: -6px; border-radius: 16px;
+        box-shadow: 0 0 58px 4px rgba(239,68,68,0.72);
+        opacity: 0; pointer-events: none;
+      }
+      #stamp-box {
+        position: absolute; inset: 0; border-radius: 12px;
+        border: 3px solid #ef4444;
+        background: rgba(239,68,68,0.10);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 88px; font-weight: 900; letter-spacing: 4px;
+        color: #f87171; white-space: nowrap;
+        text-shadow: 0 0 26px rgba(239,68,68,0.85);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="5.8"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="5.8"
+        data-track-index="1"
+      >
+        <div id="fade-wrap">
+          <div id="bg-fill"></div>
+          <div
+            id="glow-indigo"
+            data-layout-allow-occlusion="true"
+            data-layout-allow-overflow="true"
+          ></div>
+          <div
+            id="glow-red"
+            data-layout-allow-occlusion="true"
+            data-layout-allow-overflow="true"
+          ></div>
+
+          <svg id="grain" width="1080" height="1920" data-layout-allow-occlusion="true">
+            <defs>
+              <filter id="grainf" x="0" y="0" width="100%" height="100%">
+                <feTurbulence
+                  type="fractalNoise"
+                  baseFrequency="0.85"
+                  numOctaves="3"
+                  stitchTiles="stitch"
+                  seed="11"
+                />
+                <feColorMatrix type="saturate" values="0" />
+              </filter>
+            </defs>
+            <rect width="1080" height="1920" filter="url(#grainf)" />
+          </svg>
+
+          <div id="vignette" data-layout-allow-occlusion="true"></div>
+
+          <!-- camera push-in; the wrapper box is full-canvas so scaling it
+               overflows by design — the CONTENT band is what stays in bounds -->
+          <div id="push-wrap" data-layout-allow-overflow="true">
+            <!-- ---------- TABLE CARD ---------- -->
+            <div id="card">
+              <div id="card-header">
+                <div id="tbl-name">
+                  <div id="tbl-dot"></div>
+                  public.users
+                </div>
+                <div id="seq-badge">SEQ SCAN</div>
+              </div>
+
+              <div id="col-header">
+                <div class="c-id">id</div>
+                <div class="c-em">email</div>
+                <div class="c-dt">created_at</div>
+              </div>
+
+              <div id="rows-viewport">
+                <!-- rows scroll inside a clipped viewport; rects that leave it are
+                     invisible, so their raw-bbox overlaps are not real collisions -->
+                <div
+                  id="rows-strip"
+                  data-layout-allow-overflow="true"
+                  data-layout-allow-overlap="true"
+                ></div>
+                <div
+                  id="scan-bar"
+                  data-layout-allow-occlusion="true"
+                  data-layout-allow-overflow="true"
+                ></div>
+                <div
+                  id="streaks"
+                  data-layout-allow-occlusion="true"
+                  data-layout-allow-overflow="true"
+                ></div>
+                <svg
+                  id="ff-ind"
+                  viewBox="0 0 260 150"
+                  data-layout-allow-occlusion="true"
+                >
+                  <polyline points="20,25 90,75 20,125" fill="none"
+                    stroke="#f87171" stroke-width="14"
+                    stroke-linecap="round" stroke-linejoin="round" />
+                  <polyline points="95,25 165,75 95,125" fill="none"
+                    stroke="#f87171" stroke-width="14"
+                    stroke-linecap="round" stroke-linejoin="round" />
+                  <polyline points="170,25 240,75 170,125" fill="none"
+                    stroke="#f87171" stroke-width="14"
+                    stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </div>
+            </div>
+
+            <!-- ---------- COUNTER LABEL ROW ---------- -->
+            <div id="label-row">
+              <div id="rows-label">Rows Read</div>
+              <!-- stacked value states, exactly one at opacity 1 per frame -->
+              <div
+                id="elapsed-box"
+                data-layout-allow-occlusion="true"
+                data-layout-allow-overlap="true"
+              ></div>
+            </div>
+
+            <!-- ---------- COUNTER DIGITS ---------- -->
+            <!-- stacked digit states, exactly one at opacity 1 per frame -->
+            <div
+              id="counter-digits"
+              data-layout-allow-occlusion="true"
+              data-layout-allow-overlap="true"
+            ></div>
+
+            <!-- ---------- HOPELESS STAMP ---------- -->
+            <div id="stamp-wrap">
+              <div id="stamp-glow"></div>
+              <div id="stamp-box">HOPELESS</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+
+      /* =====================================================================
+         DETERMINISTIC DOM BUILD (literal arrays only — no random, no dates)
+         ===================================================================== */
+
+      // 16 rows x 64px = 1024px strip inside a 384px clipped viewport.
+      const ROWS = [
+        ["1041", "m.reyes@vertexmail.com",    "2023-04-11 09:14"],
+        ["1042", "d.okafor@nimbus.io",        "2023-04-11 11:02"],
+        ["1043", "s.tanaka@vertexmail.com",   "2023-04-12 07:48"],
+        ["1044", "a.whitfield@loop.dev",      "2023-04-12 15:33"],
+        ["1045", "j.moreau@nimbus.io",        "2023-04-13 08:21"],
+        ["1046", "r.castillo@pilot.app",      "2023-04-13 19:57"],
+        ["1047", "k.novak@vertexmail.com",    "2023-04-14 06:12"],
+        ["1048", "t.abioye@loop.dev",         "2023-04-14 12:40"],
+        ["1049", "l.petrov@pilot.app",        "2023-04-15 03:29"],
+        ["1050", "n.hassan@nimbus.io",        "2023-04-15 10:05"],
+        ["1051", "c.delgado@vertexmail.com",  "2023-04-16 14:51"],
+        ["1052", "b.lindqvist@loop.dev",      "2023-04-16 21:18"],
+        ["1053", "y.nakamura@pilot.app",      "2023-04-17 05:44"],
+        ["1054", "p.oyelaran@nimbus.io",      "2023-04-17 16:09"],
+        ["1055", "e.ferreira@vertexmail.com", "2023-04-18 02:36"],
+        ["1056", "g.mbeki@loop.dev",          "2023-04-18 13:22"],
+      ];
+
+      const strip = document.getElementById("rows-strip");
+      ROWS.forEach(function (r) {
+        const d = document.createElement("div");
+        d.className = "row";
+        d.innerHTML =
+          '<div class="c-id">' + r[0] + "</div>" +
+          '<div class="c-em">' + r[1] + "</div>" +
+          '<div class="c-dt">' + r[2] + "</div>";
+        strip.appendChild(d);
+      });
+
+      // Fixed-width digit spans => total width is font-metric independent.
+      // "1,000,000,000" = 10 digits * 76 + 3 commas * 30 = 850px inside an 880px box.
+      function buildNumber(str) {
+        let out = "";
+        for (let i = 0; i < str.length; i++) {
+          const ch = str.charAt(i);
+          out += ch === ","
+            ? '<span class="cma">,</span>'
+            : '<span class="dgt">' + ch + "</span>";
+        }
+        return out;
+      }
+
+      // [value, time] — swapped with tl.set (seek-safe); never tween innerText.
+      const NUMS = [
+        ["0",             0.34],
+        ["1",             0.60],
+        ["2",             0.81],
+        ["3",             1.02],
+        ["4",             1.23],
+        ["5",             1.44],
+        ["6",             1.65],
+        ["1,482",         1.74],
+        ["27,905",        1.81],
+        ["418,663",       1.88],
+        ["3,905,271",     1.95],
+        ["46,118,540",    2.02],
+        ["329,704,882",   2.09],
+        ["1,000,000,000", 2.18],
+      ];
+
+      const ELAPSED = [
+        ["0.0 s",  0.44],
+        ["0.3 s",  0.60],
+        ["0.7 s",  0.81],
+        ["1.1 s",  1.02],
+        ["1.4 s",  1.23],
+        ["1.8 s",  1.44],
+        ["2.2 s",  1.65],
+        ["3.4 s",  1.81],
+        ["5.1 s",  1.95],
+        ["7.8 s",  2.09],
+        ["10.6 s", 2.40],
+        ["12.9 s", 2.66],
+        ["14.2 s", 2.94],
+      ];
+
+      const digitsHost = document.getElementById("counter-digits");
+      const numEls = NUMS.map(function (n) {
+        const d = document.createElement("div");
+        d.className = "num-state";
+        d.innerHTML = buildNumber(n[0]);
+        digitsHost.appendChild(d);
+        return d;
+      });
+
+      const elapsedHost = document.getElementById("elapsed-box");
+      const elEls = ELAPSED.map(function (e) {
+        const d = document.createElement("div");
+        d.className = "el-state";
+        d.textContent = e[0];
+        elapsedHost.appendChild(d);
+        return d;
+      });
+
+      /* =====================================================================
+         INITIAL STATES — set OUTSIDE the timeline so a seek to t=0 can never
+         render all stacked states at once.
+         ===================================================================== */
+      gsap.set("#fade-wrap", { opacity: 1 });
+      gsap.set("#push-wrap", { scale: 1 });
+      gsap.set(numEls, { opacity: 0 });
+      gsap.set(elEls, { opacity: 0 });
+      gsap.set("#card", { opacity: 0.5, y: 18, scale: 0.985 });
+      gsap.set("#rows-strip", { y: 0, filter: "blur(0px)", opacity: 1 });
+      gsap.set("#scan-bar", { y: 0, opacity: 0 });
+      gsap.set("#streaks", { y: 0, opacity: 0 });
+      gsap.set("#ff-ind", { opacity: 0, scale: 0.75, transformOrigin: "50% 50%" });
+      gsap.set("#rows-label", { opacity: 0, y: 12 });
+      gsap.set("#elapsed-box", { opacity: 0 });
+      gsap.set("#counter-digits", { opacity: 0, y: 14, scale: 1 });
+      gsap.set("#stamp-wrap", { opacity: 0, scale: 1.15, transformOrigin: "50% 50%" });
+      gsap.set("#stamp-glow", { opacity: 0 });
+      gsap.set("#glow-red", { opacity: 0 });
+      gsap.set("#glow-indigo", { opacity: 1 });
+
+      const tl = gsap.timeline({ paused: true });
+
+      /* ---------- ambient: slow camera push-in, 1.0 -> 1.04 ----------
+         origin y=729 (centre of the 230-1228 content band):
+           top    = 729 + (230  - 729) * 1.04 = 210.0   (> 180 OK)
+           bottom = 729 + (1228 - 729) * 1.04 = 1248.0  (< 1280 OK)          */
+      tl.to("#push-wrap", { scale: 1.04, duration: 5.5, ease: "sine.inOut" }, 0);
+
+      /* =====================  PHASE 1 — THE FULL SCAN  ===================== */
+      // primary entrance at local t=0, starting at 0.5 opacity (no black flash)
+      tl.to("#card", { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: "power3.out" }, 0);
+      tl.to("#rows-label", { opacity: 1, y: 0, duration: 0.35, ease: "power3.out" }, 0.18);
+      tl.to("#counter-digits", { opacity: 1, y: 0, duration: 0.38, ease: "power3.out" }, 0.34);
+      tl.to("#elapsed-box", { opacity: 1, duration: 0.30, ease: "power3.out" }, 0.44);
+
+      // scan bar appears on row 1, then steps down one row at a time.
+      // 6 mechanical, evenly-spaced steps 0.21s apart: 0.60 .. 1.65
+      tl.to("#scan-bar", { opacity: 1, duration: 0.16, ease: "power3.out" }, 0.60);
+      const SCAN_T = [0.60, 0.81, 1.02, 1.23, 1.44, 1.65];
+      SCAN_T.forEach(function (t, i) {
+        if (i === 0) return; // row 1 is where the bar is revealed
+        tl.to("#scan-bar", { y: i * 64, duration: 0.16, ease: "power3.out" }, t);
+      });
+
+      /* =================  TRANSITION — FAST-FORWARD (1.72)  ================= */
+      const FF = 1.72;
+
+      // rows smear away in a vertical rush
+      tl.to("#rows-strip", { y: -600, duration: 0.40, ease: "power2.inOut" }, FF);
+      tl.to("#rows-strip", { filter: "blur(7px)", duration: 0.16, ease: "power2.out" }, FF);
+      tl.to("#rows-strip", { filter: "blur(0px)", duration: 0.22, ease: "power2.out" }, 1.98);
+
+      // the scan bar can't keep up
+      tl.to("#scan-bar", { opacity: 0, duration: 0.12, ease: "power2.out" }, FF);
+
+      // vertical streak treatment
+      tl.to("#streaks", { opacity: 0.5, duration: 0.14, ease: "power2.out" }, FF);
+      tl.to("#streaks", { y: -400, duration: 0.40, ease: "power2.inOut" }, FF);
+      tl.to("#streaks", { opacity: 0, duration: 0.18, ease: "power2.out" }, 2.02);
+
+      // >> fast-forward indicator
+      tl.to("#ff-ind", { opacity: 1, scale: 1, duration: 0.18, ease: "power3.out" }, 1.80);
+      tl.to("#ff-ind", { opacity: 0, duration: 0.16, ease: "power2.out" }, 2.04);
+
+      // colour shifts cool -> red
+      tl.to("#card", { borderColor: "rgba(239,68,68,0.55)", duration: 0.45, ease: "power2.out" }, FF);
+      tl.to("#col-header", { color: "#f87171", duration: 0.45, ease: "power2.out" }, FF);
+      tl.to("#glow-indigo", { opacity: 0.22, duration: 0.5, ease: "power2.out" }, FF);
+      tl.to("#glow-red", { opacity: 1, duration: 0.5, ease: "power2.out" }, FF);
+
+      /* =====================  PHASE 2 — HOPELESS  ===================== */
+      // counter lands frozen on 1,000,000,000
+      tl.to("#counter-digits", { color: "#f87171", duration: 0.30, ease: "power2.out" }, 2.18);
+      tl.fromTo("#counter-digits",
+        { scale: 1.06 },
+        { scale: 1, duration: 0.34, ease: "power4.out" }, 2.18);
+      tl.to("#rows-label", { color: "#ef4444", duration: 0.30, ease: "power2.out" }, 2.18);
+      tl.to("#rows-strip", { opacity: 0.32, duration: 0.50, ease: "power2.out" }, 2.18);
+
+      // verdict stamp SLAMS in (1.15 -> 1.0, power4.out)
+      tl.to("#stamp-wrap", { opacity: 1, scale: 1, duration: 0.44, ease: "power4.out" }, 2.52);
+      tl.to("#stamp-glow", { opacity: 1, duration: 0.30, ease: "power3.out" }, 2.52);
+
+      /* ---- finite red glow pulses ----
+         3.20 + (3 + 1) * 0.55 = 5.40  --> fully complete before the 5.50 fade. */
+      tl.to("#stamp-glow",
+        { opacity: 0.35, duration: 0.55, ease: "sine.inOut", yoyo: true, repeat: 3 }, 3.20);
+      tl.to("#glow-red",
+        { opacity: 0.55, duration: 0.55, ease: "sine.inOut", yoyo: true, repeat: 3 }, 3.20);
+
+      /* ---- seek-safe counter / elapsed swaps (loop-generated pairs) ---- */
+      NUMS.forEach(function (n, i) {
+        tl.set(numEls[i], { opacity: 1 }, n[1]);
+        if (i < NUMS.length - 1) tl.set(numEls[i], { opacity: 0 }, NUMS[i + 1][1]);
+      });
+      ELAPSED.forEach(function (e, i) {
+        tl.set(elEls[i], { opacity: 1 }, e[1]);
+        if (i < ELAPSED.length - 1) tl.set(elEls[i], { opacity: 0 }, ELAPSED[i + 1][1]);
+      });
+
+      /* ---- fade-out FINISHES at exactly 5.800 (5.50 + 0.30), zero buffer ---- */
+      tl.to("#fade-wrap", { opacity: 0, duration: 0.30, ease: "power1.in" }, 5.50);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

@@ -1,0 +1,812 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP19 Problem — one row, one bottleneck</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      /* ------------------------------------------------------------------
+         #stage carries the slow push-in. transform-origin is pinned to the
+         CONTENT BAND's own centre (540, 708), NOT the frame centre — a naive
+         frame-centre push-in resolves 180-1280 to ~130-1319 and breaks both
+         limits. Arithmetic is in the report / comments at the bottom.
+         ------------------------------------------------------------------ */
+      #stage {
+        position: absolute;
+        inset: 0;
+        transform-origin: 540px 708px;
+        transform: scale(1);
+      }
+
+      /* Opaque fill on a CHILD div, never #root/.clip. Dark atmospheric:
+         base radial-gradient + two coloured glow blobs, layered in one
+         background so there is one fading leaf instead of three.
+         inset:-40px so the 11px gridlock shake can never expose a frame
+         edge (bg-fill and vignette are exempt from the y limits). */
+      #bg-fill {
+        position: absolute;
+        inset: -40px;
+        opacity: 1;
+        background:
+          radial-gradient(ellipse 620px 520px at 22% 30%, rgba(56, 189, 248, 0.20) 0%, rgba(56, 189, 248, 0) 66%),
+          radial-gradient(ellipse 560px 620px at 82% 74%, rgba(167, 139, 250, 0.17) 0%, rgba(167, 139, 250, 0) 68%),
+          radial-gradient(ellipse 900px 980px at 50% 40%, #101a26 0%, #0a0f16 55%, #05070a 100%);
+      }
+      #vignette {
+        position: absolute;
+        inset: -40px;
+        opacity: 1;
+        background: radial-gradient(
+          ellipse 760px 940px at 50% 44%,
+          rgba(0, 0, 0, 0) 0%,
+          rgba(0, 0, 0, 0) 46%,
+          rgba(2, 4, 7, 0.55) 78%,
+          rgba(1, 2, 4, 0.94) 100%
+        );
+      }
+
+      /* ---------------- headline — ONE line, 5 words ---------------- */
+      /* y 262-332. text-shadow blur kept at 8px: top reach =
+         262 + 2 - 8*1.6 = 251.2, which is the band's true top extreme. */
+      #headline {
+        position: absolute;
+        left: 100px;
+        top: 262px;
+        width: 880px;
+        font-size: 60px;
+        line-height: 70px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        color: #ffffff;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.92);
+        opacity: 0.2;
+        transform: translateY(18px);
+      }
+
+      /* ---------------- the single database row ---------------- */
+      /* x 150-930, y 555-855. 780px wide = the centre 780-900px of frame. */
+      #row-card {
+        position: absolute;
+        left: 150px;
+        top: 555px;
+        width: 780px;
+        height: 300px;
+        opacity: 0.55;
+        transform: scale(0.965);
+        transform-origin: 50% 50%;
+      }
+      #card-bg {
+        position: absolute;
+        inset: 0;
+        border-radius: 24px;
+        border: 2px solid rgba(56, 189, 248, 0.42);
+        background: linear-gradient(158deg, rgba(20, 30, 42, 0.96), rgba(9, 13, 19, 0.98));
+      }
+      /* Glow reach = 1.6 * blur past the element edge (+ spread).
+         top:   549 - 4 - 44*1.6 = 474.6   (clear of headline bottom 332)
+         bottom:861 + 4 + 44*1.6 = 935.4   (49.6px clear of queue top 985) */
+      #card-glow-blue {
+        position: absolute;
+        inset: -6px;
+        border-radius: 30px;
+        box-shadow: 0 0 44px 4px rgba(56, 189, 248, 0.32);
+        opacity: 0.45;
+        pointer-events: none;
+      }
+      #card-glow-red {
+        position: absolute;
+        inset: -6px;
+        border-radius: 30px;
+        box-shadow: 0 0 44px 6px rgba(239, 68, 68, 0.8);
+        opacity: 0;
+        pointer-events: none;
+      }
+      /* traffic-jam hazard hatching, clipped to the card */
+      #card-hatch {
+        position: absolute;
+        inset: 2px;
+        border-radius: 22px;
+        overflow: hidden;
+        opacity: 0;
+        pointer-events: none;
+      }
+      #hatch-strip {
+        position: absolute;
+        left: -400px;
+        top: 0;
+        width: 1580px;
+        height: 100%;
+        background: repeating-linear-gradient(
+          -45deg,
+          rgba(248, 113, 113, 0.5) 0px,
+          rgba(248, 113, 113, 0.5) 24px,
+          rgba(0, 0, 0, 0) 24px,
+          rgba(0, 0, 0, 0) 60px
+        );
+      }
+
+      /* header strip of the row card — label #1 of two */
+      /* left pad 50 -> ROW 1 starts at x=200, 52px clear of the d1 dart tip. */
+      #row-label {
+        position: absolute;
+        left: 50px;
+        top: 19px;
+        height: 30px;
+        line-height: 30px;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 26px;
+        font-weight: 500;
+        letter-spacing: 3px;
+        color: #7dd3fc;
+      }
+      #dots {
+        position: absolute;
+        left: 650px;
+        top: 28px;
+        width: 64px;
+        height: 12px;
+      }
+      #dots i {
+        position: absolute;
+        top: 0;
+        width: 12px;
+        height: 12px;
+        border-radius: 6px;
+        background: rgba(148, 163, 184, 0.4);
+      }
+      #dots i:nth-child(1) { left: 0; }
+      #dots i:nth-child(2) { left: 26px; }
+      #dots i:nth-child(3) { left: 52px; }
+
+      /* hero numeral — the one number of act 1. y 665-795. */
+      #counter {
+        position: absolute;
+        left: 0;
+        top: 110px;
+        width: 780px;
+        height: 130px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 112px;
+        line-height: 130px;
+        font-weight: 700;
+        letter-spacing: 0;
+        color: #f1f5f9;
+        text-shadow: 0 0 26px rgba(56, 189, 248, 0.35);
+        opacity: 1;
+        /* Explicit identity filter: NEVER let GSAP tween filter from a
+           computed `none` — it reads as brightness(0) and flashes black. */
+        filter: grayscale(0) brightness(1);
+      }
+      #counter .cprefix { display: block; }
+      .dslot {
+        position: relative;
+        display: block;
+        width: 67px;
+        height: 130px;
+      }
+      .dg {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 67px;
+        line-height: 130px;
+        text-align: center;
+      }
+      /* frame-0 state comes from CSS — tl.set at position 0 never fires */
+      #dg-4 { opacity: 1; }
+      #dg-5, #dg-6, #dg-7 { opacity: 0; }
+
+      /* ---------------- converging write arrows ---------------- */
+      /* All wraps share one anchor whose centre is the card centre
+         (492+48, 697+13) = (540, 710); every position is a hard-coded
+         offset from it. Deterministic literals only — no Math.random. */
+      .dart-wrap {
+        position: absolute;
+        left: 492px;
+        top: 697px;
+        width: 96px;
+        height: 26px;
+        opacity: 0;
+        transform-origin: 50% 50%;
+      }
+      .dart {
+        position: absolute;
+        inset: 0;
+        background: #ef4444;
+        clip-path: polygon(0% 32%, 66% 32%, 66% 0%, 100% 50%, 66% 100%, 66% 68%, 0% 68%);
+        filter: drop-shadow(0 0 9px rgba(239, 68, 68, 0.75));
+      }
+      #writer {
+        background: #38bdf8;
+        filter: drop-shadow(0 0 9px rgba(56, 189, 248, 0.8));
+      }
+
+      /* ---------------- queue depth — act 2 only ---------------- */
+      /* block x 290-790, y 985-1147 */
+      #queue-block {
+        position: absolute;
+        left: 290px;
+        top: 985px;
+        width: 500px;
+        height: 162px;
+        opacity: 0;
+        transform: translateY(16px);
+      }
+      #queue-label {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 500px;
+        height: 28px;
+        line-height: 28px;
+        text-align: center;
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: 4px;
+        color: #fca5a5;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+      }
+      #queue-track {
+        position: absolute;
+        left: 0;
+        top: 48px;
+        width: 500px;
+        height: 26px;
+        border-radius: 13px;
+        background: rgba(148, 163, 184, 0.14);
+        border: 1px solid rgba(248, 113, 113, 0.35);
+        overflow: hidden;
+      }
+      #queue-fill {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        border-radius: 13px;
+        background: linear-gradient(90deg, #f59e0b, #ef4444);
+        box-shadow: 0 0 18px rgba(239, 68, 68, 0.7);
+      }
+      #queue-num {
+        position: absolute;
+        left: 0;
+        top: 88px;
+        width: 500px;
+        height: 74px;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 64px;
+        font-weight: 700;
+        color: #fecaca;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
+      }
+      /* right-aligned inside a centred 280px box so the depth grows leftward
+         like a real counter instead of re-centring on every swap */
+      .qn {
+        position: absolute;
+        left: 90px;
+        top: 0;
+        width: 280px;
+        line-height: 74px;
+        text-align: right;
+      }
+      #qn-1 { opacity: 1; }
+      #qn-2, #qn-3, #qn-4 { opacity: 0; }
+
+      /* ---------------- full-frame effect layers (exempt) ---------------- */
+      #grain {
+        position: absolute;
+        inset: 0;
+        opacity: 0.042;
+        pointer-events: none;
+      }
+      #flash {
+        position: absolute;
+        inset: 0;
+        background: #f9b4a3;
+        opacity: 0;
+        pointer-events: none;
+        /* keep the amber hit off the burned-in caption band */
+        -webkit-mask-image: linear-gradient(to bottom, #000 0 1160px, transparent 1300px);
+        mask-image: linear-gradient(to bottom, #000 0 1160px, transparent 1300px);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="9.4"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="9.4"
+        data-track-index="1"
+      >
+        <div id="stage">
+          <div id="bg-fill"></div>
+          <div id="vignette"></div>
+
+          <div id="headline">Every like hits one row</div>
+
+          <div id="row-card" style="z-index: 4">
+            <div id="card-glow-blue"></div>
+            <div id="card-glow-red"></div>
+            <div id="card-bg"></div>
+            <div id="card-hatch" data-layout-allow-occlusion="true">
+              <div id="hatch-strip" data-layout-allow-overflow="true"></div>
+            </div>
+            <div id="row-label">ROW 1</div>
+            <div id="dots"><i></i><i></i><i></i></div>
+            <div id="counter">
+              <span class="cprefix">1,482,90</span
+              ><span class="dslot"
+                ><span class="dg" id="dg-4">4</span
+                ><span class="dg" id="dg-5">5</span
+                ><span class="dg" id="dg-6">6</span
+                ><span class="dg" id="dg-7">7</span></span
+              >
+            </div>
+          </div>
+
+          <!-- the calm act-1 writer: one arrow in, one increment out -->
+          <div
+            class="dart-wrap"
+            id="writer-wrap"
+            data-layout-allow-overflow="true"
+            data-layout-allow-occlusion="true"
+            style="z-index: 5"
+          >
+            <div class="dart" id="writer"></div>
+          </div>
+
+          <!-- act-2 swarm: 10 write arrows converging from every direction -->
+          <div class="dart-wrap jam-wrap" id="w1" data-layout-allow-overflow="true" data-layout-allow-occlusion="true" style="z-index: 5"><div class="dart jam"></div></div>
+          <div class="dart-wrap jam-wrap" id="w2" data-layout-allow-overflow="true" data-layout-allow-occlusion="true" style="z-index: 5"><div class="dart jam"></div></div>
+          <div class="dart-wrap jam-wrap" id="w3" data-layout-allow-overflow="true" data-layout-allow-occlusion="true" style="z-index: 5"><div class="dart jam"></div></div>
+          <div class="dart-wrap jam-wrap" id="w4" data-layout-allow-overflow="true" data-layout-allow-occlusion="true" style="z-index: 5"><div class="dart jam"></div></div>
+          <div class="dart-wrap jam-wrap" id="w5" data-layout-allow-overflow="true" data-layout-allow-occlusion="true" style="z-index: 5"><div class="dart jam"></div></div>
+          <div class="dart-wrap jam-wrap" id="w6" data-layout-allow-overflow="true" data-layout-allow-occlusion="true" style="z-index: 5"><div class="dart jam"></div></div>
+          <div class="dart-wrap jam-wrap" id="w7" data-layout-allow-overflow="true" data-layout-allow-occlusion="true" style="z-index: 5"><div class="dart jam"></div></div>
+          <div class="dart-wrap jam-wrap" id="w8" data-layout-allow-overflow="true" data-layout-allow-occlusion="true" style="z-index: 5"><div class="dart jam"></div></div>
+          <div class="dart-wrap jam-wrap" id="w9" data-layout-allow-overflow="true" data-layout-allow-occlusion="true" style="z-index: 5"><div class="dart jam"></div></div>
+          <div class="dart-wrap jam-wrap" id="w10" data-layout-allow-overflow="true" data-layout-allow-occlusion="true" style="z-index: 5"><div class="dart jam"></div></div>
+
+          <div id="queue-block" style="z-index: 6">
+            <div id="queue-label">QUEUE</div>
+            <div id="queue-track"><div id="queue-fill"></div></div>
+            <div id="queue-num">
+              <span class="qn" id="qn-1">12</span>
+              <span class="qn" id="qn-2">840</span>
+              <span class="qn" id="qn-3">6,120</span>
+              <span class="qn" id="qn-4">19,400</span>
+            </div>
+          </div>
+        </div>
+
+        <svg id="grain" width="1080" height="1920" style="z-index: 8">
+          <filter id="grain-f" x="0" y="0" width="100%" height="100%">
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency="0.85"
+              numOctaves="3"
+              seed="7"
+              stitchTiles="stitch"
+            />
+          </filter>
+          <rect width="1080" height="1920" filter="url(#grain-f)" />
+        </svg>
+
+        <div id="flash" style="z-index: 9"></div>
+      </section>
+    </div>
+
+    <script>
+      // Required alongside every fromTo fade — a lazy tween can silently fail
+      // to render when the renderer seeks a paused timeline and screenshots.
+      gsap.defaults({ lazy: false });
+
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // -----------------------------------------------------------------
+      // Deterministic swarm table. Offsets are from the shared wrap anchor
+      // whose centre is the card centre (540, 710). ABS centre = (540 + x,
+      // 710 + y). Every value is a hard-coded literal.
+      //   sx,sy = start offset   ex,ey = end offset   r = rotation (deg)
+      //   t     = timeline position of that dart's convergence tween
+      // -----------------------------------------------------------------
+      const swarms = [
+        { sel: "#w1",  sx: -610,  sy: -105,  ex: -440, ey: -105, r: 0,    t: 5.750 }, // LEFT  top   -> abs (100,605)
+        { sel: "#w4",  sx:  610,  sy: -105,  ex:  440, ey: -105, r: 180,  t: 5.805 }, // RIGHT top   -> abs (980,605)
+        { sel: "#w7",  sx: -514.9, sy: -336.4, ex: -400, ey: -240, r: 40,  t: 5.860 }, // UPPER-LEFT  -> abs (140,470)
+        { sel: "#w10", sx:  514.9, sy:  326.5, ex:  400, ey:  230, r: -140, t: 5.915 }, // LOWER-RIGHT -> abs (940,940)
+        { sel: "#w2",  sx: -610,  sy:   -5,  ex: -440, ey:   -5, r: 0,    t: 5.970 }, // LEFT  mid   -> abs (100,705)
+        { sel: "#w5",  sx:  610,  sy:   -5,  ex:  440, ey:   -5, r: 180,  t: 6.025 }, // RIGHT mid   -> abs (980,705)
+        { sel: "#w9",  sx: -514.9, sy:  326.5, ex: -400, ey:  230, r: -40, t: 6.080 }, // LOWER-LEFT  -> abs (140,940)
+        { sel: "#w8",  sx:  514.9, sy: -336.5, ex:  400, ey: -240, r: 140, t: 6.135 }, // UPPER-RIGHT -> abs (940,470)
+        { sel: "#w3",  sx: -610,  sy:   95,  ex: -440, ey:   95, r: 0,    t: 6.190 }, // LEFT  bot   -> abs (100,805)
+        { sel: "#w6",  sx:  610,  sy:   95,  ex:  440, ey:   95, r: 180,  t: 6.245 }  // RIGHT bot   -> abs (980,805)
+      ];
+
+      // Build-time gsap.set (NOT tl.set — a tl.set at position 0 never fires).
+      swarms.forEach(function (s) {
+        gsap.set(s.sel, { x: s.sx, y: s.sy, rotation: s.r, opacity: 0 });
+      });
+      // act-1 writer shares the LEFT-mid lane: abs start (-70,705) -> (100,705)
+      gsap.set("#writer-wrap", { x: -610, y: -5, rotation: 0, opacity: 0 });
+
+      // =================================================================
+      // Continuous motion: slow push-in about the CONTENT BAND centre.
+      // =================================================================
+      tl.fromTo(
+        "#stage",
+        { scale: 1 },
+        { scale: 1.045, duration: 9.4, ease: "sine.inOut" },
+        0
+      );
+
+      // =================================================================
+      // ACT 1 — calm. One row, one writer, clean increments.
+      // =================================================================
+
+      // Primary entrance at local t=0, already at 0.55 opacity on frame 0
+      // (CSS), never 0 — an opaque takeover with invisible content reads as
+      // a black flash. from-vars match the CSS exactly, so the default
+      // immediateRender is safe here.
+      tl.fromTo(
+        "#row-card",
+        { opacity: 0.55, scale: 0.965 },
+        { opacity: 1, scale: 1, duration: 0.6, ease: "power3.out" },
+        0
+      );
+      tl.fromTo(
+        "#card-glow-blue",
+        { opacity: 0.45 },
+        { opacity: 1, duration: 0.6, ease: "power3.out", immediateRender: false },
+        0.15
+      );
+
+      // Reveal 2, 0.75s after reveal 1 (>= 0.6s stagger minimum).
+      tl.fromTo(
+        "#headline",
+        { opacity: 0.2, y: 18 },
+        { opacity: 1, y: 0, duration: 0.55, ease: "power3.out", immediateRender: false },
+        0.75
+      );
+
+      // --- three clean write passes: arrow in, digit up, arrow absorbed ---
+      // Only the OUTGOING digit is touched per swap plus the incoming one as
+      // a DIFFERENT target — never a blanket hide-all + show-one, which
+      // renders a blank boundary frame. innerText is never tweened.
+      const passes = [
+        { inAt: 1.45, bump: 2.0, outAt: 2.1, from: "#dg-4", to: "#dg-5" },
+        { inAt: 2.55, bump: 3.1, outAt: 3.2, from: "#dg-5", to: "#dg-6" },
+        { inAt: 3.65, bump: 4.2, outAt: 4.3, from: "#dg-6", to: "#dg-7" }
+      ];
+      passes.forEach(function (p) {
+        tl.fromTo(
+          "#writer-wrap",
+          { opacity: 0, x: -610 },
+          { opacity: 0.95, x: -440, duration: 0.5, ease: "power3.out", immediateRender: false },
+          p.inAt
+        );
+        tl.set(p.from, { opacity: 0 }, p.bump);
+        tl.set(p.to, { opacity: 1 }, p.bump);
+        // repeat:1 + yoyo = 2 iterations -> lands back on the base value.
+        tl.fromTo(
+          "#counter",
+          { scale: 1 },
+          {
+            scale: 1.05,
+            duration: 0.12,
+            ease: "power3.out",
+            yoyo: true,
+            repeat: 1,
+            immediateRender: false
+          },
+          p.bump
+        );
+        // the write is absorbed INTO the row (forward, not backward)
+        tl.fromTo(
+          "#writer-wrap",
+          { opacity: 0.95, x: -440 },
+          { opacity: 0, x: -406, duration: 0.4, ease: "power2.in", immediateRender: false },
+          p.outAt
+        );
+      });
+
+      // ambient life while the row is calm. repeat:3 -> 4 iterations, ends on
+      // the base value (opacity 1). END = 2.60 + 4*0.62 = 5.08 < 5.37.
+      tl.fromTo(
+        "#card-glow-blue",
+        { opacity: 1 },
+        {
+          opacity: 0.68,
+          duration: 0.62,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 3,
+          immediateRender: false
+        },
+        2.6
+      );
+
+      // =================================================================
+      // THE TURN — GRIDLOCK, at LOCAL 5.37 == output 20.47 (A) / 19.64 (B),
+      // exactly on the word "bottleneck".
+      // =================================================================
+      const TURN = 5.37;
+
+      const flashTl = gsap.timeline();
+      flashTl
+        .to("#flash", { opacity: 0.55, duration: 0.05, ease: "power4.out" })
+        .to("#flash", { opacity: 0.12, duration: 0.08, ease: "power3.out" })
+        .to("#flash", { opacity: 0.34, duration: 0.05, ease: "power4.out" })
+        .to("#flash", { opacity: 0, duration: 0.18, ease: "power3.out" });
+      tl.add(flashTl, TURN); // ends TURN + 0.36 = 5.73
+
+      // hard stutter. repeat:5 -> 6 iterations -> ends on x:0. END = 5.70.
+      tl.fromTo(
+        "#stage",
+        { x: 0 },
+        {
+          x: 11,
+          duration: 0.055,
+          ease: "power1.inOut",
+          yoyo: true,
+          repeat: 5,
+          immediateRender: false
+        },
+        TURN
+      );
+
+      // the orderly cyan flow becomes a red jam
+      tl.fromTo(
+        "#card-bg",
+        { borderColor: "rgba(56,189,248,0.42)" },
+        { borderColor: "rgba(248,113,113,0.92)", duration: 0.18, ease: "power4.out", immediateRender: false },
+        TURN
+      );
+      tl.fromTo(
+        "#card-glow-blue",
+        { opacity: 1 },
+        { opacity: 0.15, duration: 0.22, ease: "power4.out", immediateRender: false },
+        TURN
+      );
+      tl.fromTo(
+        "#card-glow-red",
+        { opacity: 0 },
+        { opacity: 0.85, duration: 0.25, ease: "power4.out", immediateRender: false },
+        TURN
+      );
+
+      // the counter seizes: desaturates and freezes. The from-vars repeat the
+      // CSS identity filter so GSAP never interpolates from a computed `none`
+      // (which renders as brightness(0) — a solid black box).
+      tl.fromTo(
+        "#counter",
+        { filter: "grayscale(0) brightness(1)", opacity: 1 },
+        {
+          filter: "grayscale(1) brightness(0.62)",
+          opacity: 0.55,
+          duration: 0.5,
+          ease: "power3.out",
+          immediateRender: false
+        },
+        TURN
+      );
+      // repeat:7 -> 8 iterations -> ends on y:0. END = 5.40 + 8*0.07 = 5.96.
+      tl.fromTo(
+        "#counter",
+        { y: 0 },
+        {
+          y: -7,
+          duration: 0.07,
+          ease: "power1.inOut",
+          yoyo: true,
+          repeat: 7,
+          immediateRender: false
+        },
+        5.4
+      );
+
+      // traffic-jam hazard hatching seizes the row
+      tl.fromTo(
+        "#card-hatch",
+        { opacity: 0 },
+        { opacity: 0.3, duration: 0.35, ease: "power3.out", immediateRender: false },
+        5.42
+      );
+      // constant-velocity drift: ease "none" is correct here (a jam that
+      // decelerates reads as clearing). One-shot, ENDS 5.50 + 3.5 = 9.00.
+      tl.to("#hatch-strip", { x: 169.7, duration: 3.5, ease: "none" }, 5.5);
+
+      // =================================================================
+      // ACT 2 — every writer converges on the same row and piles up.
+      // ONE visual event: 10 arrows, tightly staggered 0.055s apart.
+      // =================================================================
+      swarms.forEach(function (s) {
+        tl.fromTo(
+          s.sel,
+          { opacity: 0, x: s.sx, y: s.sy },
+          {
+            opacity: 0.95,
+            x: s.ex,
+            y: s.ey,
+            duration: 0.42,
+            ease: "power4.out",
+            immediateRender: false
+          },
+          s.t
+        );
+      });
+      // last dart: 6.245 + 0.42 = 6.665
+
+      // the jammed row throbs. repeat:3 -> 4 iterations -> ends on 0.85.
+      // END = 6.40 + 4*0.55 = 8.60 < 9.10.
+      tl.fromTo(
+        "#card-glow-red",
+        { opacity: 0.85 },
+        {
+          opacity: 1,
+          duration: 0.55,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 3,
+          immediateRender: false
+        },
+        6.4
+      );
+
+      // arrows nose-to-tail, jittering along their own travel axis (the inner
+      // .jam sits inside a rotated wrap, so local x IS the travel direction).
+      // repeat:9 -> 10 iterations -> ends on x:0.
+      // END = 6.70 + 9*0.02 + 10*0.09 = 7.78 < 9.10.
+      tl.fromTo(
+        ".jam",
+        { x: 0 },
+        {
+          x: 7,
+          duration: 0.09,
+          ease: "power1.inOut",
+          yoyo: true,
+          repeat: 9,
+          stagger: 0.02,
+          immediateRender: false
+        },
+        6.7
+      );
+
+      // queue depth spikes. Reveal is 1.10s after the swarm began.
+      tl.fromTo(
+        "#queue-block",
+        { opacity: 0, y: 16 },
+        { opacity: 1, y: 0, duration: 0.5, ease: "power3.out", immediateRender: false },
+        6.85
+      );
+      tl.fromTo(
+        "#queue-fill",
+        { width: "0%" },
+        { width: "94%", duration: 1.4, ease: "power2.in", immediateRender: false },
+        7.05
+      );
+      // stacked digit spans, zero-duration set swaps, outgoing + incoming as
+      // two DIFFERENT targets. Never a tweened innerText.
+      tl.set("#qn-1", { opacity: 0 }, 7.3);
+      tl.set("#qn-2", { opacity: 1 }, 7.3);
+      tl.set("#qn-2", { opacity: 0 }, 7.68);
+      tl.set("#qn-3", { opacity: 1 }, 7.68);
+      tl.set("#qn-3", { opacity: 0 }, 8.05);
+      tl.set("#qn-4", { opacity: 1 }, 8.05);
+      // repeat:1 -> 2 iterations -> ends on base. END = 8.05 + 0.22 = 8.27.
+      tl.fromTo(
+        "#queue-num",
+        { scale: 1 },
+        {
+          scale: 1.07,
+          duration: 0.11,
+          ease: "power3.out",
+          yoyo: true,
+          repeat: 1,
+          immediateRender: false
+        },
+        8.05
+      );
+
+      // second jam shudder. repeat:7 -> 8 iterations -> ends on x:0.
+      // END = 8.00 + 9*0.018 + 8*0.075 = 8.762 < 9.10.
+      tl.fromTo(
+        ".jam",
+        { x: 0 },
+        {
+          x: 5,
+          duration: 0.075,
+          ease: "power1.inOut",
+          yoyo: true,
+          repeat: 7,
+          stagger: 0.018,
+          immediateRender: false
+        },
+        8.0
+      );
+
+      // =================================================================
+      // FADE — finishes at exactly 9.400, zero buffer. 9.10 + 0.30 = 9.40.
+      // One fade per visible LEAF, each with its true from-value: nesting
+      // fading ancestors multiplies opacities and hits zero early. Anything
+      // already at opacity 0 at 9.10 (#writer-wrap, #flash, the outgoing
+      // digit spans) is deliberately excluded.
+      // =================================================================
+      // Destination vars are written out literally on every call — a shared
+      // vars object is mutated by GSAP across tweens and is also opaque to
+      // the cold-seek linter.
+      const FADE = 9.1;
+
+      tl.fromTo(
+        ["#bg-fill", "#vignette", "#headline", "#card-bg", "#row-label", "#dots",
+         "#queue-label", "#queue-track", "#queue-num"],
+        { opacity: 1 },
+        { opacity: 0, duration: 0.3, ease: "power1.in", immediateRender: false },
+        FADE
+      );
+      tl.fromTo(
+        "#card-glow-red",
+        { opacity: 0.85 },
+        { opacity: 0, duration: 0.3, ease: "power1.in", immediateRender: false },
+        FADE
+      );
+      tl.fromTo(
+        "#card-glow-blue",
+        { opacity: 0.15 },
+        { opacity: 0, duration: 0.3, ease: "power1.in", immediateRender: false },
+        FADE
+      );
+      tl.fromTo(
+        "#card-hatch",
+        { opacity: 0.3 },
+        { opacity: 0, duration: 0.3, ease: "power1.in", immediateRender: false },
+        FADE
+      );
+      tl.fromTo(
+        "#counter",
+        { opacity: 0.55 },
+        { opacity: 0, duration: 0.3, ease: "power1.in", immediateRender: false },
+        FADE
+      );
+      tl.fromTo(
+        ".jam-wrap",
+        { opacity: 0.95 },
+        { opacity: 0, duration: 0.3, ease: "power1.in", immediateRender: false },
+        FADE
+      );
+      tl.fromTo(
+        "#grain",
+        { opacity: 0.042 },
+        { opacity: 0, duration: 0.3, ease: "power1.in", immediateRender: false },
+        FADE
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

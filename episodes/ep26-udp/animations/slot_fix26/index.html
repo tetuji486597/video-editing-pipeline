@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP26 correction chip</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      /* The gag correction sticker. Runs simultaneously with the title sticker in BOTH
+         variants. REPOSITIONED for the now-CENTRED title stack: the old spot (x 622-858)
+         was chosen against the left-anchored stack; the centred stack's widest box now
+         ends at x~858, leaving no room on the right inside the x<=870 margin, and the
+         face fills x~220-830 below the stack -- so the chip tucks at the stack's
+         lower-LEFT, over the left hair/background, still reading as a sticker slapped
+         onto the title lockup. Container x=74-278, y=360-458; rotated -3deg the bounds
+         resolve to x 71.5-279.2, y 354.8-463.2 (+ ~1px at the 1.006 drift peak).
+         Pairwise clearance at worst frames (title drift 1.008, top-fixed origin):
+           A line 1 bottom 320.9 -> chip top 354.8: 33.9px  (x-ranges overlap, y gap)
+           A line 2 min-x 384.8  -> chip right 280.2: 104.6px (x gap)
+           A line 3 min-x 330.8  -> chip right 280.2: 50.6px  (x gap)
+           B line 1 bottom 322.9 -> chip top 354.8: 31.9px   (y gap)
+           B line 2 min-x 324.8  -> chip right 280.2: 44.6px  (x gap)
+         All >=30. Margins: x 71.5>=70, right 280<870, top 354.8>=200, bottom 463<1280.
+         Face (intro, zoom-worst): brow 667-698, face left edge at this height x>~300 --
+         chip sits over wall/left hair, clear of eyes/face. */
+      #fix-rot {
+        position: absolute;
+        left: 74px;
+        top: 360px;
+        width: 204px;
+        transform: rotate(-3deg);
+        transform-origin: 50% 50%;
+      }
+      /* GSAP pop-scale lives on this INNER element so it never fights the CSS rotation
+         on the wrapper (gsap_css_transform_conflict). The fade also targets this leaf --
+         it carries the transform, and ancestor opacity is not applied uniformly to
+         transformed descendants. */
+      #fix-pop {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        opacity: 0.55;             /* frame-0 state from CSS: pop already in flight */
+        transform: scale(0.5);
+        transform-origin: 18% 30%;
+      }
+      #fix-main {
+        background: #ffffff;
+        color: #111111;
+        font-size: 25px;  /* 29 -> 25 so the rotated chip fits the x>=70 margin while
+                             keeping >=30px clearance to variant B's EPISODE 26 box */
+        line-height: 25px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        padding: 12px 16px 15px 16px;
+        border-radius: 12px;
+        white-space: nowrap;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); /* reach 1.6*8=13px, all inside band */
+      }
+      #fix-main .ast { color: #fe2c55; } /* the correction asterisk, TikTok red */
+      #fix-sub {
+        background: #ffffff;
+        color: #333333;
+        font-size: 20px;
+        line-height: 20px;
+        font-weight: 600;
+        font-style: italic;
+        padding: 8px 12px 10px 12px;
+        border-radius: 9px;
+        white-space: nowrap;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="4.2"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="4.2"
+        data-track-index="1"
+      >
+        <div id="fix-rot">
+          <div id="fix-pop">
+            <div id="fix-main"><span class="ast">*</span>EPISODE 26</div>
+            <div id="fix-sub">he can't count</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // Pop lands ON the spoken word "25": the EDL start_in_output places local t=0 at
+      // the word's onset (A: 0.770, B: 0.820 in output time), so the pop must begin at
+      // local 0 and complete inside the word's ~0.5s span.
+      tl.fromTo(
+        "#fix-pop",
+        { opacity: 0.55, scale: 0.5 },
+        { opacity: 1, scale: 1, duration: 0.22, ease: "back.out(2.2)" },
+        0
+      );
+
+      // Imperceptible hold drift (motion-linter seek check; also keeps the sticker
+      // alive over the zooming footage). fromTo to avoid the transform conflict.
+      tl.fromTo(
+        "#fix-pop",
+        { scale: 1 },
+        { scale: 1.006, duration: 3.7, ease: "none", immediateRender: false },
+        0.22
+      );
+
+      // Fade finishes at EXACTLY data-duration: 3.92 + 0.28 = 4.200, zero buffer.
+      tl.fromTo(
+        "#fix-pop",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.28, ease: "power2.out", immediateRender: false },
+        3.92
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

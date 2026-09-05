@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP25 TikTok-style Title Box (variant B)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      /* Same construction/derivation as slot_tiktok_title (see comments there):
+         USER FEEDBACK FIX -- centred on x=540 (true frame centre, left:0/right:0/
+         margin:auto), font 68 -> 62. Widest line "RLLY COOL TECH:" ~632px text @68 ->
+         ~576px @62 + 56 padding = ~632 box (<=660) -> x = 540 +- 316 = 224..856;
+         drift 1.01 -> 540 +- 319.2 = 220.8..859.2 (<=870).
+         Wording is the skill's fixed cool-tech line: RLLY, no leading "EXPLORING". */
+      #stack {
+        position: absolute;
+        left: 0;
+        right: 0;
+        margin: 0 auto;
+        top: 250px;               /* B intro take measured: hair top ~200, brow ~700-740
+                                     -> stack 250..480 over hair, clears brow by ~220px */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        opacity: 0.6;
+        transform: scale(0.94);
+        transform-origin: 50% 0%;
+      }
+      .tt-line {
+        background: #ffffff;
+        color: #111111;
+        font-size: 62px;
+        line-height: 62px;
+        font-weight: 800;
+        letter-spacing: -1px;
+        padding: 22px 28px 25px 28px;
+        border-radius: 16px;
+        white-space: nowrap;
+        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.22);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="5.66"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="5.66"
+        data-track-index="1"
+      >
+        <div id="stack">
+          <!-- 2 boxes, variant-B wording, fixed by the skill's title table -->
+          <div class="tt-line">RLLY COOL TECH:</div>
+          <div class="tt-line">EPISODE 25</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      tl.fromTo(
+        "#stack",
+        { opacity: 0.6, scale: 0.94 },
+        { opacity: 1, scale: 1, duration: 0.28, ease: "power3.out" },
+        0
+      );
+
+      // linter-visible drift over the hold (see slot_tiktok_title for rationale)
+      tl.fromTo(
+        "#stack",
+        { scale: 1 },
+        { scale: 1.01, duration: 5.1, ease: "none", immediateRender: false },
+        0.28
+      );
+
+      // Fade FINISHES at exactly data-duration: 5.38 + 0.28 = 5.660.
+      tl.fromTo(
+        "#stack",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.28, ease: "power2.out", immediateRender: false },
+        5.38
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

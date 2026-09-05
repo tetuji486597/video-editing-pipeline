@@ -1,0 +1,186 @@
+{
+  "version": 1,
+  "sources": {
+    "ep22": "C:/Users/gordo/Downloads/drive-download-20260828T050315Z-1-001/ep22.mp4"
+  },
+  "ranges": [
+    {
+      "source": "ep22",
+      "start": 10.4,
+      "end": 14.8,
+      "beat": "INTRO",
+      "quote": "This is episode twenty-two of Exploring Really Cool Tech. Today we'll be talking about webhooks.",
+      "reason": "INTRO VARIANT B (cool-tech framing), first take of the shoot and the only complete cool-tech delivery. Acoustic onset 10.50 (ASR 'This' starts 10.48, agreement); acoustic end 14.72 vs ASR 'webhooks.' box end 14.62 -- the voiced tail outlasts the box slightly, end pads 80ms past the acoustic edge.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep22",
+      "start": 52.28,
+      "end": 56.98,
+      "beat": "HOOK",
+      "quote": "So your app finds out you got paid the instant it happens without ever checking. That's called a webhook.",
+      "reason": "Only take. Acoustic onset 52.35 (ASR 52.40). ASR boxes 'webhook.' to 56.84; the '-hook' release decays by 56.82 on a 20ms probe, so the range ends 56.98 (+160ms).",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep22",
+      "start": 64.2,
+      "end": 72.68,
+      "beat": "PROBLEM",
+      "quote": "You met the clunky alternative back in the chat episode asking, \"Anything new?\" on repeat. For payments, that's thousands of wasted calls a day to catch one event.",
+      "reason": "Only take; kept as ONE range spanning both phrases -- the 0.51s breath after 'repeat.' (acoustic 68.48-68.99) is natural and under the 0.8s flag line. ASR boxes 'event.' to 72.64 but the release is fully decayed by 72.48 on a 20ms probe (the coarse 0.1s scan read 72.96 off tail noise); end 72.68 = +200ms past the measured decay and still past the ASR box.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep22",
+      "start": 74.88,
+      "end": 80.72,
+      "beat": "BUILD",
+      "quote": "A webhook flips the direction. You hand the payment provider a URL and say, \"Call me when something happens.\"",
+      "reason": "Only take. Acoustic onset 74.94 (ASR 'A' starts 75.02); acoustic end 80.64 vs ASR 'happens.' end 80.56. ASR and acoustics agree within a window on both edges.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep22",
+      "start": 83.14,
+      "end": 91.39,
+      "beat": "POST",
+      "quote": "The moment a payment succeeds, their server sends an HTTP POST to your URL with the details. You only do work when there's actually work to do,",
+      "reason": "First half of one long take (83.22-98.30), split ZERO-GAP from SIGN at 91.39 -- the word boundary between 'do,' (ends 91.37) and 'and' (starts 91.40) -- so each beat gets its own overlay without a cut being audible. Acoustic onset 83.20. The 0.32s breath after 'details.' (88.96-89.28) is natural.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep22",
+      "start": 91.39,
+      "end": 97.44,
+      "beat": "SIGN",
+      "quote": "and because anyone could post to a public URL, they sign each call. You verify the signature so you know it's really them.",
+      "reason": "Second half of the same take, contiguous with POST at 91.39 (zero gap by design). ASR boxes 'them.' from 97.14 all the way to 98.30 -- a 1.16s word; find_dead_air puts the acoustic end at 97.34, so the range ends there +100ms. Padding off the ASR box would have shipped ~1s of dead tail.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep22",
+      "start": 121.34,
+      "end": 128.1,
+      "beat": "PAYOFF",
+      "quote": "So webhooks flip the question. The server calls you. Next, we'll talk about why it only works on my machine is dead.",
+      "reason": "FINAL take (of three), preferred per direction and acoustically clean: only a 0.26s breath before 'Next,' (124.16-124.42); the ~0.74s ASR gap there is mostly audible breath, so ONE range spans both phrases. Alternates DROPPED: 99.64 (complete and slightly tighter, but the final delivery is the pick) and 110.70 (aborts mid-word at 'machi-'). ASR boxes 'dead.' from 127.62 to 129.60 -- a 1.98s word; acoustic end is 128.00, range ends there +100ms. Acoustic onset 121.41 vs ASR 'So' start 121.48.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    }
+  ],
+  "grade": "eq=contrast=1.15:saturation=1.05,colorbalance=rs=-0.04:gs=0.02:bs=0.05:rm=0.01:gm=0.0:bm=-0.01:rh=0.06:gh=0.02:bh=-0.06,vignette=angle=0.7,unsharp=5:5",
+  "overlays": [
+    {
+      "file": "animations/slot_tiktok_title_b/render.webm",
+      "start_in_output": 0.0167,
+      "duration": 4.4
+    },
+    {
+      "file": "animations/slot_hook/render.webm",
+      "start_in_output": 4.4167,
+      "duration": 4.7
+    },
+    {
+      "file": "animations/slot_problem/render.webm",
+      "start_in_output": 10.425,
+      "duration": 7.2
+    },
+    {
+      "file": "animations/slot_build/render.webm",
+      "start_in_output": 18.175,
+      "duration": 5.6
+    },
+    {
+      "file": "animations/slot_post/render.webm",
+      "start_in_output": 24.275,
+      "duration": 7.4
+    },
+    {
+      "file": "animations/slot_sign/render.webm",
+      "start_in_output": 32.175,
+      "duration": 6.1
+    },
+    {
+      "file": "animations/slot_payoff/render.webm",
+      "start_in_output": 38.775,
+      "duration": 5.5
+    }
+  ],
+  "subtitles": "master.B.ass",
+  "_variant": "Variant B -- 'Exploring Really Cool Tech' intro.",
+  "_zoom_note": "Slow FACE-ANCHORED zoom, focal (540,730) = eye line, magnitude 1.08, direction alternating so the drift is continuous across cuts. Rebuilt 2026-08-28 per feedback ('zoom shakes, make it stronger'): render.py's zoom chain is now supersampled with the crop offset derived from the frame's actual quantized size, killing the size/offset rounding mismatch that caused the judder; magnitude raised 1.045->1.08 and focal moved from frame centre to the eye line so the stronger zoom displaces the face far less against overlay clearances.",
+  "_beat_windows_output_timeline": {
+    "INTRO": [
+      0.0,
+      4.4167
+    ],
+    "HOOK": [
+      4.4167,
+      9.125
+    ],
+    "PROBLEM": [
+      9.125,
+      17.625
+    ],
+    "BUILD": [
+      17.625,
+      23.5
+    ],
+    "POST": [
+      23.5,
+      31.75
+    ],
+    "SIGN": [
+      31.75,
+      37.8333
+    ],
+    "PAYOFF": [
+      37.8333,
+      44.625
+    ]
+  },
+  "total_duration_s": 44.625,
+  "_windows_note": "Output-timeline windows on render.py's real 24fps extract grid: each segment's rendered duration is ceil((end-start)*24)/24, not the raw source span. Verified against rendered clips where measurable. Overlay start_in_output values are derived from THESE numbers."
+}

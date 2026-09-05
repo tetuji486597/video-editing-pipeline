@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP24 build — declare desired state</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent; /* HALF-PANEL (upper band): tight shot, no chest band —
+                                    translucent card over hair per rule 11 */
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      #content-all { position: absolute; inset: 0; opacity: 0.55; } /* frame-0 visible */
+
+      #spec-card {
+        position: absolute;
+        left: 90px; top: 190px; width: 740px; height: 470px;
+        border-radius: 22px;
+        background: rgba(10, 14, 22, 0.32);   /* translucent — footage shows through */
+        border: 1.5px solid rgba(34, 211, 238, 0.6);
+        box-shadow: 0 0 22px rgba(34, 211, 238, 0.16);
+      }
+      #hdr {
+        position: absolute; left: 30px; top: 20px;
+        color: rgba(148, 197, 220, 0.95); font-size: 24px; letter-spacing: 2px;
+        text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+      }
+      #caret {
+        position: absolute; left: 372px; top: 20px; width: 13px; height: 26px;
+        background: rgba(148, 197, 220, 0.9);
+      }
+
+      .k-label {
+        position: absolute; left: 40px;
+        color: rgba(203, 225, 235, 0.95); font-size: 44px; letter-spacing: 1px;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95);
+      }
+      #lbl-desired { top: 118px; opacity: 0; }
+      #lbl-actual  { top: 308px; opacity: 0; }
+
+      #desired-val {
+        position: absolute; left: 330px; top: 62px; width: 200px; height: 150px;
+        color: #fbbf24; font-size: 130px; font-weight: 700; text-align: center;
+        line-height: 150px;
+        text-shadow: 0 3px 12px rgba(0, 0, 0, 0.95), 0 0 26px rgba(251, 191, 36, 0.35);
+        opacity: 0;
+      }
+      #des-ring {
+        position: absolute; left: 318px; top: 58px; width: 224px; height: 158px;
+        border-radius: 20px; border: 3px solid rgba(251, 191, 36, 0.9);
+        opacity: 0;
+      }
+
+      #actual-val {
+        position: absolute; left: 330px; top: 252px; width: 200px; height: 150px;
+        color: #ef4444; font-size: 130px; font-weight: 700; line-height: 150px;
+        text-shadow: 0 3px 12px rgba(0, 0, 0, 0.95), 0 0 26px rgba(239, 68, 68, 0.3);
+      }
+      #actual-val span {
+        position: absolute; inset: 0; text-align: center; opacity: 0;
+      }
+      #actual-val #a7 { opacity: 1; } /* frame-0 state from CSS */
+
+      /* control-loop arrow — rotation on a DIV WRAPPER with real bounds (150x150),
+         never on a degenerate-bbox SVG child */
+      #loop-wrap {
+        position: absolute; left: 566px; top: 172px; width: 150px; height: 150px;
+        opacity: 0;
+        transform-origin: 50% 50%;
+      }
+      #match-badge {
+        position: absolute; left: 556px; top: 356px; width: 170px; height: 96px;
+        border-radius: 16px;
+        background: rgba(6, 30, 20, 0.4);
+        border: 2.5px solid rgba(52, 211, 153, 0.95);
+        box-shadow: 0 0 14px rgba(52, 211, 153, 0.35);
+        color: #6ee7b7; font-size: 44px; font-weight: 800; letter-spacing: 2px;
+        display: flex; align-items: center; justify-content: center;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95);
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="6.0"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="scene" class="clip" data-start="0" data-duration="6.0" data-track-index="1">
+        <div id="content-all">
+          <div id="spec-card">
+            <div id="hdr" class="mono">deployment.yaml &mdash; SPEC</div>
+            <div id="caret"></div>
+
+            <div class="k-label mono" id="lbl-desired">desired:</div>
+            <div id="des-ring"></div>
+            <div id="desired-val" class="mono">10</div>
+
+            <div class="k-label mono" id="lbl-actual">actual:</div>
+            <div id="actual-val" class="mono">
+              <span id="a7">7</span><span id="a8">8</span><span id="a9">9</span><span id="a10">10</span>
+            </div>
+
+            <div id="loop-wrap">
+              <svg viewBox="0 0 150 150">
+                <!-- circular control-loop arc with an arrowhead; real bbox -->
+                <path d="M75 15 A60 60 0 1 1 21 45" fill="none"
+                      stroke="rgba(34,211,238,0.9)" stroke-width="7" stroke-linecap="round"/>
+                <path d="M14 24 L21 47 L42 36 Z" fill="rgba(34,211,238,0.9)"/>
+              </svg>
+            </div>
+
+            <div id="match-badge">MATCH</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ---- Act 1: the spec card types on ----
+      tl.fromTo("#content-all", { opacity: 0.55 }, { opacity: 1, duration: 0.3, ease: "power3.out" }, 0);
+      tl.fromTo("#spec-card", { y: 22, scale: 0.97 }, { y: 0, scale: 1, duration: 0.4, ease: "power3.out" }, 0);
+      // caret blink: 0.5 + 12*0.4 = 5.3 (< fade start 5.7, odd repeat -> lands at base)
+      tl.to("#caret", { opacity: 0.1, duration: 0.4, ease: "sine.inOut", yoyo: true, repeat: 11 }, 0.5);
+
+      // "desired state" spoken at A 23.53 -> local 0.93
+      tl.fromTo("#lbl-desired", { opacity: 0, x: -16 }, { opacity: 1, x: 0, duration: 0.35, ease: "power3.out", immediateRender: false }, 0.9);
+      tl.fromTo("#desired-val", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 1.05);
+      // actual: 7 in red, the gap
+      tl.fromTo("#lbl-actual", { opacity: 0, x: -16 }, { opacity: 1, x: 0, duration: 0.35, ease: "power3.out", immediateRender: false }, 1.65);
+
+      // "ten copies" spoken at A 24.98 -> local 2.38: the 10 gets its emphasis
+      tl.to("#desired-val", { scale: 1.12, duration: 0.18, ease: "power3.out" }, 2.38);
+      tl.to("#desired-val", { scale: 1.0, duration: 0.3, ease: "power3.out" }, 2.56);
+      tl.fromTo("#des-ring", { opacity: 0.95, scale: 0.9 },
+        { opacity: 0, scale: 1.18, duration: 0.7, ease: "power3.out", immediateRender: false }, 2.42); // ends 3.12
+
+      // ---- Turn: the control loop starts circling ----
+      // starts after the des-ring pulse has fully cleared (3.12) — never co-visible
+      tl.fromTo("#loop-wrap", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(1.4)", immediateRender: false }, 3.2);
+      tl.to("#loop-wrap", { rotation: 900, duration: 2.5, ease: "none" }, 3.2); // ends exactly 5.7 = fade start
+
+      // ---- Act 2: reality ticks up — only the OUTGOING digit is paired per swap ----
+      tl.set("#a7", { opacity: 0 }, 3.5); tl.set("#a8", { opacity: 1 }, 3.5);
+      tl.set("#a8", { opacity: 0 }, 4.1); tl.set("#a9", { opacity: 1 }, 4.1);
+      tl.set("#a9", { opacity: 0 }, 4.7); tl.set("#a10", { opacity: 1 }, 4.7);
+      // tick pulses on the container (transform only, never innerText)
+      tl.to("#actual-val", { scale: 1.08, duration: 0.12, ease: "power3.out", yoyo: true, repeat: 1 }, 3.5);
+      tl.to("#actual-val", { scale: 1.08, duration: 0.12, ease: "power3.out", yoyo: true, repeat: 1 }, 4.1);
+      tl.to("#actual-val", { scale: 1.08, duration: 0.12, ease: "power3.out", yoyo: true, repeat: 1 }, 4.7);
+
+      // "makes reality match" A 27.31-27.99 -> MATCH lands at 5.0
+      tl.to("#actual-val", { color: "#34d399", duration: 0.3, ease: "power3.out" }, 5.0);
+      tl.fromTo("#match-badge", { opacity: 0, scale: 0.6 },
+        { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(1.6)", immediateRender: false }, 5.0);
+
+      // ---- fade out finishes at EXACTLY 6.0, zero buffer ----
+      tl.fromTo("#content-all", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 5.7);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

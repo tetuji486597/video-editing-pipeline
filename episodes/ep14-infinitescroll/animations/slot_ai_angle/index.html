@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body {
+        font-family: Inter, sans-serif;
+      }
+
+      :root {
+        --cyan: #22d3ee;
+        --cyan-soft: #a5f3fc;
+        --amber: #f59e0b;
+        --amber-light: #fbbf24;
+      }
+
+      #root {
+        position: relative;
+      }
+      .fill {
+        position: absolute;
+        inset: 0;
+      }
+
+      /* ---------- scene (camera push-in target) ---------- */
+      #scene {
+        transform-origin: 540px 735px;
+      }
+
+      /* soft atmospheric scrim so the graphic sits on the footage,
+         no hard-edged slab; feathers to zero well before the caption band */
+      #scrim {
+        background: radial-gradient(
+            ellipse 620px 520px at 540px 680px,
+            rgba(4, 8, 14, 0.54) 0%,
+            rgba(4, 8, 14, 0.3) 58%,
+            rgba(4, 8, 14, 0) 80%
+          ),
+          radial-gradient(
+            ellipse 500px 250px at 540px 1095px,
+            rgba(4, 8, 14, 0.56) 0%,
+            rgba(4, 8, 14, 0.3) 56%,
+            rgba(4, 8, 14, 0) 82%
+          );
+      }
+
+      /* ---------- headline ---------- */
+      #headline {
+        position: absolute;
+        left: 0;
+        top: 230px;
+        width: 1080px;
+        height: 122px;
+        line-height: 122px;
+        text-align: center;
+        white-space: nowrap;
+        font-family: Inter, sans-serif;
+        font-weight: 800;
+        font-size: 112px;
+        letter-spacing: 2px;
+        color: #f8fafc;
+        text-shadow: 0 2px 5px rgba(0, 0, 0, 0.92), 0 6px 22px rgba(0, 0, 0, 0.85),
+          0 0 46px rgba(34, 211, 238, 0.24);
+        opacity: 0.62;
+      }
+
+      /* ---------- next-batch slot ---------- */
+      #batch {
+        position: absolute;
+        left: 160px;
+        top: 950px;
+        width: 760px;
+        height: 290px;
+        border-radius: 26px;
+        border: 3px solid rgba(245, 158, 11, 0.72);
+        background: rgba(10, 7, 3, 0.3);
+        box-shadow: inset 0 0 70px rgba(245, 158, 11, 0.14), 0 0 26px 2px rgba(245, 158, 11, 0.2);
+        opacity: 0;
+      }
+      .corner {
+        position: absolute;
+        width: 54px;
+        height: 54px;
+        border: 5px solid var(--amber-light);
+        border-radius: 4px;
+      }
+      .corner.tl {
+        left: -3px;
+        top: -3px;
+        border-right: 0;
+        border-bottom: 0;
+        border-top-left-radius: 26px;
+      }
+      .corner.tr {
+        right: -3px;
+        top: -3px;
+        border-left: 0;
+        border-bottom: 0;
+        border-top-right-radius: 26px;
+      }
+      .corner.bl {
+        left: -3px;
+        bottom: -3px;
+        border-right: 0;
+        border-top: 0;
+        border-bottom-left-radius: 26px;
+      }
+      .corner.br {
+        right: -3px;
+        bottom: -3px;
+        border-left: 0;
+        border-top: 0;
+        border-bottom-right-radius: 26px;
+      }
+      #batch-label {
+        position: absolute;
+        left: 240px;
+        top: 966px;
+        height: 42px;
+        line-height: 42px;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 36px;
+        font-weight: 700;
+        letter-spacing: 6px;
+        color: #fde68a;
+        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.95), 0 0 18px rgba(245, 158, 11, 0.5);
+        opacity: 0;
+      }
+
+      /* ---------- candidate tiles ---------- */
+      .tile {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 190px;
+        height: 190px;
+        margin-left: -95px;
+        margin-top: -95px;
+        border-radius: 18px;
+        overflow: hidden;
+        background: #0a0d12;
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55), 0 0 0 2px rgba(34, 211, 238, 0.45);
+        opacity: 0.55;
+        /* explicit identity filter: GSAP reads "none" as brightness(0) and
+           flashes the tile solid black on the first frame of a filter tween */
+        filter: grayscale(0) brightness(1);
+        transform: translate(540px, 690px) scale(0.6);
+      }
+      .tile img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .tile-shade {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 52%, rgba(0, 0, 0, 0.62) 100%);
+      }
+      .bar {
+        position: absolute;
+        left: 14px;
+        right: 14px;
+        bottom: 14px;
+        height: 9px;
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.18);
+        overflow: hidden;
+        opacity: 0;
+      }
+      .bar-fill {
+        display: block;
+        width: 100%;
+        height: 100%;
+        border-radius: 5px;
+        background: #22d3ee;
+        transform-origin: left center;
+        transform: scaleX(0);
+      }
+
+      /* ---------- score chips ---------- */
+      .chip {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 84px;
+        height: 60px;
+        margin-left: -42px;
+        margin-top: -30px;
+        border-radius: 14px;
+        background: rgba(6, 12, 18, 0.9);
+        border: 1.5px solid rgba(34, 211, 238, 0.6);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), 0 0 18px rgba(34, 211, 238, 0.28);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 36px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        color: var(--cyan-soft);
+        opacity: 0;
+      }
+      #c0 {
+        transform: translate(185px, 521px);
+      }
+      #c1 {
+        transform: translate(325px, 481px);
+      }
+      #c2 {
+        transform: translate(465px, 457px);
+      }
+      #c3 {
+        transform: translate(605px, 457px);
+      }
+      #c4 {
+        transform: translate(745px, 481px);
+      }
+      #c5 {
+        transform: translate(885px, 521px);
+      }
+
+      /* ---------- ranking sweep (wrapper div, never an SVG line) ---------- */
+      #sweep {
+        position: absolute;
+        left: 0;
+        top: 505px;
+        width: 52px;
+        height: 330px;
+        margin-left: -26px;
+        border-radius: 6px;
+        background: linear-gradient(
+          90deg,
+          rgba(251, 191, 36, 0) 0%,
+          rgba(251, 191, 36, 0.32) 40%,
+          #fef3c7 50%,
+          rgba(251, 191, 36, 0.32) 60%,
+          rgba(251, 191, 36, 0) 100%
+        );
+        opacity: 0;
+        transform: translateX(60px);
+      }
+
+      /* ---------- grain, masked to the graphic footprint ---------- */
+      #grain {
+        opacity: 1;
+        pointer-events: none;
+        -webkit-mask-image: radial-gradient(
+          ellipse 640px 620px at 540px 720px,
+          #000 0%,
+          rgba(0, 0, 0, 0.6) 62%,
+          rgba(0, 0, 0, 0) 84%
+        );
+        mask-image: radial-gradient(
+          ellipse 640px 620px at 540px 720px,
+          #000 0%,
+          rgba(0, 0, 0, 0.6) 62%,
+          rgba(0, 0, 0, 0) 84%
+        );
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="6.60"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="main-clip" class="clip" data-start="0" data-duration="6.60" data-track-index="1">
+        <div id="content-all" class="fill">
+          <div id="scene" class="fill">
+            <div id="scrim" class="fill"></div>
+
+            <!-- destination slot (behind the tiles) -->
+            <div id="batch">
+              <div class="corner tl"></div>
+              <div class="corner tr"></div>
+              <div class="corner bl"></div>
+              <div class="corner br"></div>
+            </div>
+            <div id="batch-label">NEXT BATCH</div>
+
+            <!-- six real feed photos as candidates -->
+            <div class="tile" id="t0">
+              <img src="assets/tile_pasta.jpg" alt="" />
+              <div class="tile-shade"></div>
+              <div class="bar" id="b0"><span class="bar-fill" id="f0"></span></div>
+            </div>
+            <div class="tile" id="t1">
+              <img src="assets/tile_fjord.jpg" alt="" />
+              <div class="tile-shade"></div>
+              <div class="bar" id="b1"><span class="bar-fill" id="f1"></span></div>
+            </div>
+            <div class="tile" id="t2">
+              <img src="assets/tile_puppy.jpg" alt="" />
+              <div class="tile-shade"></div>
+              <div class="bar" id="b2"><span class="bar-fill" id="f2"></span></div>
+            </div>
+            <div class="tile" id="t3">
+              <img src="assets/tile_strawberries.jpg" alt="" />
+              <div class="tile-shade"></div>
+              <div class="bar" id="b3"><span class="bar-fill" id="f3"></span></div>
+            </div>
+            <div class="tile" id="t4">
+              <img src="assets/tile_sunset.jpg" alt="" />
+              <div class="tile-shade"></div>
+              <div class="bar" id="b4"><span class="bar-fill" id="f4"></span></div>
+            </div>
+            <div class="tile" id="t5">
+              <img src="assets/tile_waterfall.jpg" alt="" />
+              <div class="tile-shade"></div>
+              <div class="bar" id="b5"><span class="bar-fill" id="f5"></span></div>
+            </div>
+
+            <!-- one score chip per tile; only ever crossfaded, never stacked -->
+            <div class="chip" id="c0">57</div>
+            <div class="chip" id="c1">31</div>
+            <div class="chip" id="c2">94</div>
+            <div class="chip" id="c3">79</div>
+            <div class="chip" id="c4">12</div>
+            <div class="chip" id="c5">88</div>
+
+            <div id="sweep"></div>
+
+            <div id="headline">NOT RANDOM</div>
+
+            <div id="grain" class="fill"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.04 0" />
+      </filter>
+    </svg>
+
+    <script>
+      document.getElementById("grain").style.filter = "url(#grain-filter)";
+
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      const D = 6.6;
+
+      /* ---- deterministic literal geometry (no Math.random, no Date) ---- */
+      // act 1: fanned candidate positions (centre x, centre y, rotation)
+      const FAN = [
+        { x: 185, y: 700, r: -8 },
+        { x: 325, y: 660, r: -5 },
+        { x: 465, y: 636, r: -2 },
+        { x: 605, y: 636, r: 2 },
+        { x: 745, y: 660, r: 5 },
+        { x: 885, y: 700, r: 8 }
+      ];
+      // score chip centres (sit 42px clear above each tile's rotated bbox)
+      const CHIP = [
+        { x: 185, y: 521 },
+        { x: 325, y: 481 },
+        { x: 465, y: 457 },
+        { x: 605, y: 457 },
+        { x: 745, y: 481 },
+        { x: 885, y: 521 }
+      ];
+      const SCORE = [57, 31, 94, 79, 12, 88];
+      // ranked descending: 94(t2) 88(t5) 79(t3) 57(t0) 31(t1) 12(t4)
+      const RANK = [2, 5, 3, 0, 1, 4];
+      // act 2 ranked row: centre x + scale (base tile is 190px)
+      const ROW_Y = 660;
+      const ROW = [
+        { x: 172, s: 0.9474 },
+        { x: 365, s: 0.8737 },
+        { x: 544, s: 0.8 },
+        { x: 699, s: 0.6211 },
+        { x: 831, s: 0.5579 },
+        { x: 951, s: 0.4947 }
+      ];
+      // act 2 next-batch slot: three winners, uniform 170px
+      const BATCH_X = [305, 540, 775];
+      const BATCH_Y = 1136;
+      const BATCH_S = 0.8947;
+
+      const CYAN_RING =
+        "0 18px 40px rgba(0,0,0,0.55), 0 0 0 2px rgba(34,211,238,0.45)";
+      const CYAN_RING_HOT =
+        "0 18px 40px rgba(0,0,0,0.55), 0 0 0 2px rgba(34,211,238,0.9), 0 0 26px 2px rgba(34,211,238,0.4)";
+      const AMBER_RING =
+        "0 18px 40px rgba(0,0,0,0.6), 0 0 0 2px rgba(245,158,11,0.8), 0 0 26px 2px rgba(245,158,11,0.32)";
+
+      /* ---- continuous camera push-in, 1.000 -> 1.045 about (540,735) ---- */
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.045, duration: D, ease: "sine.inOut" }, 0);
+
+      /* ---- headline: present on frame 0 (CSS opacity .62), settles ---- */
+      tl.fromTo(
+        "#headline",
+        { opacity: 0.62, y: 14 },
+        { opacity: 1, y: 0, duration: 0.55, ease: "power3.out" },
+        0
+      );
+
+      /* ================= ACT 1 — candidates fan out ================= */
+      /* primary entrance at local t=0; frame 0 shows the stack at .55 opacity */
+      FAN.forEach((f, i) => {
+        tl.fromTo(
+          "#t" + i,
+          { x: 540, y: 690, scale: 0.6, rotation: 0, opacity: 0.55 },
+          {
+            x: f.x,
+            y: f.y,
+            scale: 1,
+            rotation: f.r,
+            opacity: 1,
+            duration: 0.42,
+            ease: "back.out(1.15)",
+            immediateRender: i === 0
+          },
+          i * 0.045
+        );
+      });
+
+      /* ambient cyan breathe on the candidate ring — odd repeat, ends 3.30 */
+      tl.to(
+        ".tile",
+        {
+          boxShadow: CYAN_RING_HOT,
+          duration: 0.55,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 3,
+          stagger: 0.04
+        },
+        0.9
+      );
+
+      /* ---- score chips: ONE AT A TIME, 0.60s apart, crossfaded ----
+         chip i fades out exactly as chip i+1 fades in, so at most two
+         numerals are ever on screen, and none after 3.95. */
+      const CHIP_IN = [0.35, 0.95, 1.55, 2.15, 2.75, 3.35];
+      const CHIP_OUT = [0.95, 1.55, 2.15, 2.75, 3.35, 3.65];
+      for (let i = 0; i < 6; i++) {
+        tl.fromTo(
+          "#c" + i,
+          { opacity: 0, y: CHIP[i].y + 16, scale: 0.82 },
+          {
+            opacity: 1,
+            y: CHIP[i].y,
+            scale: 1,
+            duration: 0.3,
+            ease: "back.out(1.6)",
+            immediateRender: false
+          },
+          CHIP_IN[i]
+        );
+        tl.fromTo(
+          "#c" + i,
+          { opacity: 1 },
+          { opacity: 0, scale: 0.86, duration: 0.3, ease: "power2.in", immediateRender: false },
+          CHIP_OUT[i]
+        );
+        /* the persistent, non-numeric record of the score */
+        tl.fromTo(
+          "#b" + i,
+          { opacity: 0 },
+          { opacity: 1, duration: 0.22, ease: "power2.out", immediateRender: false },
+          CHIP_IN[i]
+        );
+        tl.fromTo(
+          "#f" + i,
+          { scaleX: 0 },
+          { scaleX: SCORE[i] / 100, duration: 0.5, ease: "power3.out", immediateRender: false },
+          CHIP_IN[i] + 0.05
+        );
+      }
+
+      /* ================= TURN — the ranking sweep @ 3.45 ================
+         lands on "decides what to lazy load" (local 3.45). A wrapper div
+         with real width/height translated in x — no SVG line, no rotation. */
+      tl.fromTo(
+        "#sweep",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.1, ease: "power2.out", immediateRender: false },
+        3.45
+      );
+      tl.fromTo(
+        "#sweep",
+        { x: 60 },
+        { x: 1000, duration: 0.62, ease: "sine.inOut", immediateRender: false },
+        3.45
+      );
+      tl.fromTo(
+        "#sweep",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.22, ease: "power2.in", immediateRender: false },
+        4.02
+      );
+
+      /* colour phase-shift cyan -> amber in the sweep's wake */
+      tl.to(
+        ".tile",
+        { boxShadow: AMBER_RING, duration: 0.3, ease: "power2.out", stagger: 0.08 },
+        3.52
+      );
+      tl.to(
+        ".bar-fill",
+        { backgroundColor: "#f59e0b", duration: 0.3, ease: "power2.out", stagger: 0.08 },
+        3.52
+      );
+
+      /* ================= ACT 2 — reorder, then the batch ================= */
+      tl.fromTo(
+        "#batch",
+        { opacity: 0, scale: 0.96, y: 16 },
+        { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: "power3.out", immediateRender: false },
+        3.95
+      );
+      tl.fromTo(
+        "#batch-label",
+        { opacity: 0, x: -12 },
+        { opacity: 1, x: 0, duration: 0.4, ease: "power3.out", immediateRender: false },
+        4.1
+      );
+
+      /* tiles physically reorder — staggered BY RANK so the eye can follow
+         the winner moving first. Size now carries the score, not numerals. */
+      RANK.forEach((ti, rank) => {
+        tl.fromTo(
+          "#t" + ti,
+          { x: FAN[ti].x, y: FAN[ti].y, scale: 1, rotation: FAN[ti].r },
+          {
+            x: ROW[rank].x,
+            y: ROW_Y,
+            scale: ROW[rank].s,
+            rotation: 0,
+            duration: 0.55,
+            ease: "power3.inOut",
+            immediateRender: false
+          },
+          3.95 + rank * 0.07
+        );
+      });
+
+      /* top three slide into the next-batch slot */
+      [0, 1, 2].forEach((rank) => {
+        const ti = RANK[rank];
+        tl.fromTo(
+          "#t" + ti,
+          { x: ROW[rank].x, y: ROW_Y, scale: ROW[rank].s },
+          {
+            x: BATCH_X[rank],
+            y: BATCH_Y,
+            scale: BATCH_S,
+            duration: 0.5,
+            ease: "power3.inOut",
+            immediateRender: false
+          },
+          4.85 + rank * 0.08
+        );
+      });
+
+      /* the three that missed the cut recede and go grey — clearly rejected,
+         not stranded artefacts */
+      [3, 4, 5].forEach((rank) => {
+        const ti = RANK[rank];
+        tl.fromTo(
+          "#t" + ti,
+          { opacity: 1, scale: ROW[rank].s, filter: "grayscale(0) brightness(1)" },
+          {
+            opacity: 0.34,
+            scale: ROW[rank].s * 0.88,
+            filter: "grayscale(1) brightness(0.62)",
+            boxShadow: "0 10px 26px rgba(0,0,0,0.5), 0 0 0 2px rgba(148,163,184,0.45)",
+            duration: 0.45,
+            ease: "power2.inOut",
+            immediateRender: false
+          },
+          4.95 + (rank - 3) * 0.06
+        );
+      });
+
+      /* winners settle into the slot with a brighter amber ring */
+      [0, 1, 2].forEach((rank) => {
+        tl.to(
+          "#t" + RANK[rank],
+          {
+            boxShadow:
+              "0 20px 44px rgba(0,0,0,0.6), 0 0 0 3px rgba(251,191,36,0.95), 0 0 30px 4px rgba(245,158,11,0.4)",
+            duration: 0.35,
+            ease: "power2.out"
+          },
+          5.3 + rank * 0.06
+        );
+      });
+
+      /* single repeating tween on the slot — odd repeat, ends 6.25 < 6.30 */
+      tl.to(
+        "#batch",
+        {
+          boxShadow:
+            "inset 0 0 70px rgba(245,158,11,0.2), 0 0 34px 4px rgba(245,158,11,0.34)",
+          duration: 0.4,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 1
+        },
+        5.45
+      );
+
+      /* ---- fade FINISHES at exactly 6.600 ---- */
+      tl.fromTo(
+        "#content-all",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.3, ease: "power2.in", immediateRender: false },
+        6.3
+      );
+      tl.fromTo(
+        "#scene",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.3, ease: "power2.in", immediateRender: false },
+        6.3
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

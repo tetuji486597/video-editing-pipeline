@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP26 hook — player vs call</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent; /* HALF-PANEL: presenter visible below the band */
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* REBUILD (user feedback): the previous markup omitted class="card" on the two
+         tiles, so .card's position:absolute/top:230 never applied — both tiles
+         collapsed to static flow at the frame's top-left corner, their kickers
+         double-drew at y~14 and #bar-track (root-relative y 302-312) crossed
+         #reconn (y 296-320). Every child now resolves against a positioned .card.
+
+         Band: y 230-580, x 70-850. Grid-measured on the real HOOK frames
+         (src 35.7-41.55s scaled to 1080x1920, zoom 1.08->1.0 about (540,730)):
+         hair top ~205 raw / ~175 at zoom-worst, brow ~700 raw / ~698 zoom-worst,
+         eyes ~780+. Tiles sit over hair/background only, 118px above the brow
+         (580 + shadow reach 10+1.6*14=32.4 -> 612.4 vs brow 698: 86px clear).
+         Fill is TRANSLUCENT (rule 11) since the band overlaps hair. Margins:
+         x 70-850 within [70,870]; y 230-580 within [200,1280]. */
+      .card {
+        position: absolute;
+        top: 230px;
+        width: 370px;
+        height: 350px;
+        border-radius: 20px;
+        background: linear-gradient(165deg, rgba(13, 18, 28, 0.60), rgba(7, 10, 16, 0.66));
+        border: 2px solid rgba(148, 163, 184, 0.35);
+        box-shadow: 0 10px 14px rgba(0, 0, 0, 0.4);
+        overflow: hidden;
+      }
+      #card-l { left: 70px; }   /* x 70-440 */
+      #card-r { left: 480px; }  /* x 480-850; 40px gap between cards */
+
+      /* label INSIDE its own tile chrome; abs y 244-268 (card 230 + 14..38) */
+      .kicker {
+        position: absolute;
+        top: 14px;
+        left: 18px;
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: 3px;
+        color: #e2e8f0;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85);
+      }
+      .kicker .dot { color: #34d399; }
+
+      /* L card: buttery player. Inner video tile local 58-258 (abs 288-488). */
+      #thumb {
+        position: absolute;
+        left: 18px;
+        top: 58px;
+        width: 334px;
+        height: 200px;
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgba(30,58,95,0.88) 0%, rgba(43,88,118,0.88) 38%, rgba(78,67,118,0.88) 72%, rgba(26,34,56,0.88) 100%);
+        overflow: hidden;
+      }
+      #sheen {
+        position: absolute;
+        left: -140px;
+        top: -40px;
+        width: 90px;
+        height: 300px;
+        background: linear-gradient(100deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.16) 50%, rgba(255,255,255,0) 100%);
+        transform: rotate(14deg);
+      }
+      #play-tri {
+        position: absolute;
+        left: 150px;
+        top: 80px; /* 40px tall -> local 80-120, centred in the 200px tile */
+        width: 0;
+        height: 0;
+        border-left: 34px solid rgba(255, 255, 255, 0.92);
+        border-top: 20px solid transparent;
+        border-bottom: 20px solid transparent;
+        filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));
+      }
+      /* Progress row: its OWN row, local 278-288 (dot 273-293, abs 503-523).
+         Gaps: thumb bottom 258 -> dot top 273 = 15px; dot bottom 293 -> status
+         text top 312 = 19px. The bar never crosses any text. */
+      #bar-track {
+        position: absolute;
+        left: 18px;
+        top: 278px;
+        width: 334px;
+        height: 10px;
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.18);
+      }
+      #bar-fill {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 10px;
+        width: 4%;
+        border-radius: 5px;
+        background: #f43f5e;
+      }
+      #bar-dot {
+        position: absolute;
+        top: -5px;
+        right: -10px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 0 8px rgba(244, 63, 94, 0.8);
+      }
+      /* Status row, separate from the bar: local 312-332 (abs 542-562). */
+      #smooth-tag {
+        position: absolute;
+        left: 18px;
+        top: 312px;
+        font-size: 20px;
+        color: #7dd3fc;
+        letter-spacing: 1px;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85);
+      }
+
+      /* R card: the call tile. Inner local 58-258 (abs 288-488). */
+      #call-inner {
+        position: absolute;
+        left: 18px;
+        top: 58px;
+        width: 334px;
+        height: 200px;
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgba(18,32,44,0.88) 0%, rgba(13,22,32,0.88) 100%);
+        overflow: hidden;
+        /* identity filter declared so any filter tween never starts from `none`
+           (renderer trap: tweening filter from none flashes SOLID BLACK) */
+        filter: grayscale(0) brightness(1);
+      }
+      #avatar-wrap {
+        position: absolute;
+        left: 107px;
+        top: 20px; /* 160 tall -> local 20-180 inside the 200px tile */
+        width: 120px;
+        height: 160px;
+        filter: grayscale(0) brightness(1);
+      }
+      .mosaic {
+        position: absolute;
+        background: rgba(94, 234, 212, 0.35);
+        opacity: 0;
+      }
+      .mosaic.dark { background: rgba(10, 14, 20, 0.85); }
+      #spinner {
+        position: absolute;
+        left: 140px;
+        top: 73px; /* 54px -> local 73-127, centred */
+        width: 54px;
+        height: 54px;
+        border-radius: 50%;
+        border: 5px solid rgba(255, 255, 255, 0.18);
+        border-top-color: rgba(255, 255, 255, 0.9);
+        opacity: 0;
+      }
+      /* Status row, its OWN row below the tile: local 308-332 (abs 538-562).
+         Gap to #call-inner bottom (local 258) = 50px; nothing crosses it — the
+         stamp's box bottom is 510.8 abs (27px above) and its 12px-blur glow
+         reaches 530.0 (1.6x rule), still 8px short of this text. */
+      #reconn {
+        position: absolute;
+        left: 18px;
+        top: 308px;
+        font-size: 24px;
+        color: #fca5a5;
+        letter-spacing: 1px;
+        opacity: 0;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85);
+      }
+      #reconn .cursor { color: #fecaca; }
+
+      /* ON PURPOSE stamp, slammed on the call side.
+         Box 310x170 at left 510 / top 320 -> centre (665,405); rotated -8deg the
+         bounds resolve to x 499.7-830.3, y 299.2-510.8. Clears the kickers
+         (bottom 268) by 31px and #reconn (top 538) by 27px; overlap with
+         #call-inner's frozen video area is the intended slam. */
+      #stamp {
+        position: absolute;
+        left: 510px;
+        top: 320px;
+        width: 310px;
+        height: 170px;
+        border: 6px solid #ef4444;
+        border-radius: 14px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        transform: rotate(-8deg);
+        opacity: 0;
+        background: rgba(20, 6, 8, 0.25);
+        box-shadow: 0 0 12px rgba(239, 68, 68, 0.35), inset 0 0 12px rgba(239, 68, 68, 0.25);
+      }
+      #stamp .l1, #stamp .l2 {
+        font-weight: 900;
+        color: #ef4444;
+        letter-spacing: 4px;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
+      }
+      #stamp .l1 { font-size: 56px; line-height: 56px; }
+      #stamp .l2 { font-size: 60px; line-height: 60px; }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="5.2"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="scene" class="clip" data-start="0" data-duration="5.2" data-track-index="1">
+        <div id="card-l" class="card">
+          <div class="kicker" data-layout-allow-overlap="true">VIDEO</div>
+          <div id="thumb">
+            <div id="sheen" data-layout-allow-overflow="true"></div>
+            <div id="play-tri"></div>
+          </div>
+          <div id="bar-track"><div id="bar-fill"><div id="bar-dot"></div></div></div>
+          <div id="smooth-tag" class="mono">buffered &#10003;</div>
+        </div>
+
+        <div id="card-r" class="card">
+          <div class="kicker" data-layout-allow-overlap="true"><span class="dot" data-layout-allow-overlap="true">&#9679;</span> LIVE CALL</div>
+          <div id="call-inner">
+            <div id="avatar-wrap">
+              <svg viewBox="0 0 120 160">
+                <circle cx="60" cy="52" r="34" fill="#2dd4bf" opacity="0.75" />
+                <path d="M12,160 C12,112 34,96 60,96 C86,96 108,112 108,160 Z" fill="#2dd4bf" opacity="0.6" />
+              </svg>
+            </div>
+            <!-- deterministic mosaic blocks, hard-coded positions (all inside the 334x200 tile) -->
+            <div class="mosaic" id="m1" style="left:24px; top:36px; width:56px; height:44px;"></div>
+            <div class="mosaic dark" id="m2" style="left:96px; top:10px; width:70px; height:52px;"></div>
+            <div class="mosaic" id="m3" style="left:210px; top:52px; width:62px; height:58px;"></div>
+            <div class="mosaic dark" id="m4" style="left:52px; top:112px; width:78px; height:48px;"></div>
+            <div class="mosaic" id="m5" style="left:176px; top:126px; width:56px; height:50px;"></div>
+            <div class="mosaic dark" id="m6" style="left:262px; top:8px; width:52px; height:64px;"></div>
+            <div class="mosaic" id="m7" style="left:8px; top:150px; width:64px; height:38px;"></div>
+            <div class="mosaic dark" id="m8" style="left:238px; top:152px; width:72px; height:42px;"></div>
+            <div id="spinner"></div>
+          </div>
+          <div id="reconn" class="mono">reconnecting<span class="cursor">&#9608;</span></div>
+        </div>
+
+        <div id="stamp">
+          <span class="l1">ON</span>
+          <span class="l2">PURPOSE</span>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ---------- entrances (staggered; L first, its bar must be gliding by 0.45) ----------
+      tl.fromTo("#card-l", { opacity: 0.5, y: 26 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 0);
+      tl.fromTo("#card-r", { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 0.65);
+
+      // ---------- ACT 1: the player glides (constant velocity IS the point) ----------
+      tl.fromTo("#bar-fill", { width: "4%" }, { width: "96%", duration: 4.55, ease: "none" }, 0.3);
+      // ambient sheen sweeps, twice, done by 3.9
+      tl.fromTo("#sheen", { x: 0 }, { x: 560, duration: 1.6, ease: "sine.inOut" }, 0.5, );
+      tl.fromTo("#sheen", { x: 0 }, { x: 560, duration: 1.6, ease: "sine.inOut", immediateRender: false }, 2.3);
+      // avatar breathes gently until the freeze (yoyo odd repeat: 0.9+... ends 2.05)
+      tl.fromTo("#avatar-wrap", { scale: 1 }, { scale: 1.03, duration: 0.35, ease: "sine.inOut", yoyo: true, repeat: 3 }, 0.65);
+
+      // ---------- TURN @2.05 (lands "glitch constantly" @2.09): the call stutters ----------
+      // tile jitter: quick offsets, back to 0
+      tl.to("#call-inner", { x: -7, duration: 0.05, ease: "power2.out" }, 2.05);
+      tl.to("#call-inner", { x: 6, duration: 0.05, ease: "power2.out" }, 2.1);
+      tl.to("#call-inner", { x: -4, duration: 0.05, ease: "power2.out" }, 2.15);
+      tl.to("#call-inner", { x: 0, duration: 0.06, ease: "power2.out" }, 2.2);
+      // freeze-frame desaturate on the avatar (identity filter declared in CSS + from-vars)
+      tl.fromTo("#avatar-wrap",
+        { filter: "grayscale(0) brightness(1)" },
+        { filter: "grayscale(0.9) brightness(0.62)", duration: 0.3, ease: "power2.out", immediateRender: false }, 2.1);
+      // mosaic blocks flicker on, staggered pops, partially persist
+      const mos = ["#m1","#m2","#m3","#m4","#m5","#m6","#m7","#m8"];
+      const mosT = [2.05, 2.1, 2.16, 2.22, 2.3, 2.38, 2.48, 2.6];
+      mos.forEach((m, i) => {
+        tl.fromTo(m, { opacity: 0 }, { opacity: 0.92, duration: 0.07, ease: "power2.out", immediateRender: false }, mosT[i]);
+        tl.to(m, { opacity: 0.55, duration: 0.3, ease: "power2.out" }, mosT[i] + 0.1);
+      });
+      // spinner: appears, spins constantly, STOPS before the fade (ends 2.3+2.4=4.7)
+      tl.fromTo("#spinner", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "power2.out", immediateRender: false }, 2.3);
+      tl.fromTo("#spinner", { rotation: 0 }, { rotation: 900, duration: 2.4, ease: "none", immediateRender: false }, 2.3);
+      // reconnecting text
+      tl.fromTo("#reconn", { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power2.out", immediateRender: false }, 2.45);
+      // red alarm border breathing on the call card (odd repeat: 2.1 + 4*0.62 = 4.58 end)
+      tl.fromTo("#card-r",
+        { borderColor: "rgba(148,163,184,0.35)", boxShadow: "0 10px 14px rgba(0,0,0,0.4)" },
+        { borderColor: "rgba(239,68,68,0.85)", boxShadow: "0 10px 14px rgba(0,0,0,0.4), 0 0 14px rgba(239,68,68,0.4)",
+          duration: 0.62, ease: "sine.inOut", yoyo: true, repeat: 3, immediateRender: false }, 2.1);
+
+      // ---------- ACT 2 @4.0 (lands "on purpose" @11.003 output): the stamp ----------
+      tl.fromTo("#stamp",
+        { opacity: 0, scale: 1.7 },
+        { opacity: 1, scale: 1, duration: 0.26, ease: "power4.out", immediateRender: false }, 4.0);
+      tl.to("#card-r", { y: 5, duration: 0.07, ease: "power2.out" }, 4.06);
+      tl.to("#card-r", { y: 0, duration: 0.16, ease: "power2.out" }, 4.13);
+
+      // ---------- fade: finishes at EXACTLY 5.2 (4.9 + 0.3), zero buffer ----------
+      // Per-leaf fades on the transform carriers themselves (ancestor opacity is not
+      // applied uniformly to transformed descendants in this renderer).
+      ["#card-l", "#card-r", "#stamp"].forEach((s) => {
+        tl.fromTo(s, { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 4.9);
+      });
+      // defensive fades on transformed descendants so nothing strands
+      ["#spinner", "#avatar-wrap", "#call-inner"].forEach((s) => {
+        tl.to(s, { opacity: 0, duration: 0.3, ease: "power2.out" }, 4.9);
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

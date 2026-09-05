@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body {
+        font-family: Inter, sans-serif;
+      }
+
+      #fade-wrap {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+
+      /* ---------------------------------------------------------------
+         Backdrop: a dark WASH, not an opaque takeover. EP14 already
+         spends both of its allowed full-screen opaque takeovers
+         (slot_problem, slot_new_component), so this photo-card beat
+         keeps the footage faintly present behind the wash.
+         Full-bleed layers are bounds-exempt per spec rule 1.
+         --------------------------------------------------------------- */
+      #bg-wash {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 1200px 1400px at 50% 44%,
+          rgba(14, 24, 40, 0.62) 0%,
+          rgba(8, 14, 24, 0.66) 60%,
+          rgba(4, 7, 12, 0.74) 100%
+        );
+      }
+
+      .glow {
+        position: absolute;
+        border-radius: 50%;
+        pointer-events: none;
+        filter: blur(120px);
+      }
+      #glow-a {
+        left: 60px;
+        top: 200px;
+        width: 620px;
+        height: 620px;
+        background: rgba(56, 132, 190, 0.16);
+      }
+      #glow-b {
+        left: 440px;
+        top: 560px;
+        width: 600px;
+        height: 560px;
+        background: rgba(30, 92, 140, 0.13);
+      }
+
+      #vignette {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 1000px 1300px at 50% 44%,
+          rgba(0, 0, 0, 0) 0%,
+          rgba(0, 0, 0, 0) 62%,
+          rgba(2, 4, 8, 0.18) 86%,
+          rgba(1, 2, 5, 0.44) 100%
+        );
+        pointer-events: none;
+      }
+
+      /* ---------------------------------------------------------------
+         #stage — everything with a bounds obligation lives in here.
+         transform-origin is the CONTENT band's own centre (540, 721),
+         so the 1.03 push-in expands symmetrically about the content
+         rather than about the frame centre.
+         --------------------------------------------------------------- */
+      #stage {
+        position: absolute;
+        inset: 0;
+        transform-origin: 540px 721px;
+      }
+
+      /* ---- ghost cards: everything that was never loaded ---- */
+      .ghost {
+        position: absolute;
+        width: 840px;
+        height: 560px;
+        border-radius: 24px;
+        background: linear-gradient(
+          152deg,
+          rgba(148, 163, 184, 0.17) 0%,
+          rgba(100, 116, 139, 0.1) 46%,
+          rgba(148, 163, 184, 0.15) 100%
+        );
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        box-shadow: inset 0 1px 0 rgba(226, 232, 240, 0.16),
+          0 18px 44px rgba(2, 5, 10, 0.55);
+        opacity: 0.28;
+        z-index: 2;
+      }
+      #g1 {
+        left: 42px;
+        top: 222px;
+      }
+      #g2 {
+        left: 198px;
+        top: 222px;
+      }
+      #g3 {
+        left: 42px;
+        top: 338px;
+      }
+      #g4 {
+        left: 198px;
+        top: 338px;
+      }
+
+      /* ---- the one real card ---- */
+      #card-shell {
+        position: absolute;
+        left: 120px;
+        top: 280px;
+        width: 840px;
+        height: 560px;
+        border-radius: 24px;
+        transform-origin: 50% 50%;
+        z-index: 5;
+        /* frame-0 state comes from CSS, never from a tl.set at 0 */
+        opacity: 0.62;
+        transform: scale(0.965);
+      }
+      #card-glow {
+        position: absolute;
+        inset: -8px;
+        border-radius: 32px;
+        box-shadow: 0 0 74px 8px rgba(56, 132, 190, 0.34);
+        opacity: 0.55;
+        pointer-events: none;
+      }
+      #card-frame {
+        position: absolute;
+        inset: 0;
+        border-radius: 24px;
+        overflow: hidden;
+        border: 2px solid rgba(203, 219, 238, 0.34);
+        box-shadow: 0 26px 70px rgba(2, 5, 10, 0.72);
+        background: #0a0f18;
+      }
+      #card-photo {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: 50% 48%;
+        transform-origin: 50% 50%;
+        filter: saturate(1.06) contrast(1.05) brightness(1.02);
+      }
+      #card-sheen {
+        position: absolute;
+        inset: 0;
+        border-radius: 24px;
+        pointer-events: none;
+        background: linear-gradient(
+          168deg,
+          rgba(255, 255, 255, 0.09) 0%,
+          rgba(255, 255, 255, 0) 34%
+        );
+      }
+
+      /* ---- headline: ONE line of copy, 4 words, zero numbers ---- */
+      #headline {
+        position: absolute;
+        left: 90px;
+        top: 960px;
+        width: 900px;
+        z-index: 6;
+        text-align: center;
+        opacity: 0;
+        transform: translateY(28px);
+      }
+      .hl-line {
+        white-space: nowrap;
+        font-family: Inter, sans-serif;
+        font-size: 116px;
+        line-height: 130px;
+        font-weight: 800;
+        letter-spacing: -2px;
+        color: #f5f8fc;
+        /* multi-layer shadow: the wash is translucent, so this type sits
+           over live footage and cannot rely on the plate being dark. */
+        text-shadow: 0 1px 3px rgba(2, 5, 10, 0.98),
+          0 3px 10px rgba(2, 5, 10, 0.95), 0 8px 28px rgba(2, 5, 10, 0.9),
+          0 0 62px rgba(2, 5, 10, 0.8);
+      }
+
+      /* full-bleed effect layers (bounds-exempt) */
+      #bottom-shade {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: linear-gradient(
+          to bottom,
+          rgba(3, 6, 12, 0) 0px,
+          rgba(3, 6, 12, 0) 1250px,
+          rgba(3, 6, 12, 0.8) 1360px,
+          rgba(3, 6, 12, 0.86) 1560px,
+          rgba(3, 6, 12, 0.86) 1920px
+        );
+      }
+      #grain {
+        position: absolute;
+        inset: 0;
+        opacity: 0.045;
+        pointer-events: none;
+        mix-blend-mode: overlay;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="5.40"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="5.40"
+        data-track-index="1"
+      >
+        <div id="fade-wrap">
+          <div id="bg-wash"></div>
+          <div class="glow" id="glow-a"></div>
+          <div class="glow" id="glow-b"></div>
+          <div id="vignette"></div>
+
+          <!-- #bottom-shade paints BEFORE #stage on purpose. Its gradient is
+               fully transparent above y=1250 and no #stage content ever
+               reaches y=1250 (lowest is the headline at 1234.97 post-push-in),
+               so the paint result is identical either way — but sitting below
+               #stage keeps it out of the headline's stacking path. -->
+          <div id="bottom-shade"></div>
+
+          <div id="stage">
+            <div class="ghost" id="g1"></div>
+            <div class="ghost" id="g2"></div>
+            <div class="ghost" id="g3"></div>
+            <div class="ghost" id="g4"></div>
+
+            <div id="card-shell">
+              <div id="card-glow"></div>
+              <div id="card-frame">
+                <img
+                  id="card-photo"
+                  data-layout-allow-overflow="true"
+                  src="assets/feed_hero.jpg"
+                  alt=""
+                />
+                <div id="card-sheen"></div>
+              </div>
+            </div>
+
+            <div id="headline">
+              <div class="hl-line">LOAD WHAT</div>
+              <div class="hl-line">THEY SEE</div>
+            </div>
+          </div>
+
+          <svg id="grain" width="1080" height="1920">
+            <filter id="grainFilter" x="0" y="0" width="100%" height="100%">
+              <feTurbulence
+                type="fractalNoise"
+                baseFrequency="0.82"
+                numOctaves="3"
+                seed="7"
+                stitchTiles="stitch"
+              />
+            </filter>
+            <rect width="1080" height="1920" filter="url(#grainFilter)" />
+          </svg>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      /* ================= continuous slow drift =================
+         Push-in capped at 1.03, about the content band's own centre
+         (540, 721). Bounds arithmetic is in the report.
+         A second, contained drift lives on the photo INSIDE the card
+         (overflow:hidden), so it cannot affect composition bounds.   */
+      tl.to("#stage", { scale: 1.03, duration: 5.4, ease: "sine.inOut" }, 0);
+      tl.to("#card-photo", { scale: 1.05, duration: 5.4, ease: "sine.inOut" }, 0);
+
+      /* ================= ACT 1 — the one real card lands =================
+         Primary entrance begins at local t=0 and is NOT at opacity 0 on
+         frame 0 (CSS frame-0 state is opacity .62 / scale .965, which the
+         fromTo from-vars mirror exactly).
+         Ghost cards are the PRE-EXISTING state: they are already up from
+         CSS at frame 0 and are never "revealed", so the card is the sole
+         entrance and nothing is revealed simultaneously with it.        */
+      tl.fromTo(
+        "#card-shell",
+        { opacity: 0.62, scale: 0.965 },
+        { opacity: 1, scale: 1, duration: 0.5, ease: "power3.out" },
+        0
+      );
+
+      /* headline — second and last reveal, 0.60s after the card entrance
+         began (>= 0.6s stagger). Resolves on "Load what they see"
+         (output 49.38-50.44 => local -0.22 to 0.84).                    */
+      tl.fromTo(
+        "#headline",
+        { opacity: 0, y: 28 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.5,
+          ease: "power3.out",
+          immediateRender: false,
+        },
+        0.6
+      );
+
+      /* ================= THE TURN — the never-loaded cards go =================
+         "not what they might see": output 50.86-51.96 => LOCAL 1.26-2.36.
+         One coordinated fade-out of a single group (not four independent
+         reveals), so the 0.16s offsets are intentional: it must read as
+         one event. Last ghost finishes at exactly 1.74 + 0.62 = 2.36.    */
+      const ghostFade = [
+        ["#g1", 1.26],
+        ["#g2", 1.42],
+        ["#g3", 1.58],
+        ["#g4", 1.74],
+      ];
+      ghostFade.forEach(function (g) {
+        tl.fromTo(
+          g[0],
+          { opacity: 0.28, scale: 1 },
+          {
+            opacity: 0,
+            scale: 0.975,
+            duration: 0.62,
+            ease: "sine.inOut",
+            immediateRender: false,
+          },
+          g[1]
+        );
+      });
+
+      /* ================= ambient life during the hold =================
+         Odd repeat so a yoyo lands back on its BASE value, and the whole
+         tween completes at 2.60 + 2*0.80 = 4.20, well before the 5.10
+         fade start. No other repeating tween exists.                    */
+      tl.to(
+        "#card-glow",
+        {
+          opacity: 0.92,
+          duration: 0.8,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 1,
+        },
+        2.6
+      );
+
+      /* ================= final fade — finishes at exactly 5.400 =================
+         fromTo with an explicit {opacity:1} start + gsap.defaults({lazy:false}).
+         Doubled onto #stage because #stage is a TRANSFORMED descendant and
+         ancestor opacity is not applied uniformly to those in this renderer.
+         #grain is deliberately NOT targeted (its CSS opacity is 0.045; a
+         fromTo from 1 would blow it to full strength for the fade).      */
+      tl.fromTo(
+        "#stage",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.3, ease: "power3.out", immediateRender: false },
+        5.1
+      );
+      tl.fromTo(
+        "#fade-wrap",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.3, ease: "power3.out", immediateRender: false },
+        5.1
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

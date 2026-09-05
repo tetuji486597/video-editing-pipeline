@@ -1,0 +1,212 @@
+{
+  "version": 1,
+  "sources": {
+    "ep25": "C:/Users/gordo/Downloads/drive-download-20260828T050315Z-1-001/ep25.mp4"
+  },
+  "ranges": [
+    {
+      "source": "ep25",
+      "start": 33.73,
+      "end": 38.76,
+      "beat": "INTRO",
+      "quote": "This is episode twenty-five of prepping you for your system design interview. Today, we'll be talking about CI/CD.",
+      "reason": "INTRO VARIANT A (system-design-interview framing). Second interview take -- the first at 27.66 aborts mid-sentence ('Today w...'). Acoustic onset 33.79 vs ASR 'This' at 33.82; acoustic end 38.61 vs ASR 'CI/CD.' box end 38.64 (they agree here, unlike the B take). Start pads 60ms before onset, end pads 150ms after.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep25",
+      "start": 55.8,
+      "end": 62.0,
+      "beat": "HOOK",
+      "quote": "So some companies ship code thousands of times a day and rarely break. The machine behind that is CI/CD.",
+      "reason": "Only complete take; the 43.82 material is a false start ('So some companies...') abandoned after 1.5s. Acoustic onset 55.87 is 50ms BEFORE ASR's 'So' at 55.92; acoustic end 61.87 matches ASR 'CI/CD.' box end 61.88 almost exactly. Internal 0.28s beat after 'break.' is the sentence turn, kept.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep25",
+      "start": 69.0,
+      "end": 77.98,
+      "beat": "PROBLEM",
+      "quote": "This is the scary old way. We manually bundle months of changes and deploy on a tense release day where everyone prays. Big batches, big risk.",
+      "reason": "Single clean take. Acoustic onset 69.11 is 30ms AFTER ASR 'This' at 69.08 (rare direction on this shoot). Acoustic end 77.77 vs ASR 'risk.' box end 77.93 -- Scribe pads the final plosive. End 77.98 sits 50ms past the ASR box (210ms past the acoustic) so the whole box lands inside the beat window and downstream word cues never spill past it. The 0.48s beat after 'prays.' sets up the 'Big batches, big risk' stinger and stays.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep25",
+      "start": 79.26,
+      "end": 84.14,
+      "beat": "CI",
+      "quote": "Continuous integration means every code change is automatically built and tested the moment it's merged.",
+      "reason": "Only take, clean. Acoustic onset 79.33 vs ASR 'Continuous' at 79.36. Acoustic end 84.01 vs ASR 'merged.' box end 84.16 -- 150ms ASR pad, end set from the acoustic + 130ms.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep25",
+      "start": 86.98,
+      "end": 95.98,
+      "beat": "CD",
+      "quote": "Continuous delivery then carries passing code through an automated pipeline. Build, test, security scan, deploy, sometimes straight to production with no human hands.",
+      "reason": "Only take, clean. Acoustic onset 87.05 vs ASR 87.08. Acoustic end 95.85 vs ASR 'hands.' box end 95.98 (130ms pad); end 95.98 = acoustic + 130ms. The 0.44s and 0.46s beats around the 'Build, test, security scan, deploy' list are the delivery rhythm, kept. Near-contiguous with ROLLBACK in the source (0.42s of room tone between them, cut out).",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep25",
+      "start": 96.4,
+      "end": 101.12,
+      "beat": "ROLLBACK",
+      "quote": "Small frequent changes are easy to test and roll back, so shipping stops being scary.",
+      "reason": "Only take. ASR puts 'Small' at 96.62 but there is voiced audio (breath into the S) from 96.47 -- start 96.40 keeps the natural attack instead of clipping it. Acoustic end 100.99 vs ASR 'scary.' box end 101.08. Butted directly against CD in the output: source gap was 0.42s room tone, output gap is 0.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep25",
+      "start": 102.9,
+      "end": 108.75,
+      "beat": "AI_ANGLE",
+      "quote": "AI now plugs into the pipeline too, auto-reviewing code and generating tests before anything reaches production.",
+      "reason": "Only take, clean. Acoustic onset 102.96 vs ASR 'AI' at 103.02. Acoustic end 108.61 vs ASR 'production.' box end 108.82 -- 210ms ASR pad, the largest mid-episode disagreement on this shoot after the B-intro's 'CI/CD.'; end trusts the acoustic + 140ms.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep25",
+      "start": 111.38,
+      "end": 118.1,
+      "beat": "PAYOFF",
+      "quote": "So we automate the scary parts and shipping stops being scary. Next, we'll talk about why your video call glitches, but YouTube never does.",
+      "reason": "Only take. Acoustic onset 111.44 vs ASR 'So' at 111.50. Acoustic end 117.94 vs ASR 'does.' box end 117.92 (they agree within 20ms). End pads 160ms after the acoustic for the episode close.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    }
+  ],
+  "grade": "eq=contrast=1.15:saturation=1.05,colorbalance=rs=-0.04:gs=0.02:bs=0.05:rm=0.01:gm=0.0:bm=-0.01:rh=0.06:gh=0.02:bh=-0.06,vignette=angle=0.7,unsharp=5:5",
+  "overlays": [
+    {
+      "file": "animations/slot_tiktok_title/render.webm",
+      "start_in_output": 0.0,
+      "duration": 6.2
+    },
+    {
+      "file": "animations/slot_hook/render.webm",
+      "start_in_output": 5.45,
+      "duration": 5.0
+    },
+    {
+      "file": "animations/slot_problem/render.webm",
+      "start_in_output": 13.1,
+      "duration": 7.0
+    },
+    {
+      "file": "animations/slot_ci/render.webm",
+      "start_in_output": 21.0,
+      "duration": 4.5
+    },
+    {
+      "file": "animations/slot_cd/render.webm",
+      "start_in_output": 26.3,
+      "duration": 7.866
+    },
+    {
+      "file": "animations/slot_rollback/render.webm",
+      "start_in_output": 34.95,
+      "duration": 4.5
+    },
+    {
+      "file": "animations/slot_ai_angle/render.webm",
+      "start_in_output": 40.0,
+      "duration": 4.5
+    },
+    {
+      "file": "animations/slot_payoff/render.webm",
+      "start_in_output": 45.3,
+      "duration": 5.4
+    }
+  ],
+  "_overlays_note": "Starts derived from THIS variant's _beat_windows_output_timeline. Title sticker 0-6.2 holds through the intro (0-5.0417) and fades during the first 1.16s of HOOK; slot_hook (transparent, rule 10) runs simultaneously from 5.45 -- its counter chip enters at local 0.90 (abs 6.35), after the sticker's last frame at 6.20, and the two never overlap in pixels (checks column y 660-1240 vs sticker y 250-607, 53px gap). All other adjacent gaps are deliberate breathing room >= 0.5s: hook->problem 2.65, problem->ci 0.90, ci->cd 0.80, cd->rollback ~0.78, rollback->ai 0.55, ai->payoff 0.80. slot_cd's declared 7.866 is the rendered file's true length (7.85 authored, +1 frame of 30fps quantization; its fade completes at 7.85).",
+  "subtitles": "master.A.ass",
+  "_variant": "Variant A -- 'prepping you for your system design interview' intro.",
+  "_zoom_note": "Slow FACE-ANCHORED zoom, focal (540,730) = eye line, magnitude 1.08, direction alternating so the drift is continuous across cuts. Rebuilt 2026-08-28 per feedback ('zoom shakes, make it stronger'): render.py's zoom chain is now supersampled with the crop offset derived from the frame's actual quantized size, killing the size/offset rounding mismatch that caused the judder; magnitude raised 1.045->1.08 and focal moved from frame centre to the eye line so the stronger zoom displaces the face far less against overlay clearances.",
+  "_dead_air_note": "Every range START/END measured acoustically (find_dead_air.py at 100ms windows + a 10ms-window RMS edge probe on the extracted mono wav, relative floor = speech-18dB), not off Scribe word boxes -- Scribe pads word boxes badly on this shoot (worst: variant B intro 'CI/CD.' boxed 22.64-25.24 against an acoustic end of 23.23). No internal dead air >=0.8s in any kept range; longest internal pauses are the deliberate 0.48s beat before 'Big batches' (PROBLEM) and the 0.44-0.46s list beats in CD.",
+  "_beat_windows_output_timeline": {
+    "INTRO": [
+      0.0,
+      5.0417
+    ],
+    "HOOK": [
+      5.0417,
+      11.25
+    ],
+    "PROBLEM": [
+      11.25,
+      20.25
+    ],
+    "CI": [
+      20.25,
+      25.1667
+    ],
+    "CD": [
+      25.1667,
+      34.1667
+    ],
+    "ROLLBACK": [
+      34.1667,
+      38.9167
+    ],
+    "AI_ANGLE": [
+      38.9167,
+      44.7917
+    ],
+    "PAYOFF": [
+      44.7917,
+      51.5417
+    ]
+  },
+  "total_duration_s": 51.5417,
+  "_windows_note": "Output-timeline windows on render.py's real 24fps extract grid: each segment's rendered duration is ceil((end-start)*24)/24, not the raw source span. Verified against rendered clips where measurable. Overlay start_in_output values are derived from THESE numbers."
+}

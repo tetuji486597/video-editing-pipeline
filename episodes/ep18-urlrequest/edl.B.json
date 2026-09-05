@@ -1,0 +1,206 @@
+{
+  "version": 1,
+  "sources": {
+    "ep18": "C:/Users/gordo/Downloads/drive-download-20260819T201857Z-1-002/ep18.mp4"
+  },
+  "ranges": [
+    {
+      "source": "ep18",
+      "start": 60.27,
+      "end": 67.67,
+      "beat": "INTRO",
+      "quote": "This is episode 18 of exploring really cool tech. Today, we'll be talking about the full web request.",
+      "reason": "HOOK VARIANT B (cool-tech framing). Only take of this framing. The 580ms beat after 'tech.' is rhetorical and matches variant A's 400ms beat after 'interview.' -- both are kept, neither is a hole.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.045,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep18",
+      "start": 76.18,
+      "end": 82.53,
+      "beat": "HOOK",
+      "quote": "So you type a URL and hit Enter. Before the page paints, a whole relay race happens. Let's run it.",
+      "reason": "Scribe boxes 'So' from 72.04 to 76.42 -- a 4.38s word. find_dead_air puts real speech onset at 76.23, so the range starts there, not at the ASR 72.04. Starting off the ASR box is exactly how a 4.4s hole shipped in this beat before.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.045,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep18",
+      "start": 89.75,
+      "end": 94.2,
+      "beat": "PROBLEM",
+      "quote": "Now, here's the problem. Your computer doesn't actually know where google.com lives.",
+      "reason": "Cut at 94.20 -- 150ms after 'lives.' and 340ms clear of the aborted 'Websites are...' at 94.54, which is completed cleanly by the next range.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.045,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep18",
+      "start": 103.07,
+      "end": 106.22,
+      "beat": "PROBLEM_B",
+      "quote": "Websites are found by IP addresses, not name.",
+      "reason": "Clean completion of the sentence the previous range aborts on.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.045,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep18",
+      "start": 107.99,
+      "end": 117.2,
+      "beat": "DNS",
+      "quote": "So first comes the DNS, the internet's phone book. Your browser asks a DNS resolver what's the IP address for google.com and gets back an address.",
+      "reason": "Single clean take, only delivery.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.045,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep18",
+      "start": 165.53,
+      "end": 172.08,
+      "beat": "TCP_TLS",
+      "quote": "Now it opens a TCP connection to that IP, does a quick TLS handshake to encrypt the link, that's the HTTP lock,",
+      "reason": "Take 4 of 4 and the only one that runs on into the full response sentence. Split from RESPONSE at the 510ms gap after 'lock,' -- the alternative split (after 'request.') has only a 10ms gap and would cut mid-flow.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.045,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep18",
+      "start": 172.39,
+      "end": 184.93,
+      "beat": "RESPONSE",
+      "quote": "and sends the HTTP request. The server, often via CDN and load balancer, returns HTML, and your browser fetches the CSS, JS, and images it references, then renders all in a fraction of a second.",
+      "reason": "Contiguous with TCP_TLS in the source, kept separate so the server round-trip gets its own overlay. ASR boxes 'second.' to 185.50; acoustic end is 184.83.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.045,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep18",
+      "start": 187.09,
+      "end": 192.36,
+      "beat": "PAYOFF",
+      "quote": "Every page is a relay race you never see. Next, we'll talk about how the internet doesn't lose your data.",
+      "reason": "Only complete take. ASR boxes 'data.' to 194.06 against an acoustic end of 192.26 -- 1.7s of room tone removed.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.045,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    }
+  ],
+  "grade": "eq=contrast=1.15:saturation=1.05,colorbalance=rs=-0.04:gs=0.02:bs=0.05:rm=0.01:gm=0.0:bm=-0.01:rh=0.06:gh=0.02:bh=-0.06,vignette=angle=0.7,unsharp=5:5",
+  "overlays": [
+    {
+      "file": "animations/slot_title/render.webm",
+      "start_in_output": 0.0,
+      "duration": 2.766
+    },
+    {
+      "file": "animations/slot_hook/render.webm",
+      "start_in_output": 7.817,
+      "duration": 5.6
+    },
+    {
+      "file": "animations/slot_problem/render.webm",
+      "start_in_output": 14.517,
+      "duration": 6.4
+    },
+    {
+      "file": "animations/slot_dns/render.webm",
+      "start_in_output": 22.117,
+      "duration": 7.8
+    },
+    {
+      "file": "animations/slot_tcp_tls/render.webm",
+      "start_in_output": 31.317,
+      "duration": 5.9
+    },
+    {
+      "file": "animations/slot_response/render.webm",
+      "start_in_output": 37.917,
+      "duration": 11.4
+    },
+    {
+      "file": "animations/slot_payoff/render.webm",
+      "start_in_output": 50.117,
+      "duration": 4.9
+    }
+  ],
+  "_beat_windows_output_timeline": {
+    "INTRO": [
+      0.0,
+      7.4167
+    ],
+    "HOOK": [
+      7.4167,
+      13.7917
+    ],
+    "PROBLEM": [
+      13.7917,
+      18.25
+    ],
+    "PROBLEM_B": [
+      18.25,
+      21.4167
+    ],
+    "DNS": [
+      21.4167,
+      30.6667
+    ],
+    "TCP_TLS": [
+      30.6667,
+      37.25
+    ],
+    "RESPONSE": [
+      37.25,
+      49.7917
+    ],
+    "PAYOFF": [
+      49.7917,
+      55.0833
+    ]
+  },
+  "_windows_note": "Output-timeline windows on render.py's real 24fps extract grid: each segment's rendered duration is ceil((end-start)*24)/24, not the raw source span. Verified against rendered clips where measurable. Overlay start_in_output values are derived from THESE numbers.",
+  "subtitles": "master.B.ass",
+  "total_duration_s": 55.0833,
+  "_variant": "Variant B -- 'exploring really cool tech' intro.",
+  "_overlay_gap_audit": "Gaps >= 0.5s are deliberate returns to the talking head (ep13 shipped 1.0-6.7s gaps at 49-54% coverage). Anything shorter is closed to exactly zero, per rule 12 -- a sub-half-second hole reads as a bare-footage flash, not a breath. EP19 tradeoff->payoff is contiguous for exactly this reason: its beats butt up against each other and a 0.3s gap would have landed on the punchline.",
+  "_zoom_note": "Gradual CENTERED zoom on the talking head. focal (540,960) = exact frame centre, not render.py's eye-line default. Direction alternates per segment so each range starts at the scale the previous one ended on -- the drift is continuous across every cut instead of snapping back to 1.0 at each edit. Magnitude capped at 4.5%: the overlays were placed against measured face positions with clearances as tight as 40px, and a centered zoom displaces a point by distance_from_centre*(Z-1), so 4.5% costs the tightest one ~13px while 12% would cost it ~35px and push graphics into the face."
+}

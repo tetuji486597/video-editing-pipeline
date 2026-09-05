@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP29 build — the funnel, exact copies get tung'd (motion graphic)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+      @font-face { font-family: "Anton"; src: url("assets/fonts/anton.woff2") format("woff2"); font-weight: 400; font-style: normal; }
+      .meme { font-family: Anton, Inter, sans-serif; }
+
+      /* Band: x 70-860, y 210-650. Grid-measured on the real BUILD frame (src 116.5s):
+         hair top ~120 raw, brow ~700 raw / ~697 at the 1.08 zoom worst case, glasses
+         750-920, chin ~1250. Everything sits over hair/background only; band bottom
+         650 + shadow reach 22 = 672 < 697. Translucent fill (rule 11). Children are
+         positioned in ABSOLUTE canvas px (the band is a sibling backdrop, not a parent). */
+      #band {
+        position: absolute; left: 70px; top: 210px; width: 790px; height: 440px; border-radius: 22px;
+        background: linear-gradient(165deg, rgba(8, 12, 24, 0.32), rgba(6, 8, 18, 0.30));
+        border: 2px solid rgba(34, 211, 238, 0.55);
+        box-shadow: 0 6px 10px rgba(0, 0, 0, 0.35);
+        opacity: 0.5;
+      }
+      #flash { position: absolute; left: 70px; top: 210px; width: 790px; height: 440px; border-radius: 22px; background: #fff; opacity: 0; }
+
+      /* funnel: x 90-350, y 222-480 (viewBox 260x258) */
+      #funnel { position: absolute; left: 90px; top: 222px; width: 260px; height: 258px; transform-origin: 50% 0%; opacity: 0.5; }
+      #funnel .body { fill: rgba(34, 211, 238, 0.16); stroke: #22d3ee; stroke-width: 3; stroke-linejoin: round; }
+      #funnel .lip { fill: none; stroke: #a5f3fc; stroke-width: 3; }
+
+      /* pouring posts (50x34), explicit base at the funnel mouth; all motion via x/y */
+      .post {
+        position: absolute; left: 90px; top: 236px; width: 50px; height: 34px; border-radius: 6px;
+        background: #f8fafc; border: 2px solid #cbd5e1; opacity: 0;
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.45);
+      }
+      .post::before { content: ""; position: absolute; left: 6px; top: 7px; width: 22px; height: 4px; border-radius: 2px; background: #94a3b8; }
+      .post::after { content: ""; position: absolute; left: 6px; top: 16px; width: 32px; height: 4px; border-radius: 2px; background: #94a3b8; }
+      .post .av { position: absolute; right: 5px; top: 5px; width: 10px; height: 10px; border-radius: 50%; background: #f472b6; }
+
+      /* passed-posts tray: x 150-300, y 500-540 */
+      #tray { position: absolute; left: 150px; top: 500px; width: 150px; height: 40px; border-radius: 8px;
+        background: rgba(34, 211, 238, 0.12); border: 2px solid rgba(34, 211, 238, 0.5); opacity: 0; }
+
+      /* the two phones: REAL Instagram community-guidelines notice (GSMArena press
+         image) as the "already banned" reference, and an identical copy. 140x246 each. */
+      .phone {
+        position: absolute; top: 225px; width: 140px; height: 246px; border-radius: 14px; overflow: hidden;
+        border: 3px solid rgba(255, 255, 255, 0.55); background: #fff; opacity: 0;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+      }
+      .phone img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 0%; }
+      #ref { left: 400px; }
+      #copy { left: 580px; transform-origin: 50% 50%; }
+      .crack { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; }
+      .crack path { fill: none; stroke: #111; stroke-width: 3; stroke-linecap: round; }
+
+      /* fingerprint match glyph between the phones: x 535-585, y 323-373 */
+      #fp { position: absolute; left: 535px; top: 323px; width: 50px; height: 50px; opacity: 0; transform-origin: 50% 50%;
+        filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.8)); }
+      #fp path { fill: none; stroke: #ef4444; stroke-width: 3; stroke-linecap: round; }
+
+      /* EXACT COPY label: x 400-720, y 486-530 */
+      #label { position: absolute; left: 400px; top: 486px; width: 320px; height: 44px; text-align: center;
+        font-size: 40px; line-height: 44px; letter-spacing: 4px; color: #fca5a5; opacity: 0;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9), 0 0 14px rgba(239, 68, 68, 0.6); }
+
+      /* SUS chip: x 740-860, y 486-546 (Among Us crewmate sprite + SUS) */
+      #sus { position: absolute; left: 740px; top: 486px; width: 120px; height: 60px; border-radius: 30px;
+        background: rgba(60, 8, 16, 0.85); border: 2px solid #f43f5e; opacity: 0; transform-origin: 50% 50%;
+        display: flex; align-items: center; gap: 8px; padding-left: 10px; box-shadow: 0 0 12px rgba(244, 63, 94, 0.45); }
+      #sus img { width: 34px; height: 45px; image-rendering: pixelated; }
+      #sus span { font-size: 34px; line-height: 40px; color: #fecdd3; letter-spacing: 3px; }
+
+      /* Tung Tung Tung Sahur: x 740-860, y 258-450 (120x192) + SVG bat in his hand */
+      #tung { position: absolute; left: 740px; top: 258px; width: 120px; height: 192px; opacity: 0;
+        filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.6)); }
+      #bat { position: absolute; left: 690px; top: 318px; width: 100px; height: 28px; opacity: 0; transform-origin: 92% 50%;
+        filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.6)); }
+
+      /* trash chute: x 560-740, y 560-640 */
+      #chute { position: absolute; left: 560px; top: 560px; width: 180px; height: 80px; border-radius: 10px; opacity: 0;
+        background: #0b0f1a; border: 3px solid #475569; overflow: hidden; box-shadow: 0 6px 12px rgba(0,0,0,0.5); }
+      #chute .stripes { position: absolute; left: 0; top: 0; width: 100%; height: 16px;
+        background: repeating-linear-gradient(135deg, #facc15 0 14px, #111 14px 28px); }
+      #chute .hole { position: absolute; left: 20px; top: 30px; width: 140px; height: 34px; border-radius: 50%; background: #000; box-shadow: inset 0 4px 10px rgba(255,255,255,0.08); }
+
+      /* fries bag: x 590-710, y 520-640 */
+      #bag { position: absolute; left: 590px; top: 520px; width: 120px; height: 120px; opacity: 0; transform-origin: 50% 100%;
+        filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.6)); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="8.9" data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="8.9" data-track-index="1">
+        <div id="band"></div>
+        <div id="flash"></div>
+
+        <svg id="funnel" viewBox="0 0 260 258">
+          <path class="body" d="M4 16 L256 16 L150 180 L150 250 L110 250 L110 180 Z" />
+          <path class="lip" d="M4 16 Q130 34 256 16" />
+        </svg>
+
+        <div class="post" id="q1"><span class="av"></span></div>
+        <div class="post" id="q2"><span class="av"></span></div>
+        <div class="post" id="q3"><span class="av"></span></div>
+        <div class="post" id="q4"><span class="av"></span></div>
+        <div class="post" id="q5"><span class="av"></span></div>
+        <div class="post" id="q6"><span class="av"></span></div>
+        <div class="post" id="q7"><span class="av"></span></div>
+        <div class="post" id="q8"><span class="av"></span></div>
+        <div class="post" id="q9"><span class="av"></span></div>
+        <div class="post" id="flyer"><span class="av"></span></div>
+        <div class="post" id="last"><span class="av"></span></div>
+        <div id="tray"></div>
+
+        <div class="phone" id="ref"><img src="assets/instagram_notice_left_phone.jpg" alt="" /></div>
+        <div class="phone" id="copy">
+          <img src="assets/instagram_notice_left_phone.jpg" alt="" />
+          <svg class="crack" id="cr1" viewBox="0 0 140 246"><path d="M70 0 L64 40 L80 70 L66 100" /></svg>
+          <svg class="crack" id="cr2" viewBox="0 0 140 246"><path d="M140 60 L100 90 L110 130 L70 150 M66 100 L40 120" /></svg>
+          <svg class="crack" id="cr3" viewBox="0 0 140 246"><path d="M0 170 L40 160 L60 200 L50 246 M70 150 L90 200 L80 246" /></svg>
+        </div>
+        <svg id="fp" viewBox="0 0 50 50">
+          <path d="M25 6 C14 6 8 14 8 24 M25 12 C17 12 13 18 13 26 C13 32 14 38 16 44 M25 18 C21 18 18 22 18 27 C18 34 20 40 23 46 M25 24 C23 24 23 27 23 29 C23 35 25 41 29 46 M30 18 C34 20 37 24 37 30 C37 37 35 42 33 46 M25 6 C36 6 42 14 42 24 C42 30 41 36 39 42" />
+        </svg>
+        <div id="label" class="meme">EXACT COPY</div>
+        <div id="sus"><img src="assets/amongus_red_crewmate_600.png" alt="" /><span class="meme">SUS</span></div>
+
+        <img id="tung" src="assets/tung_tung_tung_sahur_render.png" alt="" />
+        <svg id="bat" viewBox="0 0 100 28">
+          <path d="M2 14 C2 6 14 3 40 3 L92 8 C98 9 98 19 92 20 L40 25 C14 25 2 22 2 14 Z" fill="#c8874a" stroke="#4a2f14" stroke-width="2.5"/>
+          <rect x="74" y="9" width="20" height="10" rx="4" fill="#3b2410"/>
+        </svg>
+
+        <div id="chute"><div class="stripes"></div><div class="hole"></div></div>
+        <svg id="bag" viewBox="0 0 120 120">
+          <rect x="34" y="14" width="8" height="60" rx="3" fill="#fde047" stroke="#a16207" stroke-width="2" transform="rotate(-12 38 44)"/>
+          <rect x="48" y="8" width="8" height="66" rx="3" fill="#fde047" stroke="#a16207" stroke-width="2"/>
+          <rect x="62" y="12" width="8" height="62" rx="3" fill="#fde047" stroke="#a16207" stroke-width="2" transform="rotate(8 66 43)"/>
+          <rect x="76" y="18" width="8" height="56" rx="3" fill="#fde047" stroke="#a16207" stroke-width="2" transform="rotate(16 80 46)"/>
+          <path d="M22 54 L98 54 L90 116 L30 116 Z" fill="#ef4444" stroke="#7f1d1d" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M30 70 Q60 84 90 70" fill="none" stroke="#fde047" stroke-width="5" stroke-linecap="round"/>
+        </svg>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ---------- ACT 1 (cyan): the funnel; posts pour; the exact-copy pair lights ----------
+      tl.fromTo("#band", { opacity: 0.5, y: 22 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 0);
+      tl.fromTo("#funnel", { opacity: 0.5, scaleY: 0.6 }, { opacity: 1, scaleY: 1, duration: 0.45, ease: "back.out(1.6)", immediateRender: false }, 0.05); // lands "funnel" @0.33
+      tl.fromTo("#tray", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out", immediateRender: false }, 0.5);
+
+      // A post: appears in the mouth at (mouthX, 236), falls to the neck (205, 400),
+      // drops into the tray (205, 500) and fades. All x/y repeated in every to-vars.
+      function pour(sel, t, mouthX) {
+        const mx = mouthX - 90;           // base left is 90
+        tl.fromTo(sel, { opacity: 0, x: mx, y: 0, rotation: 0 }, { opacity: 1, x: mx, y: 0, rotation: 0, duration: 0.12, ease: "power2.out", immediateRender: false }, t);
+        tl.fromTo(sel, { x: mx, y: 0, rotation: 0 }, { x: 115, y: 164, rotation: (mx % 2 ? 10 : -10), duration: 0.5, ease: "power2.in", immediateRender: false }, t + 0.12);
+        tl.fromTo(sel, { x: 115, y: 164, opacity: 1 }, { x: 115, y: 264, opacity: 0, duration: 0.32, ease: "power2.in", immediateRender: false }, t + 0.62);
+      }
+      const mouths = [120, 250, 180, 300, 140, 270, 210, 160, 290];
+      mouths.forEach((mx, i) => pour("#q" + (i + 1), 0.4 + i * 0.36, mx)); // last starts 3.28, done 4.22
+
+      // the flyer: comes through the funnel, then gets pulled out to the copy slot (@1.75)
+      tl.fromTo("#flyer", { opacity: 0, x: 140, y: 0, rotation: 0 }, { opacity: 1, x: 140, y: 0, rotation: 0, duration: 0.12, ease: "power2.out", immediateRender: false }, 1.0);
+      tl.fromTo("#flyer", { x: 140, y: 0, rotation: 0 }, { x: 115, y: 164, rotation: 6, duration: 0.45, ease: "power2.in", immediateRender: false }, 1.12);
+      tl.fromTo("#flyer", { x: 115, y: 164, rotation: 6, scale: 1 }, { x: 535, y: 95, rotation: 0, scale: 2.4, duration: 0.32, ease: "power3.inOut", immediateRender: false }, 1.57);
+      tl.fromTo("#flyer", { opacity: 1, x: 535, y: 95 }, { opacity: 0, x: 535, y: 95, duration: 0.12, ease: "power2.out", immediateRender: false }, 1.85);
+      // reference notice (the REAL banned-post notice) is there from 0.9; the copy pops @1.78
+      tl.fromTo("#ref", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 0.9);
+      tl.fromTo("#copy", { opacity: 0, scale: 0.6, x: 0, y: 0 }, { opacity: 1, scale: 1, x: 0, y: 0, duration: 0.3, ease: "back.out(1.8)", immediateRender: false }, 1.78);
+      // match: fingerprint + label + red border pulse on both phones
+      tl.fromTo("#label", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 2.0);
+      tl.fromTo("#fp", { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)", immediateRender: false }, 2.15);
+      tl.fromTo(".phone", { borderColor: "rgba(255,255,255,0.55)", boxShadow: "0 8px 16px rgba(0,0,0,0.5)" },
+        { borderColor: "rgba(239,68,68,0.95)", boxShadow: "0 8px 16px rgba(0,0,0,0.5), 0 0 16px rgba(239,68,68,0.6)", duration: 0.45, ease: "sine.inOut", yoyo: true, repeat: 3, immediateRender: false }, 2.2); // ends 4.0
+      tl.fromTo(".phone", { borderColor: "rgba(255,255,255,0.55)" }, { borderColor: "rgba(239,68,68,0.95)", duration: 0.2, ease: "power2.out", immediateRender: false }, 4.0);
+      // SUS chip on "mad sus" (@4.39)
+      tl.fromTo("#sus", { opacity: 0, scale: 0.5, rotation: -10 }, { opacity: 1, scale: 1, rotation: 0, duration: 0.3, ease: "back.out(2.2)", immediateRender: false }, 4.39);
+      tl.fromTo("#sus", { rotation: 0 }, { rotation: 5, duration: 0.14, ease: "sine.inOut", yoyo: true, repeat: 3, immediateRender: false }, 4.7); // ends 5.26
+
+      // ---------- TURN @4.9-5.8: Tung Tung Tung Sahur arrives; three knocks in sync ----------
+      tl.fromTo("#tung", { opacity: 0, x: 60, y: 0 }, { opacity: 1, x: 0, y: 0, duration: 0.35, ease: "power3.out", immediateRender: false }, 4.9);
+      tl.fromTo("#bat", { opacity: 0, rotation: -20 }, { opacity: 1, rotation: -20, duration: 0.2, ease: "power2.out", immediateRender: false }, 5.05);
+      const knocks = [5.35, 5.58, 5.81]; // spoken "Tung, tung, tung" (24.65 / 24.88 / 25.11 out)
+      knocks.forEach((k, i) => {
+        tl.fromTo("#bat", { rotation: -20 }, { rotation: -95, duration: 0.09, ease: "power2.in", immediateRender: false }, k - 0.1);
+        tl.fromTo("#bat", { rotation: -95 }, { rotation: -20, duration: 0.09, ease: "power3.out", immediateRender: false }, k);
+        tl.fromTo("#copy", { x: 0, rotation: 0 }, { x: -10, rotation: -4, duration: 0.05, ease: "power2.out", immediateRender: false }, k);
+        tl.fromTo("#copy", { x: -10, rotation: -4 }, { x: 0, rotation: 0, duration: 0.14, ease: "power2.out", immediateRender: false }, k + 0.05);
+        tl.fromTo("#cr" + (i + 1), { opacity: 0 }, { opacity: 1, duration: 0.05, ease: "power2.out", immediateRender: false }, k);
+        tl.fromTo("#flash", { opacity: 0 }, { opacity: 0.35, duration: 0.04, ease: "power3.out", immediateRender: false }, k);
+        tl.to("#flash", { opacity: 0, duration: 0.14, ease: "power3.out" }, k + 0.04);
+        tl.fromTo("#tung", { y: 0 }, { y: -8, duration: 0.08, ease: "power2.out", yoyo: true, repeat: 1, immediateRender: false }, k - 0.08);
+      });
+
+      // ---------- ACT 2 (amber): "gone" @6.31 -> the chute; "fries in the bag" @7.47 ----------
+      tl.fromTo("#chute", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 6.0);
+      tl.fromTo("#copy", { x: 0, y: 0, scale: 1, rotation: 0, opacity: 1 }, { x: 0, y: 250, scale: 0.3, rotation: 18, opacity: 0, duration: 0.5, ease: "power2.in", immediateRender: false }, 6.31);
+      tl.fromTo("#label", { opacity: 1 }, { opacity: 0, duration: 0.25, ease: "power2.out", immediateRender: false }, 6.5);
+      tl.fromTo("#fp", { opacity: 1 }, { opacity: 0, duration: 0.25, ease: "power2.out", immediateRender: false }, 6.5);
+      tl.fromTo("#ref", { borderColor: "rgba(239,68,68,0.95)" }, { borderColor: "rgba(255,255,255,0.55)", duration: 0.4, ease: "power2.out", immediateRender: false }, 6.6);
+      tl.fromTo("#chute", { y: 0 }, { y: 6, duration: 0.06, ease: "power2.out", yoyo: true, repeat: 1, immediateRender: false }, 6.78);
+      tl.fromTo("#bat", { rotation: -20 }, { rotation: -40, duration: 0.5, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 6.6); // idle, ends 7.6
+      // chute -> fries bag swap
+      tl.fromTo("#chute", { opacity: 1, y: 0 }, { opacity: 0, y: 20, duration: 0.25, ease: "power2.in", immediateRender: false }, 7.2);
+      tl.fromTo("#bag", { opacity: 0, scale: 0.5, x: 0, y: 0 }, { opacity: 1, scale: 1, x: 0, y: 0, duration: 0.35, ease: "back.out(2)", immediateRender: false }, 7.42);
+      // the last post comes through the funnel and lands in the bag
+      tl.fromTo("#last", { opacity: 0, x: 130, y: 0, rotation: 0 }, { opacity: 1, x: 130, y: 0, rotation: 0, duration: 0.12, ease: "power2.out", immediateRender: false }, 7.0);
+      tl.fromTo("#last", { x: 130, y: 0, rotation: 0 }, { x: 115, y: 164, rotation: -6, duration: 0.45, ease: "power2.in", immediateRender: false }, 7.12);
+      tl.fromTo("#last", { x: 115, y: 164, rotation: -6 }, { x: 535, y: 300, rotation: 30, duration: 0.5, ease: "power2.inOut", immediateRender: false }, 7.6);
+      tl.fromTo("#last", { opacity: 1, x: 535, y: 300 }, { opacity: 0, x: 535, y: 330, duration: 0.15, ease: "power2.in", immediateRender: false }, 8.1);
+      tl.fromTo("#bag", { scale: 1 }, { scale: 1.12, duration: 0.1, ease: "power2.out", yoyo: true, repeat: 1, immediateRender: false }, 8.12); // ends 8.32
+
+      // ---------- fade: finishes at EXACTLY 8.9 (8.6 + 0.3), zero buffer; per-leaf ----------
+      ["#funnel", "#tray", "#ref", "#copy", "#fp", "#label", "#sus", "#tung", "#bat", "#chute", "#bag", ".post"].forEach((s) => {
+        tl.to(s, { opacity: 0, duration: 0.3, ease: "power2.out" }, 8.6);
+      });
+      tl.fromTo("#band", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 8.6);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

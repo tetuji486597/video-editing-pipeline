@@ -1,0 +1,192 @@
+{
+  "version": 1,
+  "sources": {
+    "ep16": "C:/Users/gordo/Downloads/drive-download-20260819T201857Z-1-001/ep16.mp4"
+  },
+  "ranges": [
+    {
+      "source": "ep16",
+      "start": 29.97,
+      "end": 35.63,
+      "beat": "HOOK",
+      "quote": "A two hundred character link becomes six characters. Simple idea, surprisingly neat system.",
+      "reason": "Take 2 of 2. Take 1 (16.58) aborts at 21.27 on 'Surprising idea, s...' and uses the wrong adjective.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.045,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep16",
+      "start": 40.55,
+      "end": 48.98,
+      "beat": "PROBLEM",
+      "quote": "So you might think it hashes the URL, but you want the shortest possible code and no collisions. Random hashing gives you neither cleanly.",
+      "reason": "Single clean take across both sentences.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.045,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep16",
+      "start": 50.11,
+      "end": 58.15,
+      "beat": "BUILD",
+      "quote": "Instead, every new link gets a unique number from a counter, one, two, three, and so on. Then we encode that number in Base62.",
+      "reason": "Single clean take. The counter recital lands at 54.08-54.94, which is where the overlay's counter ticks.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.045,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep16",
+      "start": 87.87,
+      "end": 95.07,
+      "beat": "NEW_COMPONENT",
+      "quote": "Base62 uses zero through nine, lowercase a through z, and capital A through Z, sixty-two symbols.",
+      "reason": "Take 4 of 4. Takes 1-3 (59.12, 78.68, 81.76) all abort mid-alphabet. Take 4 also beats the only other complete read (68.52) on safety: 68.52 runs straight into an aborted 'So big numbers become...' leaving just 240ms to cut in, while this take has 6.0s of dead air after it. Its 660ms pause before 'sixty-two' is a gift for the overlay -- the alphabet assembles, then the count lands.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.045,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep16",
+      "start": 100.99,
+      "end": 109.12,
+      "beat": "SCALE",
+      "quote": "So big numbers become tiny strings. Just three characters cover almost a quarter million links. Six cover over fifty billion.",
+      "reason": "Clean completion of the sentence take 1 aborted on, spliced to the Base62 take.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.045,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep16",
+      "start": 109.51,
+      "end": 113.41,
+      "beat": "REDIRECT",
+      "quote": "Visiting the short link looks up the number and redirects you to the original.",
+      "reason": "Contiguous with SCALE in the source and the better of the two reads -- the 118.98 retake is slower and boxes 'original.' out to 124.22 against an acoustic end of 123.51. Kept as its own range so the lookup/redirect gets its own overlay.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.045,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep16",
+      "start": 126.17,
+      "end": 132.92,
+      "beat": "PAYOFF",
+      "quote": "Every short link is just a number wearing a costume. Next, we'll look at how banks catch fraud in milliseconds.",
+      "reason": "Only complete take.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.045,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    }
+  ],
+  "grade": "eq=contrast=1.15:saturation=1.05,colorbalance=rs=-0.04:gs=0.02:bs=0.05:rm=0.01:gm=0.0:bm=-0.01:rh=0.06:gh=0.02:bh=-0.06,vignette=angle=0.7,unsharp=5:5",
+  "overlays": [
+    {
+      "file": "animations/slot_title/render.webm",
+      "start_in_output": 0.0,
+      "duration": 2.766
+    },
+    {
+      "file": "animations/slot_hook/render.webm",
+      "start_in_output": 0.0,
+      "duration": 5.2
+    },
+    {
+      "file": "animations/slot_problem/render.webm",
+      "start_in_output": 6.5,
+      "duration": 6.8
+    },
+    {
+      "file": "animations/slot_build/render.webm",
+      "start_in_output": 14.9,
+      "duration": 6.6
+    },
+    {
+      "file": "animations/slot_new_component/render.webm",
+      "start_in_output": 23.0,
+      "duration": 6.4
+    },
+    {
+      "file": "animations/slot_scale/render.webm",
+      "start_in_output": 30.1,
+      "duration": 7.0
+    },
+    {
+      "file": "animations/slot_redirect/render.webm",
+      "start_in_output": 37.9,
+      "duration": 4.0
+    },
+    {
+      "file": "animations/slot_payoff/render.webm",
+      "start_in_output": 41.9,
+      "duration": 5.6
+    }
+  ],
+  "_beat_windows_output_timeline": {
+    "HOOK": [
+      0.0,
+      5.6667
+    ],
+    "PROBLEM": [
+      5.6667,
+      14.125
+    ],
+    "BUILD": [
+      14.125,
+      22.1667
+    ],
+    "NEW_COMPONENT": [
+      22.1667,
+      29.375
+    ],
+    "SCALE": [
+      29.375,
+      37.5417
+    ],
+    "REDIRECT": [
+      37.5417,
+      41.4583
+    ],
+    "PAYOFF": [
+      41.4583,
+      48.2083
+    ]
+  },
+  "_windows_note": "Output-timeline windows on render.py's real 24fps extract grid: each segment's rendered duration is ceil((end-start)*24)/24, not the raw source span. Verified against rendered clips where measurable. Overlay start_in_output values are derived from THESE numbers.",
+  "subtitles": "master.ass",
+  "total_duration_s": 48.2083,
+  "_overlay_gap_audit": "Gaps >= 0.5s are deliberate returns to the talking head (ep13 shipped 1.0-6.7s gaps at 49-54% coverage). Anything shorter is closed to exactly zero, per rule 12 -- a sub-half-second hole reads as a bare-footage flash, not a breath. EP19 tradeoff->payoff is contiguous for exactly this reason: its beats butt up against each other and a 0.3s gap would have landed on the punchline.",
+  "_hook_lead_note": "slot_hook starts at 0.000 on purpose. Its beat also starts at 0.000, so the usual >=0.25s lead would mean waiting on the title card. This slot is a transparent/right-side format specifically so it can run SIMULTANEOUSLY with the title (rule 10) -- making it opaque would delay its content until 2.766 and the beat's idea would land late, which is the EP7 hook mistake. The content is ambient (a scrolling column / a streaming URL), not a claim that needs the narration to establish it first.",
+  "_zoom_note": "Gradual CENTERED zoom on the talking head. focal (540,960) = exact frame centre, not render.py's eye-line default. Direction alternates per segment so each range starts at the scale the previous one ended on -- the drift is continuous across every cut instead of snapping back to 1.0 at each edit. Magnitude capped at 4.5%: the overlays were placed against measured face positions with clearances as tight as 40px, and a centered zoom displaces a point by distance_from_centre*(Z-1), so 4.5% costs the tightest one ~13px while 12% would cost it ~35px and push graphics into the face."
+}

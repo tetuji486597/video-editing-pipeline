@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP21 slot_kanon — hidden in the crowd</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;   /* pure linework over live footage */
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      #gfx {
+        position: absolute; inset: 0;
+        transform-origin: 480px 345px;
+        opacity: 0.55;             /* frame-0 state from CSS */
+      }
+
+      /* 4x9 field of identical outline dots. Centers x 142..766 step 78 -> 9 cols
+         142,220,...,766? (see JS literals). All translucent linework (rule 11). */
+      .dot {
+        position: absolute;
+        width: 36px; height: 36px;
+        border-radius: 50%;
+        border: 2.5px solid rgba(103, 232, 249, 0.85);
+        background: rgba(103, 232, 249, 0.10);
+        box-shadow: 0 0 8px rgba(103, 232, 249, 0.35); /* reach 12.8px */
+        opacity: 0;
+      }
+
+      /* server-side scanning reticle that fails to lock onto anyone */
+      #reticle { position: absolute; left: 0; top: 0; width: 84px; height: 84px; opacity: 0; }
+      #reticle svg { width: 84px; height: 84px; overflow: visible; }
+
+      #kanon-label {
+        position: absolute;
+        left: 0; width: 940px;      /* centred on x=470: the 110px text measured 790px
+                                       wide (x 87-877 when centred on 480 -- 7px past the
+                                       x<=870 border margin). Hero size must stay >=110,
+                                       so the centre shifts 10px left instead:
+                                       470 +/- 395 -> x 75-865, inside 70-870. */
+        top: 296px;
+        text-align: center;
+        color: #ffffff;
+        font-size: 110px;
+        font-weight: 800;
+        letter-spacing: -2px;
+        line-height: 112px;
+        text-shadow: 0 3px 14px rgba(0,0,0,0.95), 0 0 40px rgba(34,211,238,0.55),
+                     0 0 6px rgba(0,0,0,1);
+        opacity: 0;
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="6.9"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="scene" class="clip" data-start="0" data-duration="6.9" data-track-index="1">
+        <div id="gfx">
+          <div id="dots"></div>
+          <div id="reticle">
+            <svg viewBox="0 0 84 84">
+              <rect x="6" y="6" width="72" height="72" rx="14" fill="none"
+                    stroke="#f87171" stroke-width="3"
+                    stroke-dasharray="26 22" />
+              <text x="66" y="18" font-family="Inter, sans-serif" font-size="40"
+                    font-weight="800" fill="#f87171"
+                    style="text-shadow: 0 2px 8px rgba(0,0,0,0.9)">?</text>
+            </svg>
+          </div>
+          <div id="kanon-label">k-ANONYMITY</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+
+      // deterministic dot field: 4 rows x 9 cols, centers y 228/306/384/462,
+      // x 142 + 78*c -> 142..766. Extents: x 124-784, y 210-480.
+      const dotsWrap = document.getElementById("dots");
+      const rowsY = [228, 306, 384, 462];
+      const colsX = [142, 220, 298, 376, 454, 532, 610, 688, 766];
+      const order = []; // build order literal-deterministic: row-major
+      rowsY.forEach((cy, r) => colsX.forEach((cx, c) => {
+        const d = document.createElement("div");
+        d.className = "dot";
+        d.style.left = (cx - 18) + "px";
+        d.style.top = (cy - 18) + "px";
+        d.id = "dot_" + r + "_" + c;
+        dotsWrap.appendChild(d);
+        order.push(d.id);
+      }));
+
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ---------- Act 1: the crowd draws in ----------
+      tl.fromTo("#gfx", { opacity: 0.55, scale: 0.985 },
+        { opacity: 1, scale: 1, duration: 0.45, ease: "power3.out" }, 0);
+      order.forEach((id, i) => {
+        tl.fromTo("#" + id, { opacity: 0, scale: 0.5 },
+          { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.4)",
+            immediateRender: false }, 0.1 + i * 0.03);
+      });
+      // field fully in by 0.1 + 35*0.03 + 0.3 = 1.48s
+
+      // ---------- the server's "?" sweeps and fails to lock ----------
+      // reticle center offsets: positions are dot centers minus 42 (svg center).
+      tl.fromTo("#reticle", { opacity: 0, x: 220 - 42, y: 306 - 42 },
+        {x: 220, y: 306, opacity: 1, duration: 0.25, ease: "power3.out", immediateRender: false }, 1.55);
+      const hops = [
+        [454, 306], [688, 384], [376, 462], [532, 228], [610, 384],
+      ];
+      hops.forEach((p, i) => {
+        tl.to("#reticle", { x: p[0] - 42, y: p[1] - 42,
+          duration: 0.28, ease: "power2.inOut" }, 1.85 + i * 0.42);
+      });
+      // last hop lands 1.85+4*0.42+0.28 = 3.81
+
+      // ---------- Turn: settle pulse — it gives up; nobody stands out ----------
+      tl.to(".dot", { boxShadow: "0 0 14px rgba(103, 232, 249, 0.7)",
+        duration: 0.35, ease: "sine.inOut", yoyo: true, repeat: 1 }, 3.85);
+      tl.to("#reticle", { opacity: 0, scale: 0.8, duration: 0.35, ease: "power3.out" }, 4.0);
+
+      // ---------- Act 2: the property gets its name (lands ON "k-anonymity") ----------
+      tl.to(".dot", { opacity: 0.32, duration: 0.35, ease: "power3.out" }, 4.35);
+      tl.fromTo("#kanon-label", { opacity: 0, scale: 0.92 },
+        { opacity: 1, scale: 1, duration: 0.4, ease: "power4.out",
+          immediateRender: false, transformOrigin: "50% 50%" }, 4.42);
+      // gentle breathe on the label glow; odd repeat, ends 5.0+2*0.7=6.4 < 6.6 fade
+      tl.to("#kanon-label", { textShadow: "0 3px 14px rgba(0,0,0,0.95), 0 0 56px rgba(34,211,238,0.85), 0 0 6px rgba(0,0,0,1)",
+        duration: 0.7, ease: "sine.inOut", yoyo: true, repeat: 1 }, 5.0);
+
+      // ---------- fade out, FINISHING exactly at 6.9 (transformed leaf fades itself) ----------
+      tl.fromTo("#gfx", { opacity: 1 },
+        { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 6.6);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

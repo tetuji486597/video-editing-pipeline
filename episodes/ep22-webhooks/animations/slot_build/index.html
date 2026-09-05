@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP22 BUILD — the arrow flips</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;    /* MOTION GRAPHIC over live footage, no opaque fill */
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* LAYOUT (BUILD shot measured: hair top ~120, face x 140-740, eyes 720-800).
+         Everything sits in the upper band above y=560, translucent fills (<=0.32) so it
+         reads as linework over hair (rule 11). x band 60-860 respected:
+         - #app-chip    x 90-330,  y 300-420
+         - #stripe-chip x 590-830, y 300-420  (+ bell badge on its top edge, ripple max
+                        r=46 about (795,300): x 749-841, y 254-346 -- inside limits;
+                        overlap with the chip is a deliberate attached badge)
+         - arrow zone   x 350-570, y ~360
+         - #dock        x 460-814, y 462-542; #url-chip starts x 80-414 (46px gap to the
+                        dock), travels +390 to land x 470-804 inside the dock
+         Eyes at 720-800: lowest content edge 542, clear by 178px. */
+
+      .node-chip {
+        position: absolute;
+        top: 300px;
+        width: 240px;
+        height: 120px;
+        border-radius: 20px;
+        border: 2px solid rgba(148, 197, 255, 0.85);
+        background: rgba(8, 14, 24, 0.30);
+        box-shadow: 0 0 12px rgba(96, 165, 250, 0.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #e0f2fe;
+        font-size: 44px;
+        font-weight: 800;
+        letter-spacing: 3px;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
+      }
+      #app-chip { left: 90px; opacity: 0.5; }       /* frame-0 from CSS, entrance at t=0 */
+      #stripe-chip { left: 590px; opacity: 0; }
+
+      #arrow-svg {
+        position: absolute;
+        inset: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: visible;
+      }
+      .flow-dot {
+        position: absolute;
+        left: 0; top: 0; /* explicit base -- GSAP x/y are offsets from here; never rely on static flow position */
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        opacity: 0;
+      }
+      #dot-a { background: #fbbf24; box-shadow: 0 0 12px rgba(251, 191, 36, 0.9); }
+      #dot-b { background: #22d3ee; box-shadow: 0 0 12px rgba(34, 211, 238, 0.9); }
+
+      #whoosh {
+        position: absolute;
+        left: 330px;
+        top: 338px;
+        width: 260px;
+        height: 44px;
+        border-radius: 22px;
+        background: linear-gradient(to left, rgba(34, 211, 238, 0) 0%, rgba(34, 211, 238, 0.55) 45%, rgba(34, 211, 238, 0) 100%);
+        opacity: 0;
+      }
+
+      #dock {
+        position: absolute;
+        left: 460px;
+        top: 462px;
+        width: 354px;
+        height: 80px;
+        border-radius: 14px;
+        border: 2px dashed rgba(34, 211, 238, 0.55);
+        background: rgba(8, 20, 26, 0.2);
+        opacity: 0;
+      }
+      #url-chip {
+        position: absolute;
+        left: 80px;
+        top: 470px;
+        height: 64px;
+        padding: 0 16px;
+        display: inline-flex;
+        align-items: center;
+        border-radius: 12px;
+        border: 2px solid rgba(34, 211, 238, 0.85);
+        background: rgba(6, 18, 24, 0.32);
+        box-shadow: 0 0 10px rgba(34, 211, 238, 0.4);
+        color: #a5f3fc;
+        font-size: 28px;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+        opacity: 0;
+      }
+
+      #bell-wrap {
+        position: absolute;
+        left: 769px;               /* bell centre (795,300), r 26 */
+        top: 274px;
+        width: 52px;
+        height: 52px;
+        opacity: 0;
+      }
+      #bell-ring {
+        position: absolute;
+        left: 749px;
+        top: 254px;
+        width: 92px;
+        height: 92px;
+        border-radius: 50%;
+        border: 3px solid rgba(74, 222, 128, 0.9);
+        opacity: 0;
+        transform: scale(0.56);    /* r 26 -> ripple to scale 1 (r 46) */
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="5.6"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="scene" class="clip" data-start="0" data-duration="5.6" data-track-index="1">
+        <div id="app-chip" class="node-chip">APP</div>
+        <div id="stripe-chip" class="node-chip">STRIPE</div>
+
+        <svg id="arrow-svg" viewBox="0 0 1080 1920">
+          <!-- old direction: APP asks STRIPE (amber, rightward) -->
+          <g id="arrow-old">
+            <path id="old-line" d="M350,360 L552,360" fill="none" stroke="#fbbf24" stroke-width="5" stroke-linecap="round" />
+            <path id="old-head" d="M552,344 L572,360 L552,376 Z" fill="#fbbf24" />
+          </g>
+          <!-- new direction: STRIPE calls APP (cyan, leftward) -->
+          <g id="arrow-new" opacity="0">
+            <path id="new-line" d="M570,360 L368,360" fill="none" stroke="#22d3ee" stroke-width="5" stroke-linecap="round" />
+            <path id="new-head" d="M368,344 L348,360 L368,376 Z" fill="#22d3ee" />
+          </g>
+        </svg>
+
+        <div id="whoosh"></div>
+        <div class="flow-dot" id="dot-a"></div>
+        <div class="flow-dot" id="dot-b"></div>
+
+        <div id="dock"></div>
+        <div id="url-chip" class="mono">myapp.com/webhooks</div>
+
+        <div id="bell-ring"></div>
+        <div id="bell-wrap">
+          <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+            <circle cx="26" cy="26" r="24" fill="rgba(8,30,18,0.85)" stroke="#4ade80" stroke-width="2.5" />
+            <path d="M26 12 C19 12 16 18 16 24 L16 30 L13 34 L39 34 L36 30 L36 24 C36 18 33 12 26 12 Z"
+                  fill="none" stroke="#4ade80" stroke-width="2.5" stroke-linejoin="round" />
+            <path d="M22 38 C22 40.5 24 42 26 42 C28 42 30 40.5 30 38" fill="none" stroke="#4ade80" stroke-width="2.5" stroke-linecap="round" />
+          </svg>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+
+      // deterministic line-draw setup
+      const oldLine = document.getElementById("old-line");
+      const newLine = document.getElementById("new-line");
+      [oldLine, newLine].forEach((el) => {
+        const len = el.getTotalLength();
+        el.style.strokeDasharray = String(len);
+        el.style.strokeDashoffset = String(len);
+      });
+
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ---- ACT 1: the old request direction (short by design -- the reversal words
+      // arrive at local ~0.8: "flips" 0.25, "direction" 0.63-1.11) ----
+      tl.fromTo("#app-chip", { opacity: 0.5, y: 12 }, { opacity: 1, y: 0, duration: 0.35, ease: "power3.out" }, 0);
+      tl.fromTo("#stripe-chip", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.35, ease: "power3.out", immediateRender: false }, 0.18);
+      tl.to("#old-line", { strokeDashoffset: 0, duration: 0.3, ease: "power3.out" }, 0.4);
+      tl.fromTo("#old-head", { opacity: 0 }, { opacity: 1, duration: 0.12, ease: "power3.out", immediateRender: false }, 0.62);
+      // one amber dot APP -> STRIPE before the flip
+      tl.fromTo("#dot-a", { x: 355, y: 353, opacity: 0 }, {y: 353, x: 545, opacity: 1, duration: 0.32, ease: "power1.inOut", immediateRender: false }, 0.5);
+      tl.to("#dot-a", { opacity: 0, duration: 0.08 }, 0.82);
+
+      // ---- TURN (~0.85): the arrow REVERSES with a whoosh ----
+      tl.fromTo("#whoosh", { opacity: 0, x: 120 }, { opacity: 1, x: -60, duration: 0.22, ease: "power2.in", immediateRender: false }, 0.85);
+      tl.to("#whoosh", { opacity: 0, x: -140, duration: 0.18, ease: "power2.out" }, 1.07);
+      tl.to("#arrow-old", { opacity: 0, duration: 0.15, ease: "power2.out" }, 0.9);
+      tl.to("#arrow-new", { opacity: 1, duration: 0.1, ease: "power2.out" }, 1.0);
+      tl.to("#new-line", { strokeDashoffset: 0, duration: 0.32, ease: "power3.out" }, 1.02);
+      // cyan dots STRIPE -> APP, looping; last loop ends 1.55 + 2*0.8 + 0.72 = 3.87 < 5.3
+      tl.fromTo("#dot-b", { x: 560, y: 353, opacity: 0 },
+        {y: 353, x: 375, opacity: 1, duration: 0.72, ease: "power1.inOut", repeat: 2, repeatDelay: 0.08, immediateRender: false }, 1.55);
+      tl.to("#dot-b", { opacity: 0, duration: 0.1 }, 3.9);
+
+      // ---- ACT 2: hand over the URL; it slots into the provider side ----
+      tl.fromTo("#dock", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out", immediateRender: false }, 1.7);
+      tl.fromTo("#url-chip", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 1.9);
+      // travel +390px: lands x 470-804 inside the dock, on "URL" (local 2.81-3.13)
+      tl.to("#url-chip", { x: 390, duration: 0.7, ease: "power2.inOut" }, 2.35);
+      tl.to("#url-chip", { scale: 1.05, duration: 0.1, ease: "power2.out" }, 3.05);
+      tl.to("#url-chip", { scale: 1, duration: 0.16, ease: "power2.out" }, 3.15);
+      tl.to("#dock", { borderColor: "rgba(74,222,128,0.8)", duration: 0.25, ease: "power2.out" }, 3.1);
+
+      // ---- the bell arms on "call me when something happens" ("happens" local 4.75) ----
+      tl.fromTo("#bell-wrap", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.28, ease: "back.out(1.7)", immediateRender: false }, 4.75);
+      tl.fromTo("#bell-ring", { opacity: 0.85, scale: 0.56 }, { opacity: 0, scale: 1, duration: 0.4, ease: "power2.out", immediateRender: false }, 4.85);
+
+      // ---- fade: every leaf, ends EXACTLY at 5.6 ----
+      for (const sel of ["#app-chip", "#stripe-chip", "#arrow-svg", "#dock", "#url-chip", "#bell-wrap"]) {
+        tl.fromTo(sel, { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 5.3);
+      }
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP24 problem — container chaos by hand</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent; /* MOTION GRAPHIC over live footage — translucent linework */
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      #content-all { position: absolute; inset: 0; opacity: 0.55; } /* frame-0 visible */
+
+      /* three machine outlines across the upper band (brow ~700 on this shot;
+         everything ends by y=656) */
+      .machine {
+        position: absolute; top: 200px; width: 240px; height: 340px;
+        border-radius: 16px;
+        background: rgba(10, 16, 26, 0.28);            /* translucent, rule-11 style */
+        border: 1.5px solid rgba(34, 211, 238, 0.55);
+        box-shadow: 0 0 14px rgba(34, 211, 238, 0.18);
+      }
+      #m1 { left: 70px; }
+      #m2 { left: 330px; }
+      #m3 { left: 590px; }
+      .m-tab {
+        position: absolute; left: 12px; top: 10px;
+        color: rgba(148, 197, 220, 0.95); font-size: 22px; letter-spacing: 2px;
+        text-shadow: 0 1px 5px rgba(0, 0, 0, 0.85);
+      }
+
+      /* container chips — all positions literal, absolute canvas px */
+      .cchip {
+        position: absolute; width: 56px; height: 56px;
+        border-radius: 8px;
+        background: rgba(34, 211, 238, 0.22);
+        border: 1.5px solid rgba(34, 211, 238, 0.8);
+        opacity: 0;
+      }
+      .cchip::after {
+        /* container ribs — makes the square read as a shipping box, not a dot */
+        content: ""; position: absolute; inset: 8px 12px;
+        border-left: 2px solid rgba(34, 211, 238, 0.55);
+        border-right: 2px solid rgba(34, 211, 238, 0.55);
+      }
+      .cchip.red-blink {
+        /* toggled by timeline via a red overlay tween on borderColor/background */
+      }
+
+      /* the human cursor (hand-drawn SVG pointer) */
+      #cursor { position: absolute; left: 0; top: 0; width: 46px; height: 52px; opacity: 0; }
+
+      /* the one chip the cursor drags */
+      #drag-chip { z-index: 5; }
+
+      /* question chips, y=560-656 (above the brow line ~700) */
+      .qchip {
+        position: absolute; top: 560px; height: 96px;
+        border-radius: 14px;
+        background: rgba(30, 16, 6, 0.30);
+        border: 2px solid rgba(251, 191, 36, 0.85);
+        box-shadow: 0 0 16px rgba(251, 191, 36, 0.25);
+        color: #fde68a;
+        font-size: 38px; font-weight: 700; letter-spacing: 1px;
+        display: flex; align-items: center; justify-content: center;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95), 0 0 18px rgba(0, 0, 0, 0.7);
+        opacity: 0;
+      }
+      #q1 { left: 70px;  width: 250px; }
+      #q2 { left: 344px; width: 205px; }
+      #q3 { left: 573px; width: 250px; }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="8.9"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="scene" class="clip" data-start="0" data-duration="8.9" data-track-index="1">
+        <div id="content-all">
+          <div class="machine" id="m1"><div class="m-tab mono">MACH-01</div></div>
+          <div class="machine" id="m2"><div class="m-tab mono">MACH-02</div></div>
+          <div class="machine" id="m3"><div class="m-tab mono">MACH-03</div></div>
+
+          <!-- chips are placed by the literal array in the script -->
+          <div class="cchip" id="c0"></div><div class="cchip" id="c1"></div>
+          <div class="cchip" id="c2"></div><div class="cchip" id="c3"></div>
+          <div class="cchip" id="c4"></div><div class="cchip" id="c5"></div>
+          <div class="cchip" id="c6"></div><div class="cchip" id="c7"></div>
+          <div class="cchip" id="c8"></div><div class="cchip" id="c9"></div>
+          <div class="cchip" id="c10"></div><div class="cchip" id="c11"></div>
+          <div class="cchip" id="c12"></div><div class="cchip" id="c13"></div>
+          <div class="cchip" id="c14"></div><div class="cchip" id="c15"></div>
+          <div class="cchip" id="c16"></div><div class="cchip" id="c17"></div>
+          <div class="cchip" id="c18"></div><div class="cchip" id="c19"></div>
+          <div class="cchip" id="c20"></div>
+          <div class="cchip" id="drag-chip"></div>
+
+          <svg id="cursor" viewBox="0 0 46 52" data-layout-allow-overflow="true">
+            <path d="M6 2 L6 40 L16 31 L23 48 L31 44 L24 28 L38 27 Z"
+                  fill="rgba(241,245,249,0.95)" stroke="rgba(15,23,42,0.9)" stroke-width="2.5"/>
+          </svg>
+
+          <div class="qchip" id="q1">RESTARTS?</div>
+          <div class="qchip" id="q2">SCALES?</div>
+          <div class="qchip" id="q3">REROUTES?</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // machine interiors: m1 x82-298, m2 x342-558, m3 x602-818, y 246-524 (chips 56px)
+      // literal chip positions, grouped by the wave they appear in
+      const wave1 = [["#c0", 100, 300], ["#c1", 360, 300], ["#c2", 620, 300]];
+      const wave2 = [["#c3", 170, 300], ["#c4", 240, 300], ["#c5", 430, 300], ["#c6", 690, 300], ["#c7", 100, 370]];
+      const wave3 = [["#c8", 170, 370], ["#c9", 240, 370], ["#c10", 360, 370], ["#c11", 430, 370],
+                     ["#c12", 500, 370], ["#c13", 620, 370], ["#c14", 690, 370]];
+      const wave4 = [["#c15", 100, 440], ["#c16", 240, 442], ["#c17", 360, 440], ["#c18", 500, 444],
+                     ["#c19", 620, 440], ["#c20", 755, 442]];
+      const tilt = [-8, 6, -5, 9, -7, 5]; // wave4 lands messy — overflow implied by clutter
+
+      function place(list) {
+        list.forEach(([sel, x, y]) => gsap.set(sel, { x, y }));
+      }
+      place(wave1); place(wave2); place(wave3); place(wave4);
+      gsap.set("#drag-chip", { x: 500, y: 300, opacity: 0 });
+
+      // ---- Act 1: multiplication (0 - 2.6) ----
+      tl.fromTo("#content-all", { opacity: 0.55 }, { opacity: 1, duration: 0.3, ease: "power3.out" }, 0);
+      tl.fromTo(".machine", { opacity: 0.4, y: 14 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out", stagger: 0.08 }, 0);
+
+      const popW = (list, t, stagger) =>
+        list.forEach(([sel], i) =>
+          tl.fromTo(sel, { opacity: 0, scale: 0.5 },
+            { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.5)", immediateRender: false },
+            t + i * stagger));
+      popW(wave1, 0.35, 0.1);
+      popW(wave2, 1.0, 0.09);
+      popW(wave3, 1.6, 0.08);
+      // wave 4 lands tilted — the field turns messy
+      wave4.forEach(([sel], i) =>
+        tl.fromTo(sel, { opacity: 0, scale: 0.5, rotation: 0 },
+          { opacity: 1, scale: 1, rotation: tilt[i], duration: 0.28, ease: "back.out(1.4)", immediateRender: false },
+          2.3 + i * 0.07));
+
+      // ---- the lone human cursor tries to drag one chip at a time ----
+      tl.fromTo("#cursor", { opacity: 0, x: 150, y: 480 }, {x: 150, y: 480, opacity: 1, duration: 0.25, ease: "power3.out", immediateRender: false }, 0.9);
+      // drag 1: m1 -> m2
+      tl.set("#drag-chip", { x: 130, y: 462, opacity: 0 }, 1.15);
+      tl.to("#drag-chip", { opacity: 1, duration: 0.15 }, 1.2);
+      tl.to("#cursor", { x: 158, y: 470, duration: 0.25, ease: "power2.inOut" }, 1.2);
+      tl.to(["#cursor", "#drag-chip"], { x: "+=300", y: "-=10", duration: 0.8, ease: "power1.inOut" }, 1.5);
+      // drag 2: tries m3, chip slips back
+      tl.to("#cursor", { x: 700, y: 452, duration: 0.5, ease: "power1.inOut" }, 2.5);
+      tl.to("#drag-chip", { x: 480, y: 470, duration: 0.4, ease: "power2.in" }, 2.6); // slips away
+      // gives up on "impossible" (A 15.7-16.3 / local 3.4-4.0)
+      tl.to("#cursor", { x: "+=14", duration: 0.08, yoyo: true, repeat: 5, ease: "sine.inOut" }, 3.4); // ends 3.88
+      tl.to("#cursor", { rotation: 24, y: "+=16", opacity: 0.5, duration: 0.4, ease: "power2.out" }, 3.95);
+
+      // ---- ambient chaos: hard-coded subset blinks red, churn continues ----
+      const blinkers = ["#c1", "#c5", "#c9", "#c13", "#c16", "#c19"];
+      blinkers.forEach((sel, i) => {
+        tl.to(sel, {
+          borderColor: "rgba(239,68,68,0.9)",
+          backgroundColor: "rgba(239,68,68,0.28)",
+          duration: 0.3, ease: "sine.inOut", yoyo: true, repeat: 13,
+        }, 2.7 + i * 0.28); // last starts 4.1, ends 4.1+14*0.3=8.3 (< fade start 8.6)
+      });
+
+      // ---- the three questions tick in, each ON its spoken words ----
+      // restarts? A 16.998 -> local 4.70 ; scales? 18.238 -> 5.94 ; reroutes? 20.258 -> 7.96
+      tl.fromTo("#q1", { opacity: 0, scale: 1.35 }, { opacity: 1, scale: 1, duration: 0.3, ease: "power4.out", immediateRender: false }, 4.70);
+      tl.to("#c0", { opacity: 0.15, duration: 0.18, yoyo: true, repeat: 3, ease: "sine.inOut" }, 4.75); // a crash it would restart (ends 5.47)
+      tl.fromTo("#q2", { opacity: 0, scale: 1.35 }, { opacity: 1, scale: 1, duration: 0.3, ease: "power4.out", immediateRender: false }, 5.94);
+      tl.to(["#c10", "#c11", "#c12"], { scale: 1.14, duration: 0.3, yoyo: true, repeat: 3, ease: "sine.inOut", stagger: 0.08 }, 6.0); // load bulge (ends ~7.44)
+      tl.fromTo("#q3", { opacity: 0, scale: 1.35 }, { opacity: 1, scale: 1, duration: 0.3, ease: "power4.out", immediateRender: false }, 7.96);
+      tl.to("#m3", { opacity: 0.35, duration: 0.25, ease: "power3.out" }, 8.0); // dead hardware
+      tl.to(["#c13", "#c14", "#c19", "#c20"], { opacity: 0.2, duration: 0.25, ease: "power3.out" }, 8.0);
+
+      // ---- fade out finishes at EXACTLY 8.9, zero buffer ----
+      tl.fromTo("#content-all", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 8.6);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP26 payoff — the past vs the present</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* HALF-PANEL, upper band -- a deliberate visual callback to slot_hook's split
+         (same card geometry). Face this beat: brow ~700 (zoom-worst 688), chin ~1260. */
+      .card {
+        position: absolute;
+        top: 230px;
+        width: 370px;
+        height: 350px;
+        border-radius: 20px;
+        background: linear-gradient(165deg, rgba(13, 18, 28, 0.92), rgba(7, 10, 16, 0.95));
+        border: 2px solid rgba(148, 163, 184, 0.3);
+        box-shadow: 0 10px 14px rgba(0, 0, 0, 0.5);
+        overflow: hidden;
+      }
+      #card-l { left: 70px; }
+      #card-r { left: 480px; }
+
+      .plate {
+        position: absolute;
+        top: 0; left: 0; width: 370px; height: 64px;
+        display: flex; align-items: center; justify-content: center;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+        white-space: nowrap; opacity: 0;
+        letter-spacing: 1.5px; font-weight: 800;
+      }
+      #plate-l { background: rgba(14, 40, 34, 0.92); color: #6ee7b7; font-size: 29px; }
+      #plate-r { background: rgba(45, 30, 6, 0.92); color: #fbbf24; font-size: 26px; }
+      .plate .dim { font-weight: 600; opacity: 0.75; }
+
+      /* L: the player (the past, perfect) */
+      #thumb {
+        position: absolute; left: 18px; top: 84px; width: 334px; height: 200px;
+        border-radius: 12px;
+        background: linear-gradient(180deg, #1e3a5f 0%, #2b5876 38%, #4e4376 72%, #1a2238 100%);
+        overflow: hidden;
+      }
+      #sheen {
+        position: absolute; left: -140px; top: -40px; width: 90px; height: 300px;
+        background: linear-gradient(100deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.16) 50%, rgba(255,255,255,0) 100%);
+        transform: rotate(14deg);
+      }
+      #play-tri {
+        position: absolute; left: 152px; top: 140px; width: 0; height: 0;
+        border-left: 34px solid rgba(255, 255, 255, 0.92);
+        border-top: 20px solid transparent; border-bottom: 20px solid transparent;
+        filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));
+      }
+      #bar-track {
+        position: absolute; left: 18px; top: 306px; width: 334px; height: 10px;
+        border-radius: 5px; background: rgba(255, 255, 255, 0.18);
+      }
+      #bar-fill {
+        position: absolute; left: 0; top: 0; height: 10px; width: 60%;
+        border-radius: 5px; background: #34d399;
+      }
+
+      /* R: the call (the present, on time) */
+      #call-inner {
+        position: absolute; left: 18px; top: 84px; width: 334px; height: 200px;
+        border-radius: 12px;
+        background: linear-gradient(180deg, #12202c 0%, #0d1620 100%);
+        overflow: hidden;
+      }
+      #avatar-wrap { position: absolute; left: 107px; top: 22px; width: 120px; height: 160px; }
+      .mosaic { position: absolute; background: rgba(94, 234, 212, 0.35); opacity: 0; }
+      .mosaic.dark { background: rgba(10, 14, 20, 0.85); }
+      #live-row {
+        position: absolute; left: 18px; top: 306px; display: flex; align-items: center; gap: 10px;
+      }
+      #live-dot { width: 14px; height: 14px; border-radius: 50%; background: #34d399; box-shadow: 0 0 8px rgba(52, 211, 153, 0.7); }
+      #live-bars { display: flex; gap: 4px; align-items: flex-end; height: 18px; }
+      #live-bars div { width: 5px; border-radius: 2px; background: rgba(52, 211, 153, 0.8); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="6.5" data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="6.5" data-track-index="1">
+        <div id="card-l" class="card">
+          <div id="thumb">
+            <div id="sheen" data-layout-allow-overflow="true"></div>
+            <div id="play-tri"></div>
+          </div>
+          <div id="bar-track"><div id="bar-fill"></div></div>
+          <div class="plate" id="plate-l" data-layout-allow-overlap="true" data-layout-allow-occlusion="true">THE PAST&nbsp;<span class="dim">&mdash;</span>&nbsp;PERFECT</div>
+        </div>
+
+        <div id="card-r" class="card">
+          <div id="call-inner">
+            <div id="avatar-wrap">
+              <svg viewBox="0 0 120 160">
+                <circle cx="60" cy="52" r="34" fill="#2dd4bf" opacity="0.8" />
+                <path d="M12,160 C12,112 34,96 60,96 C86,96 108,112 108,160 Z" fill="#2dd4bf" opacity="0.65" />
+              </svg>
+            </div>
+            <div class="mosaic" id="m1" style="left:36px; top:44px; width:52px; height:42px;"></div>
+            <div class="mosaic dark" id="m2" style="left:150px; top:96px; width:64px; height:48px;"></div>
+            <div class="mosaic" id="m3" style="left:230px; top:30px; width:56px; height:52px;"></div>
+          </div>
+          <div id="live-row">
+            <div id="live-dot"></div>
+            <div id="live-bars"><div style="height:8px"></div><div style="height:14px"></div><div style="height:11px"></div><div style="height:17px"></div><div style="height:9px"></div></div>
+          </div>
+          <div class="plate" id="plate-r" data-layout-allow-overlap="true" data-layout-allow-occlusion="true">THE PRESENT&nbsp;<span class="dim">&mdash;</span>&nbsp;ON TIME</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ---------- the split returns (entrance at t=0, frame-0 at 0.5 from CSS on L) ----------
+      tl.fromTo("#card-l", { opacity: 0.5, y: 24 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 0);
+      tl.fromTo("#card-r", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 0.3);
+
+      // the past keeps gliding, perfectly (constant velocity)
+      tl.fromTo("#bar-fill", { width: "60%" }, { width: "93%", duration: 5.9, ease: "none", immediateRender: false }, 0.3);
+      tl.fromTo("#sheen", { x: 0 }, { x: 560, duration: 1.8, ease: "sine.inOut" }, 0.8);
+      // the present breathes (odd repeats: 0.5 + 8*0.45 = 4.1 < 6.2)
+      tl.fromTo("#avatar-wrap", { scale: 1 }, { scale: 1.03, duration: 0.45, ease: "sine.inOut", yoyo: true, repeat: 7, immediateRender: false }, 0.5);
+
+      // ---------- labels swap in, each ON its words ----------
+      // "past perfectly" @0.45
+      tl.fromTo("#plate-l", { opacity: 0, x: -24 }, { opacity: 1, x: 0, duration: 0.35, ease: "power3.out", immediateRender: false }, 0.45);
+      // "present imperfectly" @2.35
+      tl.fromTo("#plate-r", { opacity: 0, x: 24 }, { opacity: 1, x: 0, duration: 0.35, ease: "power3.out", immediateRender: false }, 2.35);
+
+      // ---------- TURN @3.93 ("late is worse than flawed"): one tiny glitch -- and it's fine ----------
+      tl.to("#call-inner", { x: -5, duration: 0.05, ease: "power2.out" }, 3.93);
+      tl.to("#call-inner", { x: 4, duration: 0.05, ease: "power2.out" }, 3.98);
+      tl.to("#call-inner", { x: 0, duration: 0.06, ease: "power2.out" }, 4.03);
+      [["#m1", 3.93], ["#m2", 3.99], ["#m3", 4.06]].forEach(([m, t]) => {
+        tl.fromTo(m, { opacity: 0 }, { opacity: 0.85, duration: 0.07, ease: "power2.out", immediateRender: false }, t);
+        tl.to(m, { opacity: 0, duration: 0.28, ease: "power2.out" }, t + 0.12);
+      });
+      // ...and the call just keeps going: a calm green pulse on the live dot
+      tl.fromTo("#live-dot", { scale: 1 }, { scale: 1.35, duration: 0.3, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 4.4);
+
+      // quiet hold, then fade: finishes at EXACTLY 6.5 (6.2 + 0.3), zero buffer.
+      // Per-leaf fades on the transform carriers.
+      ["#card-l", "#card-r"].forEach((s) => {
+        tl.fromTo(s, { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 6.2);
+      });
+      ["#call-inner", "#avatar-wrap", "#live-dot", "#plate-l", "#plate-r"].forEach((s) => {
+        tl.to(s, { opacity: 0, duration: 0.3, ease: "power2.out" }, 6.2);
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP23 build — pack the app into one standardized unit</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* MOTION GRAPHIC over live footage, upper band. BUILD shot grid-measured:
+         hair top ~230, brow ~730, mouth ~1100. All content in y=180-690, x=60-860.
+         Translucent fills (<=0.30) per rule 11 so sitting over hair reads fine. */
+      #fade-all { position: absolute; inset: 0; opacity: 1; }
+
+      /* open container box: x 490-830, y 280-680 (340x400).
+         Border glow blur 16 -> right reach 830+1.6*16=855.6 <= 860 OK;
+         top reach 280-25.6=254.4 >= 180 OK. */
+      #boxwrap { position: absolute; left: 490px; top: 280px; width: 340px; height: 400px; opacity: 0.5; }
+      #boxbody {
+        position: absolute; left: 0; top: 120px; width: 340px; height: 280px;
+        border-radius: 12px;
+        background: repeating-linear-gradient(90deg,
+          rgba(13, 68, 84, 0.30) 0px, rgba(13, 68, 84, 0.30) 40px,
+          rgba(45, 212, 191, 0.16) 40px, rgba(45, 212, 191, 0.16) 48px);
+        border: 3px solid #2dd4bf;
+        box-shadow: 0 0 16px rgba(45, 212, 191, 0.35);
+      }
+      #opening {
+        position: absolute; left: 10px; top: 112px; width: 320px; height: 26px;
+        border-radius: 6px; background: rgba(4, 22, 28, 0.75);
+      }
+      /* lid flaps: hinge at the box's top edge corners; open = rotated up/outward.
+         BORDER-MARGIN FIX (audit measured the open right flap tip at x~892 > 870):
+         at 108deg the flapR far corner rel hinge (-160,-24) resolved to
+         822 + (-160*cos108 + 24*sin108) = 822 + 72.2 = 894.2. At 92deg it is
+         822 + (-160*cos92 + 24*sin92) = 822 + 29.6 = 851.6; with the 1.04 box pulse
+         about (660,480): 660 + 191.6*1.04 = 859.3 <= 870 OK. Tip y at 92deg:
+         400 - 159.1 = 240.9 >= 200 OK. Left flap mirrors (tip x ~425.8). */
+      .flap {
+        position: absolute; top: 96px; width: 166px; height: 26px;
+        background: rgba(19, 78, 74, 0.75); border: 2.5px solid #5eead4; border-radius: 6px;
+      }
+      #flapL { left: 2px;  transform-origin: 6px 24px;   transform: rotate(-92deg); }
+      #flapR { left: 172px; transform-origin: 160px 24px; transform: rotate(92deg); }
+
+      /* app chip: x 130-330, y 250-350 */
+      #appchip {
+        position: absolute; left: 130px; top: 250px; width: 200px; height: 100px;
+        border-radius: 14px; background: rgba(15, 30, 46, 0.30);
+        border: 2px solid rgba(148, 197, 255, 0.65);
+        box-shadow: 0 0 14px rgba(96, 165, 250, 0.25);
+        display: flex; align-items: center; justify-content: center;
+        opacity: 0;
+      }
+      #appchip .dots { position: absolute; left: 12px; top: 10px; display: flex; gap: 7px; }
+      #appchip .dots i { width: 10px; height: 10px; border-radius: 50%; background: rgba(148, 197, 255, 0.7); }
+      #appchip .lbl { color: #f1f5f9; font-size: 38px; font-weight: 700; margin-top: 10px;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8); }
+
+      /* dependency chips: x 130-360, y 420-484 / 504-568 / 588-652 */
+      .dep {
+        position: absolute; left: 130px; width: 230px; height: 64px;
+        border-radius: 12px; background: rgba(10, 18, 30, 0.28);
+        border: 2px solid rgba(251, 191, 36, 0.6);
+        box-shadow: 0 0 12px rgba(251, 191, 36, 0.2);
+        display: flex; align-items: center; justify-content: center;
+        color: #fde68a; font-size: 32px; letter-spacing: 1px;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85);
+        opacity: 0;
+      }
+      #dep1 { top: 420px; }
+      #dep2 { top: 504px; }
+      #dep3 { top: 588px; }
+
+      /* stamp: x 520-800, y 448-540, slams on at "standardized" */
+      #stamp {
+        position: absolute; left: 520px; top: 448px; width: 280px; height: 92px;
+        border: 3.5px solid rgba(248, 250, 252, 0.92); border-radius: 10px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        color: #f8fafc; font-weight: 800; font-size: 26px; line-height: 30px;
+        letter-spacing: 1.5px; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+        background: rgba(8, 20, 24, 0.35);
+        transform: rotate(-6deg); opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="6.9"
+         data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="6.9" data-track-index="1">
+        <div id="fade-all">
+          <div id="boxwrap">
+            <div id="boxbody"></div>
+            <div id="opening"></div>
+            <div id="flapL" class="flap"></div>
+            <div id="flapR" class="flap"></div>
+          </div>
+
+          <div id="appchip">
+            <div class="dots"><i></i><i></i><i></i></div>
+            <div class="lbl">app</div>
+          </div>
+
+          <div id="dep1" class="dep mono">runtime</div>
+          <div id="dep2" class="dep mono">libraries</div>
+          <div id="dep3" class="dep mono">settings</div>
+
+          <div id="stamp">ONE STANDARDIZED<span>UNIT</span></div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ACT 1 -- the open box arrives at t=0 (CSS opacity .5), chips introduce themselves.
+      tl.fromTo("#boxwrap", { opacity: 0.5, scale: 0.92 }, { opacity: 1, scale: 1, duration: 0.45, ease: "power3.out" }, 0);
+      tl.fromTo("#appchip", { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 0.6);
+      // app flies in first ("packages your app" ~ local 0.2-1.1; flight lands ~1.9)
+      // target = the open top (abs centre ~650, 405); app chip centre (230, 300)
+      tl.to("#appchip", { x: 420, y: 105, scale: 0.4, duration: 0.55, ease: "power2.in" }, 1.35);
+      tl.to("#appchip", { opacity: 0, duration: 0.12, ease: "power1.in" }, 1.8);
+      tl.to("#boxwrap", { scale: 1.03, duration: 0.11, ease: "sine.inOut", yoyo: true, repeat: 1 }, 1.9);
+
+      // dep chips slide in staggered (>=0.6s apart), then fly on their words
+      // (A locals: runtime 3.007, libraries 3.607, settings 4.227)
+      tl.fromTo("#dep1", { opacity: 0, x: -26 }, { opacity: 1, x: 0, duration: 0.35, ease: "power3.out", immediateRender: false }, 1.9);
+      tl.fromTo("#dep2", { opacity: 0, x: -26 }, { opacity: 1, x: 0, duration: 0.35, ease: "power3.out", immediateRender: false }, 2.5);
+      tl.fromTo("#dep3", { opacity: 0, x: -26 }, { opacity: 1, x: 0, duration: 0.35, ease: "power3.out", immediateRender: false }, 3.1);
+
+      const flights = [
+        // chip centres y 452/536/620 -> the opening (abs y ~405): dy -47/-131/-215
+        { sel: "#dep1", t: 3.007, dx: 405, dy: -47 },
+        { sel: "#dep2", t: 3.607, dx: 405, dy: -131 },
+        { sel: "#dep3", t: 4.227, dx: 405, dy: -215 },
+      ];
+      flights.forEach((f) => {
+        tl.to(f.sel, { x: f.dx, y: f.dy, scale: 0.42, duration: 0.55, ease: "power2.in" }, f.t);
+        tl.to(f.sel, { opacity: 0, duration: 0.12, ease: "power1.in" }, f.t + 0.45);
+        tl.to("#boxwrap", { scale: 1.03, duration: 0.11, ease: "sine.inOut", yoyo: true, repeat: 1 }, f.t + 0.56);
+      });
+
+      // TURN -- the lid closes on "one" (local 5.327)
+      tl.to("#flapL", { rotation: 0, duration: 0.28, ease: "power3.in" }, 5.33);
+      tl.to("#flapR", { rotation: 0, duration: 0.28, ease: "power3.in" }, 5.33);
+      tl.to("#boxwrap", { scale: 1.04, duration: 0.12, ease: "sine.inOut", yoyo: true, repeat: 1 }, 5.62);
+
+      // ACT 2 -- the label stamps on "standardized" (local 5.687), box hovers sealed
+      tl.fromTo("#stamp", { opacity: 0, scale: 1.7, rotation: -6 },
+        { opacity: 1, scale: 1, rotation: -6, duration: 0.22, ease: "power4.out", immediateRender: false }, 5.69);
+      // gentle hover (yoyo repeat 1 = odd; ends 5.95+0.56=6.51 < fade 6.55)
+      tl.to("#boxwrap", { y: -8, duration: 0.28, ease: "sine.inOut", yoyo: true, repeat: 1 }, 5.95);
+
+      // FADE -- finishes at exactly 6.90, zero buffer.
+      tl.fromTo("#fade-all", { opacity: 1 }, { opacity: 0, duration: 0.35, ease: "power2.out", immediateRender: false }, 6.55);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body {
+        font-family: Inter, sans-serif;
+      }
+
+      /* ---------------------------------------------------------------
+         CORNER ACCENT — top-left. No #bg-fill, no vignette, no
+         full-frame layer of any kind. One small like-counter chip;
+         the live footage is untouched everywhere else. Its indifference
+         to the number changing IS the beat, so there is deliberately no
+         alarm, no highlight and no stamp on the flip.
+
+         BACKDROP measured on draft_19A.mp4 across the WHOLE beat
+         (output 41.6-46.3, 113 frames), region = chip box + glow margin
+         (canvas x34-450, y210-377 -> source crop 278x112 @ (23,140)):
+             YAVG 60.0,  YMIN 45,  YMAX 75
+         Dark, warm, extremely uniform — no presenter, no neon bloom.
+         Top-left beat top-right (YAVG 55.5) on composition, not luma:
+         the "love" neon starts at canvas x=480 / y=477, so a left chip
+         sits over clean wall instead of floating on top of the sign.
+
+         PRESENTER: topmost dark pixel in the chip's x-column across the
+         whole beat is source y=381 -> canvas y=571. Chip + its shadow
+         bottom out at canvas y=391 -> 180px of clearance.
+
+         y=180 LIMIT: a box-shadow reaches ~1.6x its blur. Plate shadow
+         top reach = 232 + 14 - 1.6*28 = 197.2; glow top reach =
+         232 - 1.6*14 = 209.6. Both clear 180 and are re-probed on the
+         decoded alpha plane after render.
+         --------------------------------------------------------------- */
+
+      #chip {
+        position: absolute;
+        left: 56px;
+        top: 232px;
+        width: 372px;
+        height: 100px;
+        /* frame-0 opacity lives in CSS — a tl.set() at position 0 never
+           fires in this renderer. The frame-0 TRANSFORM is stamped by the
+           build-time gsap.set() below (a CSS transform would be clobbered
+           by the GSAP y drift). */
+        opacity: 0.55;
+      }
+
+      #chip-plate {
+        position: absolute;
+        inset: 0;
+        border-radius: 24px;
+        /* deliberately light for a chip this close to the frame edge:
+           0.60-0.66 alpha over a Y~60 backdrop lands at ~30 luma, so it
+           reads as a lit glass pill sitting ON the wall rather than a
+           solid tile jammed into the corner. */
+        background: linear-gradient(
+          152deg,
+          rgba(11, 16, 26, 0.6),
+          rgba(5, 9, 17, 0.66)
+        );
+        border: 2px solid rgba(203, 213, 225, 0.42);
+        box-shadow: 0 14px 28px rgba(2, 6, 18, 0.45),
+          0 0 14px rgba(148, 197, 255, 0.26);
+        z-index: 1;
+      }
+
+      /* deterministic feTurbulence grain, confined to the chip */
+      #chip-grain {
+        position: absolute;
+        inset: 0;
+        border-radius: 24px;
+        opacity: 0.05;
+        pointer-events: none;
+        z-index: 3;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' seed='19' stitchTiles='stitch'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
+        background-size: 160px 160px;
+      }
+
+      #row {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        padding: 0 30px;
+      }
+
+      /* hand-built SVG heart — no emoji anywhere in this file.
+         Real width AND height, so the ambient scale has a sane bbox. */
+      #heart {
+        display: block;
+        width: 34px;
+        height: 30px;
+        flex: 0 0 34px;
+        opacity: 1;
+        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.85));
+      }
+
+      #num {
+        display: flex;
+        align-items: center;
+        margin-left: 18px;
+        /* JetBrains Mono FIRST — never lead with ui-monospace, which the
+           renderer's font compiler leaves unmapped so the run silently
+           falls through to proportional Inter. */
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 48px;
+        font-weight: 600;
+        letter-spacing: 0;
+        color: #f1f5f9;
+        text-shadow: 0 2px 3px rgba(0, 0, 0, 0.92),
+          0 0 12px rgba(0, 0, 0, 0.7);
+      }
+
+      .numpart {
+        height: 54px;
+        line-height: 54px;
+        white-space: pre;
+        opacity: 1;
+      }
+
+      /* the ONE odometer wheel. 1,000,000 -> 1,000,300 differs in exactly
+         one character, which is what a real counter does; every other
+         column is static. */
+      #digit-win {
+        position: relative;
+        width: 1ch;
+        height: 54px;
+        overflow: hidden;
+        flex: 0 0 auto;
+      }
+      #digit-strip {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1ch;
+        opacity: 1;
+      }
+      #digit-strip span {
+        display: block;
+        width: 1ch;
+        height: 54px;
+        line-height: 54px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="4.70"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="4.70"
+        data-track-index="1"
+      >
+        <div id="chip">
+          <div id="chip-plate"></div>
+
+          <div id="row">
+            <svg id="heart" viewBox="0 0 34 30" fill="none">
+              <path
+                d="M17 28.2 C17 28.2 2.6 19.6 2.6 10.6 C2.6 6.0 6.3 2.5 10.7 2.5 C13.5 2.5 15.9 3.9 17 6.1 C18.1 3.9 20.5 2.5 23.3 2.5 C27.7 2.5 31.4 6.0 31.4 10.6 C31.4 19.6 17 28.2 17 28.2 Z"
+                fill="#fb7185"
+              />
+            </svg>
+
+            <div id="num">
+              <div id="num-pre" class="numpart">1,000,</div>
+              <div id="digit-win">
+                <div id="digit-strip" data-layout-allow-overflow="true">
+                  <span>0</span><span>1</span><span>2</span><span>3</span>
+                </div>
+              </div>
+              <div id="num-post" class="numpart">00</div>
+            </div>
+          </div>
+
+          <div id="chip-grain"></div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      /* =============================================================
+         LOCAL CLOCK  (output = local + 41.600)
+
+         Word timings measured from transcripts/ep19.json mapped through
+         edl.A.json's APPROX_OK range (source 78.55 -> output 41.2083):
+             "says"            local 1.82-2.09
+             "a million"       local 2.09-2.68
+             "instead of"      local 2.72-3.27
+             "a million three" local 3.30-3.94
+
+         0.00  ACT 1   chip enters (CSS opacity .55 -> 1); reads 1,000,000
+         0.55          heart beats — ambient, indifferent, unchanged by
+                       the turn. Nothing else in frame reacts: the joke.
+         2.72  TURN    the single odometer wheel rolls 0 -> 1 -> 2 -> 3
+         3.32  ACT 2   chip reads 1,000,300, exactly as he says
+                       "a million three" (3.30-3.94). 1.08s settle.
+         4.40  FADE    0.30s -> finishes at exactly 4.700
+         ============================================================= */
+
+      const ROLL = 2.72;
+      const ROLL_DUR = 0.6; // completes 3.32, as "a million three" starts
+      const FADE = 4.4;
+      const FADE_DUR = 0.3; // 4.40 + 0.30 = 4.700 exactly
+
+      /* Build-time (NOT timeline) set: stamps the frame-0 transform state.
+         gsap.set() outside the timeline applies immediately, unlike a
+         tl.set() at position 0, which never fires in this renderer. */
+      gsap.set("#chip", { x: -14, y: 0, scale: 0.94 });
+      gsap.set("#heart", { transformOrigin: "50% 50%" });
+
+      /* ---------- ACT 1: primary entrance, begins at local t=0 ---------- */
+      tl.fromTo(
+        "#chip",
+        { opacity: 0.55, x: -14, scale: 0.94 },
+        { opacity: 1, x: 0, scale: 1, duration: 0.45, ease: "power3.out" },
+        0
+      );
+
+      /* ambient drift so the chip never sits perfectly still.
+         non-repeating; true end = 0.60 + 3.50 = 4.10 < 4.40  OK */
+      tl.to("#chip", { y: -4, duration: 3.5, ease: "sine.inOut" }, 0.6);
+
+      /* the heart beats at a constant rhythm right through the turn —
+         that steadiness is the indifference the beat is about.
+         true end = 0.55 + (5+1)*0.62 = 4.270 < 4.400  OK
+         repeat is ODD, so the yoyo lands back on the base scale of 1. */
+      tl.to(
+        "#heart",
+        {
+          scale: 1.09,
+          duration: 0.62,
+          repeat: 5,
+          yoyo: true,
+          ease: "sine.inOut",
+        },
+        0.55
+      );
+
+      /* ---------- THE TURN at 2.72: the counter flips ----------
+         Never tween innerText — GSAP interpolates it into garbage. This
+         is a pre-rendered stacked-digit strip translated inside an
+         overflow:hidden window, so it is a pure transform tween: no
+         tl.set on opacity anywhere, therefore no two-sets-at-one-position
+         blank boundary frame is even possible.
+         54px cell x 3 cells = 162px of travel; digits 1 and 2 pass
+         through the window, which is what makes the flip legible. */
+      tl.fromTo(
+        "#digit-strip",
+        { y: 0 },
+        {
+          y: -162,
+          duration: ROLL_DUR,
+          ease: "power3.out",
+          immediateRender: false,
+        },
+        ROLL
+      );
+
+      /* ---------- FINAL FADE: visible leaves only, explicit fromTo ------
+         Nothing is at opacity 0 before the fade, so every painted leaf is
+         listed. #chip / #row / #num / #digit-win are wrappers and paint
+         nothing themselves. */
+      const fadeLeaves = [
+        ["#chip-plate", 1],
+        ["#chip-grain", 0.05],
+        ["#heart", 1],
+        ["#num-pre", 1],
+        ["#digit-strip", 1],
+        ["#num-post", 1],
+      ];
+      fadeLeaves.forEach(function (pair) {
+        tl.fromTo(
+          pair[0],
+          { opacity: pair[1] },
+          {
+            opacity: 0,
+            duration: FADE_DUR,
+            ease: "power3.out",
+            immediateRender: false,
+          },
+          FADE
+        );
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

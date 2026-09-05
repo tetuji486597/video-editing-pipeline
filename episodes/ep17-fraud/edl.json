@@ -1,0 +1,234 @@
+{
+  "version": 1,
+  "sources": {
+    "ep17": "C:/Users/gordo/Downloads/drive-download-20260819T201857Z-1-002/ep17.mp4"
+  },
+  "ranges": [
+    {
+      "source": "ep17",
+      "start": 33.62,
+      "end": 40.48,
+      "beat": "INTRO",
+      "quote": "This is episode seventeen of prepping you for your system design interview. Today, we'll be talking about anomaly detection.",
+      "reason": "Take 5 of 5 and the only complete one. Takes at 2.26/7.27/10.95 abort on 'This is episode seventeen of...'; take 4 (20.34) completes the intro but runs on into an aborted hook. EP17 has a recorded intro, so the hook overlay must not start at the house 2.800 -- see check_overlay_timing.py.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.045,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep17",
+      "start": 44.75,
+      "end": 51.65,
+      "beat": "HOOK",
+      "quote": "So your card gets declined the second it's used somewhere strange. A model made that call in about forty milliseconds.",
+      "reason": "Take 2 of 2 and the only complete one -- take 1 (20.34, tail) aborts at 29.26 on 'So your card gets declined the second...'.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.045,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep17",
+      "start": 57.83,
+      "end": 68.32,
+      "beat": "PROBLEM",
+      "quote": "Now, here's the problem. You can't have a human review every swipe. There are thousands per second, and rigid rules like block foreign purchases annoy real travelers.",
+      "reason": "Single clean take, only delivery.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.045,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep17",
+      "start": 79.47,
+      "end": 85.5,
+      "beat": "BUILD",
+      "quote": "So banks learn your normal pattern: where, when, how much, how often you usually spend.",
+      "reason": "Take 2 of 2. Take 1 (68.94) stops at 'where, when, how much' and never reaches 'how often you usually spend'.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.045,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep17",
+      "start": 87.11,
+      "end": 94.47,
+      "beat": "NEW_COMPONENT",
+      "quote": "Anomaly detection scores each transaction against that baseline in real time. A four dollar coffee near home looks normal.",
+      "reason": "Take 1 of 3 and the only one carrying the 'scores each transaction against that baseline' clause -- the 98.66 and 105.90 retakes are the coffee line alone.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.045,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep17",
+      "start": 113.59,
+      "end": 119.91,
+      "beat": "OUTLIER",
+      "quote": "A two thousand dollar charge in another country at three AM is a wild outlier and gets flagged or blocked.",
+      "reason": "Single clean take, only delivery. The counterpart to NEW_COMPONENT's normal case.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.045,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep17",
+      "start": 126.85,
+      "end": 132.45,
+      "beat": "FEATURE_STORE",
+      "quote": "Features about you and the merchant are precomputed in a feature store, so scoring is instant.",
+      "reason": "Single clean take, only delivery.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.045,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep17",
+      "start": 145.95,
+      "end": 152.42,
+      "beat": "AI_ANGLE",
+      "quote": "This is live machine learning. The model scores a streaming feed of transactions and keeps adapting as your habits change.",
+      "reason": "Take 2 of 2. Take 1 (134.26) stops at 'keeps adapting' without the 'as your habits change' clause.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.045,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    },
+    {
+      "source": "ep17",
+      "start": 157.19,
+      "end": 163.57,
+      "beat": "PAYOFF",
+      "quote": "Fraud detection is pattern matching at the speed of a swipe. Next, we'll talk about what happens when you type a URL.",
+      "reason": "Only complete take.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.045,
+        "focal_x": 540,
+        "focal_y": 960
+      }
+    }
+  ],
+  "grade": "eq=contrast=1.15:saturation=1.05,colorbalance=rs=-0.04:gs=0.02:bs=0.05:rm=0.01:gm=0.0:bm=-0.01:rh=0.06:gh=0.02:bh=-0.06,vignette=angle=0.7,unsharp=5:5",
+  "overlays": [
+    {
+      "file": "animations/slot_title/render.webm",
+      "start_in_output": 0.0,
+      "duration": 2.766
+    },
+    {
+      "file": "animations/slot_hook/render.webm",
+      "start_in_output": 7.5,
+      "duration": 6.0
+    },
+    {
+      "file": "animations/slot_problem/render.webm",
+      "start_in_output": 14.6,
+      "duration": 8.6
+    },
+    {
+      "file": "animations/slot_build/render.webm",
+      "start_in_output": 25.0,
+      "duration": 5.2
+    },
+    {
+      "file": "animations/slot_new_component/render.webm",
+      "start_in_output": 31.1,
+      "duration": 6.2
+    },
+    {
+      "file": "animations/slot_outlier/render.webm",
+      "start_in_output": 38.4,
+      "duration": 5.6
+    },
+    {
+      "file": "animations/slot_feature_store/render.webm",
+      "start_in_output": 44.7,
+      "duration": 5.0
+    },
+    {
+      "file": "animations/slot_ai_angle/render.webm",
+      "start_in_output": 50.4,
+      "duration": 5.7
+    },
+    {
+      "file": "animations/slot_payoff/render.webm",
+      "start_in_output": 56.7,
+      "duration": 5.4
+    }
+  ],
+  "_beat_windows_output_timeline": {
+    "INTRO": [
+      0.0,
+      6.875
+    ],
+    "HOOK": [
+      6.875,
+      13.7917
+    ],
+    "PROBLEM": [
+      13.7917,
+      24.2917
+    ],
+    "BUILD": [
+      24.2917,
+      30.3333
+    ],
+    "NEW_COMPONENT": [
+      30.3333,
+      37.7083
+    ],
+    "OUTLIER": [
+      37.7083,
+      44.0417
+    ],
+    "FEATURE_STORE": [
+      44.0417,
+      49.6667
+    ],
+    "AI_ANGLE": [
+      49.6667,
+      56.1667
+    ],
+    "PAYOFF": [
+      56.1667,
+      62.5833
+    ]
+  },
+  "_windows_note": "Output-timeline windows on render.py's real 24fps extract grid: each segment's rendered duration is ceil((end-start)*24)/24, not the raw source span. Verified against rendered clips where measurable. Overlay start_in_output values are derived from THESE numbers.",
+  "subtitles": "master.ass",
+  "total_duration_s": 62.5833,
+  "_overlay_gap_audit": "Gaps >= 0.5s are deliberate returns to the talking head (ep13 shipped 1.0-6.7s gaps at 49-54% coverage). Anything shorter is closed to exactly zero, per rule 12 -- a sub-half-second hole reads as a bare-footage flash, not a breath. EP19 tradeoff->payoff is contiguous for exactly this reason: its beats butt up against each other and a 0.3s gap would have landed on the punchline.",
+  "_zoom_note": "Gradual CENTERED zoom on the talking head. focal (540,960) = exact frame centre, not render.py's eye-line default. Direction alternates per segment so each range starts at the scale the previous one ended on -- the drift is continuous across every cut instead of snapping back to 1.0 at each edit. Magnitude capped at 4.5%: the overlays were placed against measured face positions with clearances as tight as 40px, and a centered zoom displaces a point by distance_from_centre*(Z-1), so 4.5% costs the tightest one ~13px while 12% would cost it ~35px and push graphics into the face."
+}

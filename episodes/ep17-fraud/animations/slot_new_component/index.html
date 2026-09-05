@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body {
+        font-family: Inter, sans-serif;
+      }
+
+      /* ---------------------------------------------------------------
+         BACKGROUND STACK  (all full-frame layers -- exempt from the
+         y=180..1280 content band, but NOT from the caption-band rule)
+         --------------------------------------------------------------- */
+
+      /* opaque base fill -- lives on a child div, never on #root/.clip */
+      #bg-fill {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 900px 1100px at 50% 46%,
+          #0b1622 0%,
+          #060d15 55%,
+          #03070c 100%
+        );
+        opacity: 1;
+      }
+
+      /* full-bleed photograph.  Masked off below y~1290 so that the
+         burned-in caption band (y=1306..1570) sits on dark background. */
+      #photo-wrap {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1080px;
+        height: 1360px;
+        overflow: hidden;
+        -webkit-mask-image: linear-gradient(
+          to bottom,
+          #000 0px,
+          #000 1060px,
+          rgba(0, 0, 0, 0.42) 1190px,
+          rgba(0, 0, 0, 0) 1290px
+        );
+        mask-image: linear-gradient(
+          to bottom,
+          #000 0px,
+          #000 1060px,
+          rgba(0, 0, 0, 0.42) 1190px,
+          rgba(0, 0, 0, 0) 1290px
+        );
+      }
+      #photo {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: 50% 50%;
+        transform-origin: 50% 42%;
+        transform: scale(1);
+        filter: brightness(0.5) saturate(0.68) contrast(1.06);
+        opacity: 1;
+      }
+
+      /* scrim -- keeps the type unambiguously the hero over the photo and
+         drives the bottom of the frame to full black for the captions */
+      #scrim {
+        position: absolute;
+        inset: 0;
+        opacity: 1;
+        background: linear-gradient(
+          to bottom,
+          rgba(4, 9, 16, 0.74) 0px,
+          rgba(4, 9, 16, 0.58) 200px,
+          rgba(4, 9, 16, 0.46) 400px,
+          rgba(4, 9, 16, 0.34) 620px,
+          rgba(4, 9, 16, 0.3) 860px,
+          rgba(4, 9, 16, 0.46) 1080px,
+          rgba(4, 9, 16, 0.86) 1220px,
+          rgba(4, 9, 16, 0.99) 1300px,
+          rgba(4, 9, 16, 1) 1400px
+        );
+      }
+
+      #vignette {
+        position: absolute;
+        inset: 0;
+        opacity: 1;
+        background: radial-gradient(
+          ellipse 700px 950px at 50% 44%,
+          rgba(0, 0, 0, 0) 0%,
+          rgba(0, 0, 0, 0) 46%,
+          rgba(2, 5, 9, 0.5) 76%,
+          rgba(1, 3, 6, 0.9) 100%
+        );
+      }
+
+      #grain {
+        position: absolute;
+        inset: 0;
+        opacity: 0.045;
+        pointer-events: none;
+      }
+
+      /* turn punctuation -- masked exactly like the photo so it can never
+         put a bright region behind the caption band */
+      #flash {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1080px;
+        height: 1360px;
+        background: #cffafe;
+        opacity: 0;
+        pointer-events: none;
+        -webkit-mask-image: linear-gradient(
+          to bottom,
+          #000 0px,
+          #000 1060px,
+          rgba(0, 0, 0, 0.42) 1190px,
+          rgba(0, 0, 0, 0) 1290px
+        );
+        mask-image: linear-gradient(
+          to bottom,
+          #000 0px,
+          #000 1060px,
+          rgba(0, 0, 0, 0.42) 1190px,
+          rgba(0, 0, 0, 0) 1290px
+        );
+      }
+
+      /* ---------------------------------------------------------------
+         CONTENT  (every item below resolves inside y=180..1280)
+         --------------------------------------------------------------- */
+
+      /* HEADLINE : box 212..380 , x 90..990 */
+      #headline {
+        position: absolute;
+        left: 90px;
+        top: 212px;
+        width: 900px;
+        font-size: 72px;
+        line-height: 84px;
+        font-weight: 800;
+        letter-spacing: -1.6px;
+        color: #f5f9ff;
+        text-shadow: 0 2px 3px rgba(0, 0, 0, 0.95), 0 6px 18px rgba(0, 0, 0, 0.9),
+          0 0 24px rgba(0, 0, 0, 0.8);
+        opacity: 0.55;
+        transform: translateY(18px);
+      }
+
+      /* TRANSACTION CHIP : box x 300..780 , y 486..682 */
+      #chip {
+        position: absolute;
+        left: 300px;
+        top: 486px;
+        width: 480px;
+        height: 196px;
+        border-radius: 26px;
+        background: linear-gradient(
+          160deg,
+          rgba(10, 18, 28, 0.9),
+          rgba(5, 10, 17, 0.94)
+        );
+        border: 2px solid rgba(125, 211, 252, 0.42);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transform: translateY(-28px) scale(0.92);
+      }
+      #chip-glow-slate,
+      #chip-glow-green {
+        position: absolute;
+        inset: -4px;
+        border-radius: 30px;
+        pointer-events: none;
+      }
+      #chip-glow-slate {
+        box-shadow: 0 0 30px 2px rgba(56, 189, 248, 0.3);
+        opacity: 1;
+      }
+      #chip-glow-green {
+        box-shadow: 0 0 30px 2px rgba(34, 197, 94, 0.5);
+        opacity: 0;
+      }
+      #chip-accent {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 8px;
+        height: 100%;
+        border-radius: 26px 0 0 26px;
+        background: #7dd3fc;
+      }
+      #amount {
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 128px;
+        font-weight: 700;
+        letter-spacing: -2px;
+        color: #f8fafc;
+        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.85);
+      }
+
+      /* SCORING GAUGE : svg box x 140..940 , y 730..1200
+         arc centre (540,1130) in canvas px, R=310, stroke 26 */
+      #gauge {
+        position: absolute;
+        left: 140px;
+        top: 730px;
+        width: 800px;
+        height: 470px;
+        overflow: visible;
+        transform-origin: 400px 400px;
+        transform: scale(0.94);
+        opacity: 0;
+      }
+      #track {
+        fill: none;
+        stroke: rgba(148, 163, 184, 0.2);
+        stroke-width: 26;
+      }
+      #zone-green {
+        fill: none;
+        stroke: rgba(34, 197, 94, 0.2);
+        stroke-width: 26;
+      }
+      #zone-amber {
+        fill: none;
+        stroke: rgba(245, 158, 11, 0.18);
+        stroke-width: 26;
+      }
+      #zone-red {
+        fill: none;
+        stroke: rgba(239, 68, 68, 0.22);
+        stroke-width: 26;
+      }
+      #zone-green-lit {
+        fill: none;
+        stroke: rgba(74, 222, 128, 0.5);
+        stroke-width: 26;
+        opacity: 0;
+      }
+      .tick {
+        stroke: rgba(203, 213, 225, 0.34);
+        stroke-width: 5;
+      }
+      #prog {
+        fill: none;
+        stroke: #7dd3fc;
+        stroke-width: 12;
+        stroke-linecap: round;
+      }
+      #m-halo {
+        fill: #7dd3fc;
+        opacity: 0.25;
+      }
+      #m-dot {
+        fill: #7dd3fc;
+      }
+      #m-tick {
+        stroke: #7dd3fc;
+        stroke-width: 6;
+      }
+
+      /* VERDICT PILL : box x 397..683 , y 1004..1082 */
+      #verdict {
+        position: absolute;
+        left: 397px;
+        top: 1004px;
+        width: 286px;
+        height: 78px;
+        border-radius: 39px;
+        background: rgba(6, 22, 14, 0.9);
+        border: 2px solid rgba(74, 222, 128, 0.75);
+        box-shadow: 0 0 22px rgba(34, 197, 94, 0.45);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        opacity: 0;
+        transform: translateY(10px) scale(0.9);
+      }
+      #verdict-dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 7px;
+        background: #4ade80;
+      }
+      #verdict-label {
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 40px;
+        font-weight: 700;
+        letter-spacing: 4px;
+        color: #a7f3c0;
+        text-shadow: 0 2px 5px rgba(0, 0, 0, 0.85);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="6.20"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="6.20"
+        data-track-index="1"
+      >
+        <div id="bg-fill"></div>
+
+        <div id="photo-wrap">
+          <img
+            id="photo"
+            data-layout-allow-overflow="true"
+            src="assets/card_terminal.jpg"
+            alt=""
+          />
+        </div>
+
+        <div id="scrim"></div>
+        <div id="vignette"></div>
+
+        <svg id="grain" width="1080" height="1920" viewBox="0 0 1080 1920">
+          <filter id="grainf" x="0" y="0" width="100%" height="100%">
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency="0.82"
+              numOctaves="3"
+              seed="17"
+              stitchTiles="stitch"
+            />
+          </filter>
+          <rect width="1080" height="1920" filter="url(#grainf)" />
+        </svg>
+
+        <div id="flash"></div>
+
+        <div id="headline" data-layout-allow-occlusion="true">
+          Scored Against<br />Your Baseline
+        </div>
+
+        <div id="chip" data-layout-allow-occlusion="true">
+          <div id="chip-glow-slate"></div>
+          <div id="chip-glow-green"></div>
+          <div id="chip-accent"></div>
+          <span id="amount">$4.00</span>
+        </div>
+
+        <svg id="gauge" viewBox="0 0 800 470" data-layout-allow-occlusion="true">
+          <defs>
+            <filter id="glowf" x="-45%" y="-45%" width="190%" height="190%">
+              <feGaussianBlur stdDeviation="7" result="b" />
+              <feMerge>
+                <feMergeNode in="b" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
+          <path id="track" d="M 90 400 A 310 310 0 0 1 710 400" />
+          <path id="zone-green" d="M 90 400 A 310 310 0 0 1 323.26 99.65" />
+          <path id="zone-amber" d="M 323.26 99.65 A 310 310 0 0 1 597.60 161.14" />
+          <path id="zone-red" d="M 597.60 161.14 A 310 310 0 0 1 710 400" />
+          <path id="zone-green-lit" d="M 90 400 A 310 310 0 0 1 323.26 99.65" />
+
+          <line class="tick" x1="118" y1="400" x2="62" y2="400" />
+          <line class="tick" x1="200.6" y1="200.6" x2="161.0" y2="161.0" />
+          <line class="tick" x1="400" y1="118" x2="400" y2="62" />
+          <line class="tick" x1="599.4" y1="200.6" x2="639.0" y2="161.0" />
+          <line class="tick" x1="682" y1="400" x2="738" y2="400" />
+
+          <path
+            id="prog"
+            d="M 90 400 A 310 310 0 0 1 710 400"
+            pathLength="1000"
+            stroke-dasharray="1000"
+            stroke-dashoffset="1000"
+            filter="url(#glowf)"
+          />
+
+          <line id="m-tick" x1="124" y1="400" x2="56" y2="400" />
+          <circle id="m-halo" cx="90" cy="400" r="34" filter="url(#glowf)" />
+          <circle id="m-dot" cx="90" cy="400" r="15" />
+        </svg>
+
+        <div id="verdict" data-layout-allow-occlusion="true">
+          <div id="verdict-dot"></div>
+          <div id="verdict-label">NORMAL</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      /* ---------------- scoring arc: NO rotation anywhere ----------------
+         The progress arc sweeps via stroke-dashoffset on a pathLength=1000
+         path.  The marker is positioned by writing endpoint coordinates
+         from a tweened numeric angle in onUpdate -- never GSAP rotation on
+         an SVG <line>.  The <line> also carries no filter, so its
+         degenerate bounding box at theta=0/180 cannot collapse a
+         objectBoundingBox filter region.                                  */
+      const CX = 400,
+        CY = 400,
+        R = 310;
+      const score = { s: 0 };
+      const elProg = document.getElementById("prog");
+      const elHalo = document.getElementById("m-halo");
+      const elDot = document.getElementById("m-dot");
+      const elTick = document.getElementById("m-tick");
+
+      function applyScore() {
+        const s = score.s;
+        const th = ((180 - 180 * s) * Math.PI) / 180;
+        const c = Math.cos(th),
+          n = Math.sin(th);
+        const x = CX + R * c,
+          y = CY - R * n;
+        elHalo.setAttribute("cx", x);
+        elHalo.setAttribute("cy", y);
+        elDot.setAttribute("cx", x);
+        elDot.setAttribute("cy", y);
+        elTick.setAttribute("x1", CX + 276 * c);
+        elTick.setAttribute("y1", CY - 276 * n);
+        elTick.setAttribute("x2", CX + 344 * c);
+        elTick.setAttribute("y2", CY - 344 * n);
+        elProg.setAttribute("stroke-dashoffset", 1000 * (1 - s));
+      }
+      applyScore();
+
+      /* ---------------- ACT 1 : the photo settles, the chip lands ------- */
+
+      // continuous push-in on the PHOTO ONLY (exempt layer). No type scales
+      // with it, so the composed worst-case type scale stays 1.000.
+      tl.fromTo(
+        "#photo",
+        { scale: 1 },
+        { scale: 1.07, duration: 6.2, ease: "sine.inOut" },
+        0
+      );
+
+      // primary content begins at t=0 and is NOT at opacity 0 on frame 0
+      tl.fromTo(
+        "#headline",
+        { opacity: 0.55, y: 18 },
+        { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" },
+        0
+      );
+
+      // 0.85 -- the transaction chip lands on the terminal
+      tl.fromTo(
+        "#chip",
+        { opacity: 0, y: -28, scale: 0.92 },
+        {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.5,
+          ease: "power4.out",
+          immediateRender: false,
+        },
+        0.85
+      );
+
+      // ambient life on the chip glow -- odd repeat, lands back on base,
+      // completes at 1.55 + 2*0.75 = 3.05
+      tl.to(
+        "#chip-glow-slate",
+        {
+          opacity: 0.55,
+          duration: 0.75,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 1,
+        },
+        1.55
+      );
+
+      // 2.05 -- the gauge chrome arrives, marker parked at zero
+      tl.fromTo(
+        "#gauge",
+        { opacity: 0, scale: 0.94 },
+        {
+          opacity: 1,
+          scale: 1,
+          duration: 0.55,
+          ease: "power3.out",
+          immediateRender: false,
+        },
+        2.05
+      );
+
+      /* ---------------- THE TURN : the scoring sweep -------------------- */
+
+      const flashTl = gsap.timeline();
+      flashTl
+        .fromTo(
+          "#flash",
+          { opacity: 0 },
+          { opacity: 0.13, duration: 0.06, ease: "power3.out" }
+        )
+        .to("#flash", { opacity: 0, duration: 0.3, ease: "power3.out" });
+      tl.add(flashTl, 2.72); // completes 3.08
+
+      // out-sweep across the whole range, into the red end
+      tl.to(
+        score,
+        { s: 0.92, duration: 0.6, ease: "power2.inOut", onUpdate: applyScore },
+        2.75
+      );
+      tl.to("#prog", { stroke: "#f43f5e", duration: 0.5, ease: "power2.in" }, 2.85);
+      tl.to("#m-dot", { fill: "#f43f5e", duration: 0.5, ease: "power2.in" }, 2.85);
+      tl.to("#m-halo", { fill: "#f43f5e", duration: 0.5, ease: "power2.in" }, 2.85);
+      tl.to(
+        "#m-tick",
+        { stroke: "#f43f5e", duration: 0.5, ease: "power2.in" },
+        2.85
+      );
+
+      /* ---------------- ACT 2 : settles deep in the normal band --------- */
+
+      // retreat + settle: completes at 4.50, inside the 4.42-6.20 window
+      tl.to(
+        score,
+        { s: 0.155, duration: 1.15, ease: "power3.out", onUpdate: applyScore },
+        3.35
+      );
+      tl.to("#prog", { stroke: "#4ade80", duration: 0.9, ease: "power2.out" }, 3.6);
+      tl.to("#m-dot", { fill: "#4ade80", duration: 0.9, ease: "power2.out" }, 3.6);
+      tl.to("#m-halo", { fill: "#4ade80", duration: 0.9, ease: "power2.out" }, 3.6);
+      tl.to(
+        "#m-tick",
+        { stroke: "#4ade80", duration: 0.9, ease: "power2.out" },
+        3.6
+      );
+
+      // 4.10 -- the normal band under the marker lights up
+      tl.fromTo(
+        "#zone-green-lit",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.7, ease: "power3.out", immediateRender: false },
+        4.1
+      );
+
+      // gauge needle settle wobble -- odd repeat, returns to 0.155,
+      // completes at 4.55 + 2*0.34 = 5.23
+      tl.to(
+        score,
+        {
+          s: 0.185,
+          duration: 0.34,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 1,
+          onUpdate: applyScore,
+        },
+        4.55
+      );
+
+      // 4.75 -- the verdict lands
+      tl.fromTo(
+        "#verdict",
+        { opacity: 0, y: 10, scale: 0.9 },
+        {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.42,
+          ease: "power3.out",
+          immediateRender: false,
+        },
+        4.75
+      );
+
+      // 5.35 -- the chip goes green
+      tl.to(
+        "#chip",
+        { borderColor: "rgba(74,222,128,0.85)", duration: 0.38, ease: "power2.out" },
+        5.35
+      );
+      tl.to(
+        "#chip-accent",
+        { backgroundColor: "#4ade80", duration: 0.38, ease: "power2.out" },
+        5.35
+      );
+      tl.fromTo(
+        "#chip-glow-green",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.38, ease: "power2.out", immediateRender: false },
+        5.35
+      );
+      tl.fromTo(
+        "#chip-glow-slate",
+        { opacity: 1 },
+        { opacity: 0.15, duration: 0.38, ease: "power2.out", immediateRender: false },
+        5.35
+      );
+      tl.fromTo(
+        "#chip",
+        { scale: 1 },
+        {
+          scale: 1.035,
+          duration: 0.14,
+          ease: "power4.out",
+          immediateRender: false,
+        },
+        5.35
+      );
+      tl.fromTo(
+        "#chip",
+        { scale: 1.035 },
+        { scale: 1, duration: 0.28, ease: "power3.out", immediateRender: false },
+        5.49
+      );
+      // chip pulse completes 5.77 -- before the fade
+
+      /* ---------------- FADE : finishes at exactly 6.200 ---------------- */
+
+      const FADE = 5.9,
+        FD = 0.3; // 5.90 + 0.30 = 6.200
+      [
+        "#bg-fill",
+        "#photo",
+        "#scrim",
+        "#vignette",
+        "#headline",
+        "#chip",
+        "#gauge",
+        "#verdict",
+      ].forEach(function (sel) {
+        tl.fromTo(
+          sel,
+          { opacity: 1 },
+          {
+            opacity: 0,
+            duration: FD,
+            ease: "power2.inOut",
+            immediateRender: false,
+          },
+          FADE
+        );
+      });
+      // grain rests at 0.045, so its fade must start from its real value
+      tl.fromTo(
+        "#grain",
+        { opacity: 0.045 },
+        { opacity: 0, duration: FD, ease: "power2.inOut", immediateRender: false },
+        FADE
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

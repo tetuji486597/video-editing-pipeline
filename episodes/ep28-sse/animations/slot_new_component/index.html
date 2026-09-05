@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP28 new component - server-sent events, one way only (takeover, real capture)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .fill { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+      @font-face { font-family: "Impact"; src: local("Impact"); }
+      .impact { font-family: Impact, Inter, sans-serif; }
+
+      /* ---------- background (opaque, on a CHILD, instant) ---------- */
+      #bg-fill { background: radial-gradient(120% 90% at 50% 8%, #07202c 0%, #041420 45%, #030a12 80%, #02060b 100%); }
+      #glow-c {
+        position: absolute; left: 30%; top: 40%; width: 1500px; height: 1500px; transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(41, 240, 255, 0.16) 0%, rgba(41, 240, 255, 0) 60%);
+      }
+      #glow-m {
+        position: absolute; left: 72%; top: 44%; width: 1300px; height: 1300px; transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(255, 43, 214, 0.14) 0%, rgba(255, 43, 214, 0) 60%);
+      }
+      #glow-g {
+        position: absolute; left: 50%; top: 66%; width: 1600px; height: 1600px; transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(182, 255, 43, 0.14) 0%, rgba(182, 255, 43, 0) 58%);
+        opacity: 0;
+      }
+      #vignette { background: radial-gradient(ellipse 760px 1000px at 50% 46%, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 50%, rgba(1,4,8,0.6) 80%, rgba(0,2,5,0.94) 100%); }
+
+      /* push-in 1 -> 1.03 about (470, 740): x 90-850 -> 78.6-861.4; y 236-1250 ->
+         220.9-1265.3 (inside x70-870 / y200-1280). */
+      #scene { transform-origin: 470px 740px; }
+
+      /* ---------- top: the one real term ---------- */
+      #term {
+        position: absolute; left: 90px; top: 236px; width: 760px; height: 46px; text-align: center;
+        color: #9be9f5; font-size: 34px; font-weight: 800; letter-spacing: 5px;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+        opacity: 0.55;
+      }
+      .hero {
+        position: absolute; top: 296px; width: 350px; height: 140px; text-align: center;
+        font-size: 124px; line-height: 140px; font-weight: 900; letter-spacing: 2px; color: #fff;
+        opacity: 0; transform-origin: 50% 50%;
+      }
+      #h-sse { left: 90px; text-shadow: 0 0 34px rgba(41, 240, 255, 0.9), 0 6px 0 #0b6f80, 0 12px 26px rgba(0,0,0,0.8); }
+      #h-chat { left: 500px; text-shadow: 0 0 34px rgba(255, 43, 214, 0.9), 0 6px 0 #7a0d63, 0 12px 26px rgba(0,0,0,0.8); }
+
+      /* ---------- ACT 1: two columns, y 460-1230 ---------- */
+      #act1 { position: absolute; inset: 0; transform-origin: 470px 845px; }
+      .colcard {
+        position: absolute; top: 460px; width: 350px; height: 770px; border-radius: 26px;
+        background: rgba(6, 18, 28, 0.55); border: 2px solid rgba(255,255,255,0.12);
+        opacity: 0;
+      }
+      #col-l { left: 90px; border-color: rgba(41, 240, 255, 0.55); }
+      #col-r { left: 500px; border-color: rgba(255, 43, 214, 0.55); }
+
+      /* server rack glyph at the top of the SSE column: abs x 165-365, y 480-560 */
+      #rack { position: absolute; left: 75px; top: 20px; width: 200px; height: 80px; }
+      /* pipes (column-local): LEFT x 145-205 (abs 235-295), y 110-500 (abs 570-960) */
+      .pipe {
+        position: absolute; left: 145px; width: 60px; border-radius: 30px; overflow: hidden;
+        background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.28);
+      }
+      #pipe-l { top: 110px; height: 390px; border-color: rgba(41, 240, 255, 0.7); box-shadow: inset 0 0 18px rgba(41, 240, 255, 0.35); }
+      #pipe-r { top: 200px; height: 300px; border-color: rgba(255, 43, 214, 0.7); box-shadow: inset 0 0 18px rgba(255, 43, 214, 0.35); }
+      /* chevrons: explicit CSS left/top base, GSAP y in BOTH from/to vars */
+      .chev { position: absolute; left: 12px; top: -34px; width: 32px; height: 26px; opacity: 0; }
+      .chev.up { top: 320px; }
+      /* big direction marker on the left pipe ("one direction" @3.19) */
+      #arrow-l { position: absolute; left: 105px; top: 470px; width: 140px; height: 60px; opacity: 0; transform-origin: 50% 0; }
+      /* crewmate NPC at the bottom of the SSE pipe: abs x 195-335, y 985-1170; tag y 1178-1222 */
+      #crew { position: absolute; left: 105px; top: 525px; width: 140px; height: 185px; object-fit: contain; opacity: 0; transform-origin: 50% 100%; filter: drop-shadow(0 8px 12px rgba(0,0,0,0.5)); }
+      #npc {
+        position: absolute; left: 115px; top: 718px; width: 120px; height: 44px; border-radius: 10px; text-align: center;
+        background: #29f0ff; color: #06222a; font-size: 34px; line-height: 44px; letter-spacing: 3px; opacity: 0; transform-origin: 50% 50%;
+      }
+      /* right column: skibidi toilet on top of the pipe (abs x 610-750, y 476-660),
+         cameraman under it (abs x 620-730, y 985-1167), speech bursts beside them */
+      #toilet { position: absolute; left: 110px; top: 16px; width: 130px; height: 190px; object-fit: contain; opacity: 0; transform-origin: 50% 100%; filter: drop-shadow(0 8px 12px rgba(0,0,0,0.5)); }
+      #cam { position: absolute; left: 120px; top: 525px; width: 110px; height: 182px; object-fit: contain; opacity: 0; transform-origin: 50% 100%; filter: drop-shadow(0 8px 12px rgba(0,0,0,0.5)); }
+      .burst { position: absolute; width: 96px; height: 76px; opacity: 0; transform-origin: 0% 100%; }
+      #burst-t { left: 244px; top: 40px; }
+      #burst-c { left: 232px; top: 540px; transform-origin: 0% 0%; }
+
+      /* TURN: ONE WAY ONLY slam across both columns: x 140-800, y 720-836 */
+      #oneway {
+        position: absolute; left: 90px; top: 720px; width: 760px; height: 116px; text-align: center;
+        color: #fff; font-size: 96px; line-height: 116px; letter-spacing: 5px; opacity: 0; transform-origin: 50% 50%;
+        text-shadow: 0 0 30px rgba(41, 240, 255, 0.9), 0 7px 0 #0b6f80, 0 12px 26px rgba(0,0,0,0.85);
+      }
+
+      /* ---------- ACT 2: the REAL capture in browser chrome, x 90-850, y 480-1000 ---------- */
+      #act2 { position: absolute; inset: 0; }
+      #win {
+        position: absolute; left: 90px; top: 480px; width: 740px; height: 520px; border-radius: 18px;
+        background: #202124; border: 2px solid rgba(255,255,255,0.14); box-shadow: 0 30px 70px rgba(0,0,0,0.6);
+        overflow: hidden; opacity: 0; transform-origin: 50% 50%;
+      }
+      #tabs { position: absolute; left: 0; top: 0; width: 100%; height: 56px; background: #35363a; }
+      #tab { position: absolute; left: 14px; top: 10px; height: 46px; width: 330px; border-radius: 10px 10px 0 0; background: #202124; display: flex; align-items: center; gap: 10px; padding: 0 16px; color: #e8eaed; font-size: 19px; font-weight: 600; white-space: nowrap; }
+      #tab .fav { width: 18px; height: 18px; border-radius: 4px; background: #29f0ff; }
+      #urlbar { position: absolute; left: 0; top: 56px; width: 100%; height: 54px; background: #35363a; border-bottom: 1px solid rgba(255,255,255,0.08); }
+      #url { position: absolute; left: 100px; top: 8px; width: 560px; height: 38px; border-radius: 19px; background: #202124; color: #bdc1c6; font-size: 17px; line-height: 38px; padding-left: 16px; white-space: nowrap; overflow: hidden; }
+      #nav { position: absolute; left: 16px; top: 13px; display: flex; gap: 12px; }
+      #nav i { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #6b6b78; display: block; }
+      #view { position: absolute; left: 0; top: 110px; width: 736px; height: 406px; overflow: hidden; background: #202124; }
+      /* the sheet scrolls; the real capture sits on top, the extra real chunk rows below it */
+      #sheet { position: absolute; left: 8px; top: 0; width: 720px; }
+      #cap { display: block; width: 720px; height: 404px; }
+      #rows { position: absolute; left: 0; top: 404px; width: 720px; }
+      .crow {
+        position: absolute; left: 0; width: 720px; height: 44px; display: flex; align-items: center; gap: 0;
+        color: #c9d1d9; font-size: 14px; border-top: 1px solid rgba(255,255,255,0.08); opacity: 0; white-space: nowrap; overflow: hidden;
+      }
+      .crow .n { flex: none; width: 36px; padding-left: 14px; color: #8b949e; }
+      .crow .t { flex: none; width: 78px; color: #8b949e; }
+      .crow .b { flex: none; width: 74px; color: #8b949e; }
+      .crow .e { flex: none; width: 118px; color: #d2a8ff; }
+      .crow .d { flex: none; width: 414px; overflow: hidden; color: #79c0ff; }
+      /* highlight box on the real `content-type: text/event-stream` header line
+         (capture y 312-336 -> scaled 148-160 at 0.476; x 10-470 -> 5-224) */
+      #hl { position: absolute; left: 2px; top: 142px; width: 226px; height: 24px; border-radius: 4px; border: 2px solid #b6ff2b; background: rgba(182,255,43,0.14); opacity: 0; }
+
+      /* stopwatch split chips, one at a time, y 1040-1110 */
+      .stamp {
+        position: absolute; left: 90px; top: 1040px; height: 70px; padding: 0 22px; border-radius: 14px;
+        color: #06222a; font-size: 50px; line-height: 70px; letter-spacing: 2px; white-space: nowrap;
+        opacity: 0; transform-origin: 50% 50%; box-shadow: 0 6px 14px rgba(0,0,0,0.5);
+      }
+      #first { background: #b6ff2b; }
+      #whole { background: #ff2bd6; color: #fff; }
+
+      /* AURA meter: y 1150-1210, x 90-560 */
+      #aura { position: absolute; left: 90px; top: 1150px; width: 470px; height: 60px; opacity: 0; }
+      #aura .lbl { position: absolute; left: 0; top: 0; width: 100px; height: 60px; color: #fff; font-size: 44px; line-height: 60px; letter-spacing: 3px; text-shadow: 0 2px 8px rgba(0,0,0,0.8); }
+      #track { position: absolute; left: 110px; top: 14px; width: 360px; height: 32px; border-radius: 16px; background: rgba(255,255,255,0.12); border: 2px solid rgba(255,255,255,0.3); overflow: hidden; }
+      #bar { position: absolute; left: 0; top: 0; height: 28px; width: 20%; border-radius: 14px; background: linear-gradient(90deg, #29f0ff, #b6ff2b); box-shadow: 0 0 18px rgba(182,255,43,0.8); }
+
+      /* LaMelo 6-7 pop: bottom-RIGHT corner of the band (x 590-850, y 990-1250) */
+      #melo { position: absolute; left: 570px; top: 990px; width: 260px; height: 260px; opacity: 0; transform-origin: 50% 80%; }
+      #melo img { position: absolute; left: 60px; top: 40px; width: 200px; height: 200px; filter: drop-shadow(0 8px 14px rgba(0,0,0,0.6)); }
+      #melo .tag { position: absolute; left: 60px; top: 0; height: 52px; padding: 0 16px; border-radius: 10px; background: #ff2bd6; color: #fff; font-size: 40px; line-height: 52px; letter-spacing: 2px; transform: rotate(-6deg); transform-origin: 0 100%; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+      .hand { position: absolute; width: 64px; height: 64px; }
+      #hand1 { left: 0; top: 100px; transform: scaleX(-1); }
+      #hand2 { left: 0; top: 178px; transform: scaleX(-1); }
+
+      #flash { background: #ffffff; opacity: 0; }
+      /* static seeded grain tile (assets/grain.png) instead of a per-frame feTurbulence
+         filter -- identical look, and it cut the takeover render time ~6x */
+      #dither { opacity: 0.045; background: url(assets/grain.png) repeat; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="20.5" data-width="1080" data-height="1920">
+      <section id="main-clip" class="clip" data-start="0" data-duration="20.5" data-track-index="1">
+        <div id="bg-fill" class="fill">
+          <div id="glow-c"></div>
+          <div id="glow-m"></div>
+          <div id="glow-g"></div>
+          <div id="vignette" class="fill"></div>
+        </div>
+
+        <div id="scene" class="fill">
+          <div id="term">SERVER-SENT EVENTS</div>
+          <div class="hero" id="h-sse">SSE</div>
+          <div class="hero" id="h-chat">CHAT</div>
+
+          <!-- ACT 1 -->
+          <div id="act1">
+            <div class="colcard" id="col-l">
+              <svg id="rack" viewBox="0 0 200 80" fill="none" stroke="#29f0ff" stroke-width="4" stroke-linejoin="round">
+                <rect x="6" y="6" width="188" height="30" rx="6" fill="rgba(41,240,255,0.12)"/>
+                <rect x="6" y="44" width="188" height="30" rx="6" fill="rgba(41,240,255,0.12)"/>
+                <circle cx="170" cy="21" r="5" fill="#b6ff2b" stroke="none"/><circle cx="170" cy="59" r="5" fill="#b6ff2b" stroke="none"/>
+                <path d="M20 21 h60 M20 59 h60" stroke-opacity="0.6"/>
+              </svg>
+              <div class="pipe" id="pipe-l">
+                <svg class="chev dn" viewBox="0 0 32 26" fill="none" stroke="#29f0ff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4 L16 20 L28 4"/></svg>
+                <svg class="chev dn" viewBox="0 0 32 26" fill="none" stroke="#29f0ff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4 L16 20 L28 4"/></svg>
+                <svg class="chev dn" viewBox="0 0 32 26" fill="none" stroke="#29f0ff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4 L16 20 L28 4"/></svg>
+                <svg class="chev dn" viewBox="0 0 32 26" fill="none" stroke="#29f0ff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4 L16 20 L28 4"/></svg>
+              </div>
+              <svg id="arrow-l" viewBox="0 0 140 60" fill="none" stroke="#b6ff2b" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"><path d="M70 6 V50 M40 26 L70 52 L100 26"/></svg>
+              <img id="crew" src="assets/amongus_red_crewmate_transparent.png" alt="" data-layout-allow-overflow="true" />
+              <div id="npc" class="impact">NPC</div>
+            </div>
+
+            <div class="colcard" id="col-r">
+              <img id="toilet" src="assets/skibidi_toilet_transparent.png" alt="" data-layout-allow-overflow="true" />
+              <div class="pipe" id="pipe-r">
+                <svg class="chev rd" viewBox="0 0 32 26" fill="none" stroke="#ff2bd6" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4 L16 20 L28 4"/></svg>
+                <svg class="chev rd" viewBox="0 0 32 26" fill="none" stroke="#ff2bd6" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4 L16 20 L28 4"/></svg>
+                <svg class="chev up ru" viewBox="0 0 32 26" fill="none" stroke="#ff2bd6" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22 L16 6 L28 22"/></svg>
+                <svg class="chev up ru" viewBox="0 0 32 26" fill="none" stroke="#ff2bd6" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22 L16 6 L28 22"/></svg>
+              </div>
+              <img id="cam" src="assets/cameraman_skibidi_normal_transparent.png" alt="" data-layout-allow-overflow="true" />
+              <svg class="burst" id="burst-t" viewBox="0 0 96 76" fill="#ff2bd6"><path d="M6 70 L20 52 L4 44 L24 36 L14 18 L36 26 L42 6 L54 24 L74 12 L70 32 L92 34 L74 48 L88 62 L64 58 L60 74 L44 60 L26 72 L28 56 z"/></svg>
+              <svg class="burst" id="burst-c" viewBox="0 0 96 76" fill="#ff2bd6"><path d="M6 6 L26 22 L44 4 L50 24 L72 12 L66 34 L92 40 L70 52 L80 72 L58 60 L46 74 L36 56 L14 66 L22 46 L4 38 L22 30 z"/></svg>
+            </div>
+          </div>
+
+          <div id="oneway" class="impact">ONE WAY ONLY</div>
+
+          <!-- ACT 2 -->
+          <div id="act2">
+            <div id="win">
+              <div id="tabs"><div id="tab"><span class="fav"></span><span>stream.wikimedia.org / DevTools</span></div></div>
+              <div id="urlbar"><div id="nav"><i></i><i></i></div><div id="url" class="mono">stream.wikimedia.org/v2/stream/recentchange</div></div>
+              <div id="view">
+                <div id="sheet">
+                  <img id="cap" src="assets/sse_devtools_capture.png" alt="" />
+                  <div id="hl"></div>
+                  <div id="rows" class="mono"></div>
+                </div>
+              </div>
+            </div>
+            <div class="stamp impact" id="first">FIRST WORD 0.5s</div>
+            <div class="stamp impact" id="whole">WHOLE THING 1:07</div>
+            <div id="aura">
+              <div class="lbl impact">AURA</div>
+              <div id="track"><div id="bar"></div></div>
+            </div>
+          </div>
+
+          <div id="melo">
+            <div class="tag impact">6 7</div>
+            <img src="assets/lamelo_67_sticker.png" alt="" data-layout-allow-overflow="true" />
+            <svg class="hand" id="hand1" viewBox="0 0 64 64" fill="#ffd7b0" stroke="#7a3d12" stroke-width="3" stroke-linejoin="round"><path d="M18 58 V30 a4 4 0 0 1 8 0 V22 a4 4 0 0 1 8 0 V20 a4 4 0 0 1 8 0 V24 a4 4 0 0 1 8 0 V44 c0 10 -8 16 -16 16 z"/></svg>
+            <svg class="hand" id="hand2" viewBox="0 0 64 64" fill="#ffd7b0" stroke="#7a3d12" stroke-width="3" stroke-linejoin="round"><path d="M18 58 V30 a4 4 0 0 1 8 0 V22 a4 4 0 0 1 8 0 V20 a4 4 0 0 1 8 0 V24 a4 4 0 0 1 8 0 V44 c0 10 -8 16 -16 16 z"/></svg>
+          </div>
+        </div>
+
+        <div id="flash" class="fill"></div>
+        <div id="dither" class="fill"></div>
+      </section>
+    </div>
+
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ---- the extra chunk rows: REAL events 3-9 from assets/sse_capture.txt
+      //      (arrival offsets derived from each event's own meta.timestamp relative
+      //      to chunk 2's +0.154s in the DevTools capture; sizes are the byte lengths
+      //      of the event blocks). Literal array, deterministic. ----
+      const ROWS = [
+        ["3", "+0.164s", "1175 B", "event: message", 'data: {"$schema":"/mediawiki/recentchange/1.0.0"'],
+        ["4", "+0.252s", "1087 B", "event: message", 'data: {"$schema":"/mediawiki/recentchange/1.0.0"'],
+        ["5", "+0.334s", "1080 B", "event: message", 'data: {"$schema":"/mediawiki/recentchange/1.0.0"'],
+        ["6", "+0.335s", "1349 B", "event: message", 'data: {"$schema":"/mediawiki/recentchange/1.0.0"'],
+        ["7", "+0.355s", "1286 B", "event: message", 'data: {"$schema":"/mediawiki/recentchange/1.0.0"'],
+        ["8", "+0.375s", "1298 B", "event: message", 'data: {"$schema":"/mediawiki/recentchange/1.0.0"'],
+        ["9", "+0.397s", "1361 B", "event: message", 'data: {"$schema":"/mediawiki/recentchange/1.0.0"'],
+      ];
+      const rowsEl = document.getElementById("rows");
+      ROWS.forEach((r, i) => {
+        const d = document.createElement("div");
+        d.className = "crow";
+        d.id = "crow" + i;
+        d.style.top = i * 44 + "px";
+        d.innerHTML = '<span class="n">' + r[0] + '</span><span class="t">' + r[1] + '</span><span class="b">' + r[2] + '</span><span class="e">' + r[3] + '</span><span class="d"></span>';
+        d.querySelector(".d").textContent = r[4];
+        rowsEl.appendChild(d);
+      });
+
+      // slow push-in under everything
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.03, duration: 20.5, ease: "sine.inOut" }, 0);
+
+      // ---------- ACT 1 (cyan vs magenta) ----------
+      // t=0: the term label is already half-visible, resolves on "server-sent events" @0.385
+      tl.fromTo("#term", { opacity: 0.55, y: 10 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 0);
+      tl.fromTo("#col-l", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out", immediateRender: false }, 0.3);
+      tl.fromTo("#col-r", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out", immediateRender: false }, 0.9);
+      // "SSE" @1.33 slams; "CHAT" follows 0.6 later (never two reveals at once)
+      tl.fromTo("#h-sse", { opacity: 0, scale: 2.2 }, { opacity: 1, scale: 1, duration: 0.28, ease: "power4.in", immediateRender: false }, 1.3);
+      tl.fromTo("#h-chat", { opacity: 0, scale: 2.2 }, { opacity: 1, scale: 1, duration: 0.28, ease: "power4.in", immediateRender: false }, 1.95);
+      tl.fromTo("#flash", { opacity: 0 }, { opacity: 0.35, duration: 0.05, ease: "power3.out", immediateRender: false }, 1.56);
+      tl.fromTo("#flash", { opacity: 0.35 }, { opacity: 0, duration: 0.2, ease: "power3.out", immediateRender: false }, 1.61);
+
+      // "one direction" @3.19: the down arrow lands and chevrons flow DOWN the SSE pipe
+      tl.fromTo("#arrow-l", { opacity: 0, scaleY: 0.3 }, { opacity: 1, scaleY: 1, duration: 0.35, ease: "back.out(1.6)", immediateRender: false }, 3.15);
+      const dn = document.querySelectorAll(".chev.dn");
+      dn.forEach((el, i) => {
+        // y travels -34 -> 400 (top of pipe to just past its bottom), 1.3s, 6 repeats:
+        // 3.2 + 0.32*i + 7*1.3 = 12.3 + 0.32*i <= 13.26 -- the whole act-1 group is
+        // faded by 12.9 so the last visible frame of any chevron is inside its loop.
+        tl.fromTo(el, { y: 0, opacity: 0.9 }, { y: 434, opacity: 0.9, duration: 1.3, ease: "none", repeat: 6, immediateRender: false }, 3.2 + i * 0.32);
+      });
+
+      // "both ways" @6.5: the CHAT pipe lights with chevrons going BOTH ways;
+      // the toilet and the cameraman yap at each other (bursts pop alternately)
+      tl.fromTo("#toilet", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(1.6)", immediateRender: false }, 6.1);
+      tl.fromTo("#cam", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(1.6)", immediateRender: false }, 6.7);
+      document.querySelectorAll(".chev.rd").forEach((el, i) => {
+        tl.fromTo(el, { y: 0, opacity: 0.9 }, { y: 344, opacity: 0.9, duration: 1.0, ease: "none", repeat: 4, immediateRender: false }, 6.5 + i * 0.5);
+      });
+      document.querySelectorAll(".chev.ru").forEach((el, i) => {
+        tl.fromTo(el, { y: 0, opacity: 0.9 }, { y: -344, opacity: 0.9, duration: 1.0, ease: "none", repeat: 4, immediateRender: false }, 6.75 + i * 0.5);
+      });
+      // 6.5 + 0.5 + 5*1.0 = 12.0 / 6.75 + 0.5 + 5 = 12.25 -> both end before the act-1 fade completes
+      tl.fromTo("#burst-t", { opacity: 0, scale: 0.2 }, { opacity: 1, scale: 1, duration: 0.3, ease: "sine.inOut", yoyo: true, repeat: 13, immediateRender: false }, 6.5);
+      tl.fromTo("#burst-c", { opacity: 0, scale: 0.2 }, { opacity: 1, scale: 1, duration: 0.3, ease: "sine.inOut", yoyo: true, repeat: 13, immediateRender: false }, 6.8);
+      // 6.5 + 14*0.3 = 10.7 / 6.8 + 4.2 = 11.0 (odd repeat -> both land back at 0)
+      tl.fromTo("#toilet", { rotation: -4 }, { rotation: 4, duration: 0.3, ease: "sine.inOut", yoyo: true, repeat: 13, immediateRender: false }, 6.5);
+      tl.fromTo("#cam", { rotation: 3 }, { rotation: -3, duration: 0.3, ease: "sine.inOut", yoyo: true, repeat: 13, immediateRender: false }, 6.8);
+
+      // "NPC listening" @9.0: the crewmate pops at the bottom of the SSE pipe, tag lands
+      tl.fromTo("#crew", { opacity: 0, y: 40, scale: 0.7 }, { opacity: 1, y: 0, scale: 1, duration: 0.45, ease: "back.out(1.5)", immediateRender: false }, 8.95);
+      tl.fromTo("#npc", { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)", immediateRender: false }, 9.55);
+      tl.fromTo("#crew", { y: 0 }, { y: -10, duration: 0.35, ease: "sine.inOut", yoyo: true, repeat: 5, immediateRender: false }, 9.5);
+      // 9.5 + 6*0.35 = 11.6
+
+      // ---------- TURN @10.7 "so one way is fine": the CHAT side dims, ONE WAY ONLY slams ----------
+      tl.fromTo("#col-r", { opacity: 1 }, { opacity: 0.28, duration: 0.5, ease: "power2.out", immediateRender: false }, 10.7);
+      tl.fromTo("#h-chat", { opacity: 1 }, { opacity: 0.25, duration: 0.5, ease: "power2.out", immediateRender: false }, 10.7);
+      tl.fromTo("#oneway", { opacity: 0, scale: 2.6 }, { opacity: 1, scale: 1, duration: 0.24, ease: "power4.in", immediateRender: false }, 10.9);
+      tl.fromTo("#flash", { opacity: 0 }, { opacity: 0.55, duration: 0.05, ease: "power3.out", immediateRender: false }, 11.14);
+      tl.fromTo("#flash", { opacity: 0.55 }, { opacity: 0, duration: 0.25, ease: "power3.out", immediateRender: false }, 11.2);
+      tl.fromTo("#scene", { x: 0 }, { x: 8, duration: 0.05, ease: "none", yoyo: true, repeat: 5, immediateRender: false }, 11.14);
+
+      // ---------- ACT 2 (cyan -> green): the real capture ----------
+      // act 1 recedes (EP4 pattern) while the browser window arrives
+      tl.fromTo("#act1", { opacity: 1, scale: 1 }, { opacity: 0, scale: 0.88, duration: 0.6, ease: "power3.in", immediateRender: false }, 12.3);
+      tl.fromTo("#oneway", { opacity: 1, scale: 1 }, { opacity: 0, scale: 0.7, duration: 0.4, ease: "power3.in", immediateRender: false }, 12.3);
+      tl.fromTo("#h-chat", { opacity: 0.25 }, { opacity: 0, duration: 0.4, ease: "power2.out", immediateRender: false }, 12.3);
+      tl.fromTo("#glow-m", { opacity: 1 }, { opacity: 0, duration: 0.8, ease: "sine.inOut", immediateRender: false }, 12.3);
+      tl.fromTo("#glow-g", { opacity: 0 }, { opacity: 1, duration: 0.8, ease: "sine.inOut", immediateRender: false }, 12.5);
+      tl.fromTo("#win", { opacity: 0, scale: 0.9, y: 40 }, { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: "power3.out", immediateRender: false }, 12.6);
+      // the real header line lights up: content-type: text/event-stream
+      tl.fromTo("#hl", { opacity: 0, scaleX: 0.2 }, { opacity: 1, scaleX: 1, duration: 0.3, ease: "power3.out", immediateRender: false }, 13.05);
+      // "half a second" @13.27: FIRST WORD 0.5s
+      tl.fromTo("#first", { opacity: 0, scale: 0.4, rotation: -6 }, { opacity: 1, scale: 1, rotation: -2, duration: 0.3, ease: "back.out(2)", immediateRender: false }, 13.25);
+      // the sheet scrolls up to the chunk list (rows 1-2 of the real capture)
+      tl.fromTo("#sheet", { y: 0 }, { y: -236, duration: 0.7, ease: "power2.inOut", immediateRender: false }, 13.9);
+      tl.fromTo("#hl", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 13.9);
+      // chunks arrive ("that was fast" @15.13): rows 3-9 slide in one after another,
+      // and the sheet keeps scrolling so the newest row stays in view
+      const arrive = [14.9, 15.15, 15.4, 15.7, 16.05, 16.45, 16.9];
+      arrive.forEach((t, i) => {
+        tl.fromTo("#crow" + i, { opacity: 0, x: 30 }, { opacity: 1, x: 0, duration: 0.25, ease: "power3.out", immediateRender: false }, t);
+        tl.fromTo("#win", { scale: 1 }, { scale: 1.006, duration: 0.06, ease: "power2.out", yoyo: true, repeat: 1, immediateRender: false }, t);
+      });
+      tl.fromTo("#sheet", { y: -236 }, { y: -340, duration: 1.2, ease: "power1.inOut", immediateRender: false }, 15.7);
+      tl.fromTo("#sheet", { y: -340 }, { y: -420, duration: 1.4, ease: "power1.inOut", immediateRender: false }, 17.2);
+
+      // retire FIRST WORD, then "sixty-seven seconds" @17.23: WHOLE THING 1:07 + LaMelo
+      tl.fromTo("#first", { opacity: 1, x: 0 }, { opacity: 0, x: -60, duration: 0.3, ease: "power3.in", immediateRender: false }, 16.7);
+      tl.fromTo("#whole", { opacity: 0, scale: 2.2, rotation: 0 }, { opacity: 1, scale: 1, rotation: -2, duration: 0.24, ease: "power4.in", immediateRender: false }, 17.2);
+      tl.fromTo("#melo", { opacity: 0, scale: 0.3, rotation: 12 }, { opacity: 1, scale: 1, rotation: 4, duration: 0.25, ease: "back.out(2)", immediateRender: false }, 17.23);
+      tl.fromTo("#melo", { rotation: 4 }, { rotation: -5, duration: 0.18, ease: "sine.inOut", yoyo: true, repeat: 3, immediateRender: false }, 17.48);
+      tl.fromTo("#hand1", { y: 0 }, { y: -16, duration: 0.12, ease: "sine.inOut", yoyo: true, repeat: 5, immediateRender: false }, 17.48);
+      tl.fromTo("#hand2", { y: 0 }, { y: 16, duration: 0.12, ease: "sine.inOut", yoyo: true, repeat: 5, immediateRender: false }, 17.48);
+      tl.fromTo("#melo", { opacity: 1, scale: 1 }, { opacity: 0, scale: 0.4, duration: 0.2, ease: "power3.in", immediateRender: false }, 18.23);
+
+      // "aura farming" @19.85: the AURA meter ticks up
+      tl.fromTo("#aura", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 19.8);
+      tl.fromTo("#bar", { width: "20%" }, { width: "96%", duration: 0.6, ease: "power2.out", immediateRender: false }, 19.9);
+
+      // ---------- fade lands EXACTLY at 20.5 = 20.2 + 0.3 (one fade per leaf) ----------
+      ["#bg-fill", "#scene", "#term", "#h-sse", "#act2", "#win", "#whole", "#aura"].forEach((s) =>
+        tl.fromTo(s, { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 20.2)
+      );
+      // grain tile rests at 0.045: fade from THAT (a from-value of 1 = a white-noise flash frame)
+      tl.fromTo("#dither", { opacity: 0.045 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 20.2);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

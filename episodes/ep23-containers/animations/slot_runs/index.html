@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP23 runs — same box on laptop, teammate, cloud (with Phippy)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* HALF-PANEL (upper band) over live footage. RUNS shot grid-measured: hair top
+         ~250, brow ~780, mouth ~1080. Content in y=180-710, x=60-772 (incl. glow).
+         Translucent fills per rule 11. */
+      #fade-all { position: absolute; inset: 0; opacity: 1; }
+
+      /* three surface slabs: y 616-688; x 90-290 / 320-520 / 550-750.
+         Glow blur 14 -> reach 1.6*14=22.4 -> max x 772, min y 594 -- in band. */
+      .slab {
+        position: absolute; top: 616px; width: 200px; height: 72px;
+        border-radius: 14px; background: rgba(10, 18, 30, 0.28);
+        border: 2px solid rgba(203, 213, 225, 0.45);
+        box-shadow: 0 0 14px rgba(148, 163, 184, 0.2);
+        display: flex; align-items: center; justify-content: center;
+        color: #e2e8f0; font-size: 27px; letter-spacing: 2px;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85);
+        opacity: 0;
+      }
+      /* primary entrance starts at local t=0 and must not be at opacity 0 on frame 0 */
+      #slab1 { left: 90px; opacity: 0.5; }
+      #slab2 { left: 320px; }
+      #slab3 { left: 550px; }
+      .ck {
+        position: absolute; left: 10px; top: 50%; width: 34px; height: 34px;
+        transform: translateY(-50%); opacity: 0;
+      }
+
+      /* the hopping container (Phippy peeking out): group 170x220, rest top 396
+         (bottom sits on slab top 616). P1 left 105 -> centres 190/420/650. */
+      #hopper { position: absolute; left: 105px; top: 396px; width: 170px; height: 220px; overflow: hidden; opacity: 0; }
+      #phippy {
+        position: absolute; left: 12px; top: 4px; width: 146px; height: auto;
+        /* 822x1482 -> at w146 h ~263; box front (y 86+) hides the body, head peeks */
+      }
+      #hopbox {
+        position: absolute; left: 0; top: 86px; width: 170px; height: 134px;
+        border-radius: 10px;
+        background: repeating-linear-gradient(90deg,
+          rgba(13, 68, 84, 0.88) 0px, rgba(13, 68, 84, 0.88) 24px,
+          rgba(45, 212, 191, 0.35) 24px, rgba(45, 212, 191, 0.35) 29px);
+        border: 3px solid #2dd4bf;
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="5.6"
+         data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="5.6" data-track-index="1">
+        <div id="fade-all">
+          <div id="slab1" class="slab mono">LAPTOP
+            <span class="ck"><svg viewBox="0 0 34 34"><circle cx="17" cy="17" r="15" fill="rgba(34,197,94,0.9)"/><path d="M9.5 17.5L15 23L25 10.5" stroke="#fff" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          </div>
+          <div id="slab2" class="slab mono">TEAMMATE
+            <span class="ck"><svg viewBox="0 0 34 34"><circle cx="17" cy="17" r="15" fill="rgba(34,197,94,0.9)"/><path d="M9.5 17.5L15 23L25 10.5" stroke="#fff" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          </div>
+          <div id="slab3" class="slab mono">CLOUD
+            <span class="ck"><svg viewBox="0 0 34 34"><circle cx="17" cy="17" r="15" fill="rgba(34,197,94,0.9)"/><path d="M9.5 17.5L15 23L25 10.5" stroke="#fff" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          </div>
+
+          <div id="hopper">
+            <img id="phippy" src="assets/phippy_full.png" alt="" data-layout-allow-overflow="true" />
+            <div id="hopbox"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ACT 1 -- the three surfaces draw in (one family, light stagger), box glides on.
+      tl.fromTo("#slab1", { opacity: 0.5, y: 14 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 0);
+      tl.fromTo("#slab2", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 0.2);
+      tl.fromTo("#slab3", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 0.4);
+
+      // hopper glides in from off-frame left, arriving on LAPTOP at its word (local 1.43)
+      tl.fromTo("#hopper", { opacity: 1, x: -365 }, { opacity: 1, x: 0, duration: 0.6, ease: "power2.out", immediateRender: false }, 0.85);
+
+      const land = (slab, t) => {
+        tl.to(slab, {
+          borderColor: "rgba(74,222,128,0.9)",
+          boxShadow: "0 0 20px rgba(74,222,128,0.4)",
+          color: "#bbf7d0", duration: 0.2, ease: "power2.out",
+        }, t);
+        tl.fromTo(slab + " .ck", { opacity: 0, scale: 0.4 },
+          { opacity: 1, scale: 1, duration: 0.24, ease: "back.out(1.6)", immediateRender: false }, t);
+        tl.to("#hopper", { scaleY: 0.955, duration: 0.09, ease: "power2.out" }, t);
+        tl.to("#hopper", { scaleY: 1, duration: 0.13, ease: "power2.out" }, t + 0.09);
+      };
+
+      // TURN -- hop per spoken word: laptop 1.428, teammate's 2.228, cloud 3.308
+      land("#slab1", 1.43);
+
+      const hop = (t, toX) => {
+        tl.to("#hopper", { x: toX, duration: 0.44, ease: "power1.inOut" }, t);
+        tl.to("#hopper", { y: -70, duration: 0.22, ease: "power2.out" }, t);
+        tl.to("#hopper", { y: 0, duration: 0.22, ease: "power2.in" }, t + 0.22);
+      };
+      hop(1.78, 230);      // lands P2 at 2.22
+      land("#slab2", 2.24);
+      hop(2.86, 460);      // lands P3 at 3.30
+      land("#slab3", 3.32);
+
+      // ACT 2 -- three identical checks hold; Phippy bobs gently in the box.
+      // yoyo repeat 3 (odd) -> ends 3.6 + 4*0.4 = 5.2 < fade start 5.25.
+      tl.to("#phippy", { y: -6, duration: 0.4, ease: "sine.inOut", yoyo: true, repeat: 3 }, 3.6);
+
+      // FADE -- finishes at exactly 5.60, zero buffer.
+      tl.fromTo("#fade-all", { opacity: 1 }, { opacity: 0, duration: 0.35, ease: "power2.out", immediateRender: false }, 5.25);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

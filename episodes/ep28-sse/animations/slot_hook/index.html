@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP28 hook - ChatGPT yaps one word at a time (half panel)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent; /* HALF-PANEL: presenter visible below the band */
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      /* Band: grid-measured on the real HOOK frames (src 33.0 / 37.6 / 41.3 scaled to
+         1080x1920): hair top ~110, glasses/brow ~640-700, mouth ~1030, chin ~1170,
+         face x 180-820. No chest band exists (chin 1170 vs floor 1280), so the panel
+         is an UPPER band over hair only: y 214-590, x 80-840. Shadow 0 4px 10px ->
+         reach 4+16 = 20px -> 610, still above the brow (640). Drift scale 1.01 about
+         the panel centre (460, 402): x 76.2-843.8, y 212.1-591.9 -- inside x70-870 /
+         y200-1280. Fill is a dark chat UI at 0.90 so it reads as a real screen. */
+      #panel {
+        position: absolute;
+        left: 80px;
+        top: 214px;
+        width: 760px;
+        height: 376px;
+        border-radius: 22px;
+        background: linear-gradient(170deg, rgba(33, 33, 40, 0.92), rgba(22, 22, 28, 0.92));
+        border: 2px solid rgba(255, 255, 255, 0.14);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45);
+        overflow: hidden;
+        opacity: 0.6;
+        transform: scale(0.96);
+        transform-origin: 50% 50%;
+      }
+      /* header row: abs y 214+10..214+50 = 224-264 */
+      #hdr {
+        position: absolute;
+        left: 22px;
+        top: 10px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: #ececf1;
+        font-size: 24px;
+        font-weight: 700;
+      }
+      #hdr .logo { width: 30px; height: 30px; }
+      #hdr .model { color: #9a9aa6; font-weight: 500; font-size: 20px; margin-left: 4px; }
+      #dots { position: absolute; right: 22px; top: 20px; display: flex; gap: 8px; }
+      #dots i { width: 8px; height: 8px; border-radius: 50%; background: #6b6b78; display: block; }
+
+      /* user bubble, right-aligned: local 64-120 -> abs 278-334 */
+      #user {
+        position: absolute;
+        right: 22px;
+        top: 64px;
+        height: 56px;
+        padding: 0 24px;
+        border-radius: 28px;
+        background: #2f2f3a;
+        color: #f1f1f5;
+        font-size: 26px;
+        line-height: 56px;
+        white-space: nowrap;
+      }
+
+      /* assistant row: avatar local 158-206 (abs 372-420); text line local 154-222 */
+      #ava {
+        position: absolute;
+        left: 22px;
+        top: 158px;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        border: 2px solid rgba(255, 255, 255, 0.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #ava svg { width: 28px; height: 28px; }
+      #line {
+        position: absolute;
+        left: 92px;
+        top: 154px;
+        height: 68px;
+        width: 640px;
+        color: #f4f4f8;
+        font-size: 44px;
+        line-height: 68px;
+        white-space: nowrap;
+        letter-spacing: 0.2px;
+      }
+      #line .ch { opacity: 0; }
+      /* the caret: GSAP-positioned -> explicit CSS left/top base (rule: every
+         GSAP-positioned element needs a base so a dropped transform degrades). */
+      #caret {
+        position: absolute;
+        left: 92px;
+        top: 168px;
+        width: 5px;
+        height: 42px;
+        border-radius: 2px;
+        background: #f4f4f8;
+        opacity: 1;
+      }
+
+      /* Tralalero sprints under the text line: local 238-368 (abs 452-582), 130px
+         tall, x runs 130 -> 400 local (abs 210-480 .. 340-610). Never over text. */
+      #shark {
+        position: absolute;
+        left: 130px;
+        top: 238px;
+        width: 130px;
+        height: 130px;
+        object-fit: contain;
+        transform: scaleX(-1); /* the render faces left; he runs to the right */
+        filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.5));
+      }
+
+      /* thought bubble: local x 480-740 / y 236-346 (abs 560-820 / 450-560); the
+         shark stops at local x<=400+130=530 -> 50px clear? No: bubble starts at 480
+         -> the shark's run ends at 400 so its right edge is 530; the bubble's cloud
+         body starts at 500 (the small trail circles sit left of it at 480-498, which
+         are 8px dots rising above the shark's head at y 236-260 while the shark's
+         body top is at 238+~20). Rest state hidden (opacity 0). */
+      #bubble {
+        position: absolute;
+        left: 480px;
+        top: 236px;
+        width: 260px;
+        height: 110px;
+        opacity: 0;
+        transform-origin: 20% 100%;
+      }
+      #bubble .txt {
+        position: absolute;
+        left: 60px;
+        top: 26px;
+        width: 180px;
+        text-align: center;
+        color: #111;
+        font-size: 40px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+      }
+
+      /* mic drop: same slot as the bubble, sequenced after it (never co-visible) */
+      #mic {
+        position: absolute;
+        left: 610px;
+        top: 236px;
+        width: 60px;
+        height: 110px;
+        opacity: 0;
+        transform-origin: 50% 50%;
+      }
+      #thud {
+        position: absolute;
+        left: 560px;
+        top: 336px;
+        width: 160px;
+        height: 14px;
+        border-radius: 50%;
+        background: radial-gradient(ellipse, rgba(255, 43, 214, 0.75), rgba(255, 43, 214, 0) 70%);
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="9.3" data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="9.3" data-track-index="1">
+        <div id="panel">
+          <div id="hdr">
+            <svg class="logo" viewBox="0 0 40 40" fill="none">
+              <path d="M20 4 L33 11.5 V27.5 L20 35 L7 27.5 V11.5 Z" stroke="#ececf1" stroke-width="3" stroke-linejoin="round"/>
+              <path d="M20 12 L26.5 15.8 V23.4 L20 27.2 L13.5 23.4 V15.8 Z" fill="#ececf1"/>
+            </svg>
+            <span>ChatGPT</span><span class="model">5</span>
+          </div>
+          <div id="dots"><i></i><i></i><i></i></div>
+
+          <div id="user">why so slow</div>
+
+          <div id="ava">
+            <svg viewBox="0 0 40 40" fill="none">
+              <path d="M20 4 L33 11.5 V27.5 L20 35 L7 27.5 V11.5 Z" stroke="#ececf1" stroke-width="3" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div id="line"></div>
+          <div id="caret" data-layout-allow-occlusion="true"></div>
+
+          <img id="shark" src="assets/tralalero_tralala_render.png" alt="" data-layout-allow-overflow="true" />
+
+          <div id="bubble">
+            <svg viewBox="0 0 260 110" width="260" height="110" fill="none" data-layout-allow-overflow="true">
+              <circle cx="8" cy="100" r="6" fill="#fff"/>
+              <circle cx="28" cy="82" r="10" fill="#fff"/>
+              <ellipse cx="150" cy="50" rx="108" ry="46" fill="#fff"/>
+              <circle cx="70" cy="30" r="30" fill="#fff"/>
+              <circle cx="120" cy="18" r="26" fill="#fff"/>
+              <circle cx="180" cy="16" r="28" fill="#fff"/>
+              <circle cx="228" cy="34" r="26" fill="#fff"/>
+              <circle cx="90" cy="82" r="24" fill="#fff"/>
+              <circle cx="200" cy="82" r="26" fill="#fff"/>
+            </svg>
+            <div class="txt">idk yet</div>
+          </div>
+
+          <div id="thud"></div>
+          <div id="mic">
+            <svg viewBox="0 0 60 110" width="60" height="110" fill="none">
+              <rect x="16" y="6" width="28" height="52" rx="14" fill="#ff2bd6"/>
+              <rect x="16" y="6" width="28" height="52" rx="14" fill="url(#g)" opacity="0.5"/>
+              <path d="M8 40 v6 a22 22 0 0 0 44 0 v-6" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+              <path d="M30 68 v22 M16 92 h28" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+              <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient></defs>
+            </svg>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ---- build the typed line as per-character spans (deterministic) ----
+      const TEXT = "chat is this real 6 7 skibidi fr fr";
+      const line = document.getElementById("line");
+      const chars = [];
+      for (const c of TEXT) {
+        const s = document.createElement("span");
+        s.className = "ch";
+        s.setAttribute("data-layout-allow-occlusion", "true");
+        s.textContent = c === " " ? " " : c;
+        line.appendChild(s);
+        chars.push(s);
+      }
+      // caret x per character = right edge of that char, measured at load (font
+      // metrics are deterministic; no randomness).
+      const lineLeft = 92;
+      const caretX = chars.map((s) => lineLeft + s.offsetLeft + s.offsetWidth + 6);
+
+      // ---- t=0 entrance (never opacity 0 on frame 0) ----
+      tl.fromTo("#panel", { opacity: 0.6, scale: 0.96 }, { opacity: 1, scale: 1, duration: 0.35, ease: "power3.out" }, 0);
+      tl.fromTo("#panel", { scale: 1 }, { scale: 1.01, duration: 8.65, ease: "none", immediateRender: false }, 0.35);
+
+      // caret blink: 0.4s yoyo, repeat 21 (odd) -> ends 0.2 + 22*0.4 = 9.0 (< fade)
+      tl.fromTo("#caret", { opacity: 1 }, { opacity: 0.15, duration: 0.4, ease: "sine.inOut", yoyo: true, repeat: 21, immediateRender: false }, 0.2);
+
+      // ---- ACT 1: typing, one word at a time ("one word at a time" @0.51, "is this
+      //      real" @2.02) -- word-sized bursts with a pause between words ----
+      // char index ranges per word and their start times (local s)
+      const words = [
+        [0, 4, 0.55],   // chat
+        [5, 7, 1.15],   // is
+        [8, 12, 1.55],  // this
+        [13, 17, 2.02], // real   <- "is this real"
+        [18, 19, 2.75], // 6
+        [20, 21, 3.05], // 7      <- "LARPing" 3.25 lands on the 6 7
+        [22, 27, 4.60], // skibi  <- types then STOPS mid-word (turn)
+      ];
+      const perChar = 0.075;
+      function typeRange(a, b, t0) {
+        for (let i = a; i < b; i++) {
+          const t = t0 + (i - a) * perChar;
+          tl.set(chars[i], { opacity: 1 }, t);
+          tl.set("#caret", { x: caretX[i] - lineLeft }, t);
+        }
+      }
+      // caret rests at the line start until typing begins
+      words.forEach(([a, b, t0]) => typeRange(a, b, t0));
+
+      // shark sprints along under the line while the words come: x 130 -> 400 local
+      // (fromTo carries x AND y in both vars -- seek-renderer rule), with a run-bob.
+      tl.fromTo("#shark", { x: 0 }, { x: 235, duration: 4.4, ease: "none", immediateRender: false }, 0.55);
+      tl.fromTo("#shark", { y: 0 }, { y: -14, duration: 0.16, ease: "sine.inOut", yoyo: true, repeat: 27, immediateRender: false }, 0.55);
+      // 0.55 + 28*0.16 = 5.03 -> done well before the turn's bubble
+
+      // ---- TURN @ ~5.0-6.0: the caret stops mid-word ("doesn't know the end of the
+      //      sentence yet" 4.73-6.0); "idk yet" pops on "yet" ----
+      tl.fromTo("#caret", { scaleY: 1 }, { scaleY: 1.25, duration: 0.12, ease: "power3.out", yoyo: true, repeat: 1, immediateRender: false }, 5.0);
+      tl.fromTo("#bubble", { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.45, ease: "back.out(1.7)", immediateRender: false }, 5.95);
+      tl.fromTo("#bubble", { y: 0 }, { y: -6, duration: 0.6, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 6.5);
+      // shark stops and turns to look (a little hop)
+      tl.fromTo("#shark", { y: 0 }, { y: -30, duration: 0.22, ease: "power2.out", yoyo: true, repeat: 1, immediateRender: false }, 5.95);
+
+      // ---- ACT 2 @ 7.83 "freestyling": bubble out, mic drops, typing resumes ----
+      tl.fromTo("#bubble", { opacity: 1, scale: 1 }, { opacity: 0, scale: 0.7, duration: 0.25, ease: "power3.in", immediateRender: false }, 7.75);
+      tl.fromTo("#mic", { opacity: 0, y: -70, rotation: -25 }, { opacity: 1, y: 0, rotation: 8, duration: 0.42, ease: "power4.in", immediateRender: false }, 7.85);
+      tl.fromTo("#thud", { opacity: 0, scaleX: 0.3 }, { opacity: 1, scaleX: 1, duration: 0.12, ease: "power3.out", immediateRender: false }, 8.27);
+      tl.fromTo("#thud", { opacity: 1 }, { opacity: 0, duration: 0.5, ease: "power2.out", immediateRender: false }, 8.39);
+      tl.fromTo("#mic", { rotation: 8 }, { rotation: -4, duration: 0.18, ease: "power2.out", yoyo: true, repeat: 1, immediateRender: false }, 8.27);
+      // resume: "di" then " fr fr" ("from the dome" 8.47)
+      typeRange(27, 29, 8.30);
+      typeRange(29, 32, 8.55);
+      typeRange(32, 35, 8.80);
+
+      // ---- fade lands EXACTLY at 9.3: 9.0 + 0.3. Leaves fade individually (a
+      //      transformed child can keep compositing under a faded ancestor). ----
+      ["#panel", "#shark", "#mic", "#caret"].forEach((s) =>
+        tl.fromTo(s, { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 9.0)
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

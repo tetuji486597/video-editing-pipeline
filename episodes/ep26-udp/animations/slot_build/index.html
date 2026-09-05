@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP26 build — fire and forget</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* MOTION GRAPHIC over live footage, upper band (brow this beat ~690, zoom-worst
+         ~688 -> everything ends by y=605 incl glow). Ambient drift 1 -> 1.02 about
+         (480,420): top extreme 195 -> 190.5, right extreme 850 -> 857.4 (< 860). */
+      #wrap { position: absolute; inset: 0; transform-origin: 480px 420px; opacity: 0.5; }
+
+      /* hero word */
+      #udp {
+        position: absolute; left: 110px; top: 205px;
+        font-size: 110px; line-height: 110px; font-weight: 900; letter-spacing: 4px;
+        color: #22d3ee;
+        text-shadow: 0 3px 16px rgba(0, 0, 0, 0.85), 0 0 30px rgba(34, 211, 238, 0.45);
+        opacity: 0;
+      }
+
+      /* real Wireshark capture, inset in designed window chrome */
+      #ws-card {
+        position: absolute; left: 480px; top: 195px; width: 360px; height: 150px;
+        border-radius: 12px; background: rgba(8, 12, 20, 0.88);
+        border: 2px solid rgba(148, 163, 184, 0.4);
+        box-shadow: 0 8px 8px rgba(0, 0, 0, 0.45);
+        overflow: hidden; opacity: 0;
+      }
+      #ws-head {
+        height: 30px; display: flex; align-items: center; gap: 8px; padding: 0 12px;
+        background: rgba(30, 41, 59, 0.9); border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+      }
+      .ws-dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(148, 163, 184, 0.5); }
+      #ws-title { font-size: 16px; color: #94a3b8; letter-spacing: 1px; }
+      .ws-crop { position: relative; overflow: hidden; margin: 6px 12px 0 12px; width: 336px; border-radius: 4px; }
+      .ws-crop img { position: absolute; width: 656px; height: 348px; } /* 1366x726 * 0.48 */
+      #ws-crop-list { height: 43px; }   /* src y 100-190 */
+      #ws-crop-list img { left: 0; top: -48px; }
+      #ws-crop-det { height: 26px; }    /* src y 425-480: "Protocols in frame: eth:ip:udp" */
+      #ws-crop-det img { left: 0; top: -204px; }
+      #ws-ring {
+        position: absolute; left: 0; top: 25px; width: 336px; height: 11px;
+        border: 2px solid #fbbf24; border-radius: 3px;
+        box-shadow: 0 0 8px rgba(251, 191, 36, 0.6); opacity: 0;
+      }
+
+      /* the firing lane */
+      #lane {
+        position: absolute; left: 90px; top: 452px; width: 750px; height: 4px;
+        background: linear-gradient(90deg, rgba(148,163,184,0.05), rgba(148,163,184,0.5) 12%, rgba(148,163,184,0.5) 88%, rgba(148,163,184,0.05));
+        border-radius: 2px;
+      }
+      .pkt {
+        position: absolute; left: 0; top: 0; width: 40px; height: 40px;
+        border-radius: 8px; background: rgba(34, 211, 238, 0.85);
+        border: 2px solid rgba(165, 243, 252, 0.75);
+        box-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+        opacity: 0;
+      }
+      .pkt .trail {
+        position: absolute; right: 40px; top: 12px; width: 74px; height: 12px;
+        background: linear-gradient(90deg, rgba(34, 211, 238, 0) 0%, rgba(34, 211, 238, 0.45) 100%);
+        border-radius: 6px;
+      }
+
+      /* the three struck-through chips */
+      .no-chip {
+        position: absolute; top: 500px; width: 220px; height: 86px;
+        border-radius: 14px; background: rgba(6, 10, 18, 0.30);
+        border: 2px solid rgba(248, 113, 113, 0.65);
+        box-shadow: 0 0 12px rgba(239, 68, 68, 0.25);
+        display: flex; align-items: center; justify-content: center; gap: 10px;
+        opacity: 0;
+      }
+      #chip1 { left: 110px; }
+      #chip2 { left: 370px; }
+      #chip3 { left: 630px; }
+      .no-chip .word {
+        font-size: 30px; color: #fecaca; letter-spacing: 2px;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85);
+      }
+      .no-chip .x {
+        font-size: 34px; font-weight: 900; color: #ef4444;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85);
+      }
+      .strike {
+        position: absolute; left: 14px; top: 41px; height: 4px; width: 0px;
+        background: rgba(239, 68, 68, 0.9); border-radius: 2px;
+        box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="5.5" data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="5.5" data-track-index="1">
+        <div id="wrap">
+          <div id="udp" class="mono">UDP</div>
+
+          <div id="ws-card">
+            <div id="ws-head">
+              <div class="ws-dot"></div><div class="ws-dot"></div>
+              <div id="ws-title" class="mono">wireshark &middot; udp.pcap</div>
+            </div>
+            <div class="ws-crop" id="ws-crop-list">
+              <img src="assets/wireshark_udp.png" alt="" data-layout-allow-overflow="true" />
+              <div id="ws-ring"></div>
+            </div>
+            <div class="ws-crop" id="ws-crop-det">
+              <img src="assets/wireshark_udp.png" alt="" data-layout-allow-overflow="true" />
+            </div>
+          </div>
+
+          <div id="lane"></div>
+          <!-- packets built in JS with hard-coded spawn times -->
+
+          <div class="no-chip" id="chip1"><span class="word mono" data-layout-allow-occlusion="true">RECEIPTS</span><span class="x" data-layout-allow-occlusion="true">&#10007;</span><div class="strike"></div></div>
+          <div class="no-chip" id="chip2"><span class="word mono" data-layout-allow-occlusion="true">RESENDS</span><span class="x" data-layout-allow-occlusion="true">&#10007;</span><div class="strike"></div></div>
+          <div class="no-chip" id="chip3"><span class="word mono" data-layout-allow-occlusion="true">WAITING</span><span class="x" data-layout-allow-occlusion="true">&#10007;</span><div class="strike"></div></div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // build 10 packets; #3 (i=2) and #6 (i=5) tumble off the road
+      const wrap = document.getElementById("wrap");
+      const spawns = [0.3, 0.65, 1.0, 1.35, 1.7, 2.05, 2.4, 2.75, 3.1, 3.45];
+      const fallers = { 2: true, 5: true };
+      const pkts = [];
+      for (let i = 0; i < 10; i++) {
+        const d = document.createElement("div");
+        d.className = "pkt";
+        d.id = "pk" + i;
+        d.innerHTML = '<div class="trail"></div>';
+        wrap.appendChild(d);
+        pkts.push(d);
+      }
+
+      // ambient drift under everything (fromTo -- no CSS transform on #wrap, safe)
+      tl.fromTo("#wrap", { scale: 1 }, { scale: 1.02, duration: 5.5, ease: "sine.inOut" }, 0);
+
+      // ---------- entrance at t=0 (frame-0 opacity 0.5 from CSS) ----------
+      tl.fromTo("#wrap", { opacity: 0.5 }, { opacity: 1, duration: 0.35, ease: "power3.out" }, 0);
+
+      // ---------- ACT 1: the stream fires (constant velocity IS the point) ----------
+      const laneY = 432;
+      spawns.forEach((t0, i) => {
+        const sel = "#pk" + i;
+        if (fallers[i]) {
+          // travels to mid-road, tumbles off; the stream never reacts
+          tl.fromTo(sel, { x: 80, y: laneY, opacity: 0 }, { x: 80, y: laneY, opacity: 1, duration: 0.12, ease: "power2.out", immediateRender: false }, t0);
+          tl.to(sel, { x: 450, duration: 0.65, ease: "none" }, t0);
+          tl.to(sel, { x: 530, y: laneY + 118, rotation: 48, opacity: 0.3, duration: 0.45, ease: "power2.in" }, t0 + 0.65);
+        } else {
+          tl.fromTo(sel, { x: 80, y: laneY, opacity: 0 }, { x: 80, y: laneY, opacity: 1, duration: 0.12, ease: "power2.out", immediateRender: false }, t0);
+          tl.to(sel, { x: 800, duration: 1.4, ease: "none" }, t0);
+          tl.to(sel, { opacity: 0, duration: 0.15, ease: "power2.out" }, t0 + 1.25);
+        }
+      });
+
+      // hero word lands ON "UDP" (@ local 0.84)
+      tl.fromTo("#udp", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.6)", immediateRender: false }, 0.84);
+
+      // the real capture card follows (the machine that proves it)
+      tl.fromTo("#ws-card", { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 1.3);
+      tl.fromTo("#ws-ring", { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power2.out", immediateRender: false }, 1.75);
+
+      // ---------- TURN @2.56 ("never look back"): pointed NON-reaction ----------
+      // the fallen packets' ghosts blink out; the stream continues unbroken; one pulse
+      tl.to("#pk2", { opacity: 0, duration: 0.3, ease: "power2.out" }, 2.56);
+      tl.to("#pk5", { opacity: 0, duration: 0.3, ease: "power2.out" }, 3.15);
+      tl.fromTo("#udp", { scale: 1 }, { scale: 1.06, duration: 0.22, ease: "power2.out", immediateRender: false }, 2.56);
+      tl.to("#udp", { scale: 1, duration: 0.3, ease: "power2.out" }, 2.78);
+
+      // ---------- ACT 2: the three refusals, each ON its word ----------
+      // "no receipts" 3.40 / "no resends" 4.04 / "no waiting" 4.68 (>=0.6s apart)
+      [["#chip1", 3.40], ["#chip2", 4.04], ["#chip3", 4.68]].forEach(([sel, t]) => {
+        tl.fromTo(sel, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.28, ease: "power3.out", immediateRender: false }, t);
+        tl.fromTo(sel + " .strike", { width: 0 }, { width: 192, duration: 0.22, ease: "power3.out", immediateRender: false }, t + 0.18);
+      });
+
+      // ---------- fade: finishes at EXACTLY 5.5 (5.2 + 0.3), zero buffer ----------
+      tl.fromTo("#wrap", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 5.2);
+      // transformed leaves fade with it (packets carry x/y transforms; chips carry y)
+      ["#udp", "#chip1", "#chip2", "#chip3"].forEach((s) => {
+        tl.to(s, { opacity: 0, duration: 0.3, ease: "power2.out" }, 5.2);
+      });
+      pkts.forEach((p) => {
+        tl.to("#" + p.id, { opacity: 0, duration: 0.3, ease: "power2.out" }, 5.2);
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

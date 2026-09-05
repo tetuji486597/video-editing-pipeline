@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      html, body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+
+      /* ---- single fade layer for the whole composition ---- */
+      #fade-wrap {
+        position: absolute;
+        inset: 0;
+        opacity: 1;
+      }
+
+      /* ---- push-in stage. origin = content-band centre (552px, 546px) ---- */
+      #stage {
+        position: absolute;
+        inset: 0;
+        transform-origin: 552px 546px;
+      }
+
+      /* =========================================================
+         TOP READOUT BAND  ->  canvas x 60-1020, y 216-368
+         ========================================================= */
+      #readout {
+        position: absolute;
+        left: 60px;
+        top: 216px;
+        width: 960px;
+        height: 152px;
+        border-radius: 20px;
+        background: linear-gradient(
+          100deg,
+          rgba(22, 12, 16, 0.82) 0%,
+          rgba(13, 8, 11, 0.86) 100%
+        );
+        border: 2px solid rgba(148, 163, 184, 0.36);
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.55);
+        opacity: 0.55;
+        transform-origin: 90% 50%;
+      }
+      /* red alarm glow, kept inset so its blur tail cannot breach y=180 */
+      #readout-glow {
+        position: absolute;
+        inset: 3px;
+        border-radius: 17px;
+        box-shadow: 0 0 14px 0 rgba(239, 68, 68, 0.9);
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      /* amount: canvas x 94-534, y 227-357 */
+      #amount {
+        position: absolute;
+        left: 34px;
+        top: 11px;
+        width: 440px;
+        height: 130px;
+        display: flex;
+        align-items: center;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-weight: 700;
+        font-size: 118px;
+        line-height: 130px;
+        letter-spacing: 0px;
+        color: #f8fafc;
+        text-shadow: 0 3px 10px rgba(0, 0, 0, 0.9), 0 0 30px rgba(0, 0, 0, 0.7);
+        white-space: nowrap;
+      }
+
+      /* clock dial: canvas x 620-724, y 240-344 */
+      #clock-wrap {
+        position: absolute;
+        left: 560px;
+        top: 24px;
+        width: 104px;
+        height: 104px;
+        opacity: 0;
+        transform: scale(0.82);
+        transform-origin: 50% 50%;
+      }
+
+      /* time text: canvas x 764-986, y 257-327 */
+      #time {
+        position: absolute;
+        left: 704px;
+        top: 41px;
+        width: 222px;
+        height: 70px;
+        display: flex;
+        align-items: center;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-weight: 600;
+        font-size: 52px;
+        line-height: 70px;
+        color: #fbbf24;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9), 0 0 22px rgba(0, 0, 0, 0.7);
+        white-space: nowrap;
+        opacity: 0;
+      }
+
+      /* =========================================================
+         BLOCKED VERDICT PLATE -> canvas x 190-890, y 220-364
+         (never co-visible with #amount / #clock-wrap / #time)
+         ========================================================= */
+      #stamp {
+        position: absolute;
+        left: 190px;
+        top: 220px;
+        width: 700px;
+        height: 144px;
+        border: 5px solid #ef4444;
+        border-radius: 8px;
+        background: rgba(64, 10, 12, 0.88);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transform: scale(1.12);
+        transform-origin: 50% 50%;
+      }
+      #stamp-glow {
+        position: absolute;
+        inset: 3px;
+        border-radius: 5px;
+        box-shadow: 0 0 10px 1px rgba(239, 68, 68, 0.85);
+        opacity: 0;
+        pointer-events: none;
+      }
+      #stamp span {
+        font-family: Inter, sans-serif;
+        font-weight: 800;
+        font-size: 116px;
+        line-height: 1;
+        letter-spacing: 8px;
+        padding-left: 8px;
+        color: #fee2e2;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85), 0 0 26px rgba(239, 68, 68, 0.5);
+      }
+
+      /* =========================================================
+         GAUGE COLUMN  ->  canvas x 680-1044, y 424-876
+         ========================================================= */
+      #gauge-card {
+        position: absolute;
+        left: 680px;
+        top: 424px;
+        width: 364px;
+        height: 392px;
+        border-radius: 22px;
+        background: linear-gradient(
+          160deg,
+          rgba(20, 12, 16, 0.80) 0%,
+          rgba(11, 7, 10, 0.85) 100%
+        );
+        border: 2px solid rgba(148, 163, 184, 0.32);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+        opacity: 0;
+        transform: translateX(30px) scale(0.94);
+        transform-origin: 50% 40%;
+      }
+      #gauge-glow {
+        position: absolute;
+        inset: 4px;
+        border-radius: 18px;
+        box-shadow: 0 0 20px 2px rgba(239, 68, 68, 0.7);
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      /* gauge svg: canvas x 692-1032, y 448-788 */
+      #gauge-svg {
+        position: absolute;
+        left: 12px;
+        top: 24px;
+        width: 340px;
+        height: 340px;
+      }
+      #g-red { opacity: 0; }
+
+      /* linear track: canvas x 706-1018, y 764-780 */
+      #lin-track {
+        position: absolute;
+        left: 26px;
+        top: 340px;
+        width: 312px;
+        height: 16px;
+        border-radius: 8px;
+        background: rgba(148, 163, 184, 0.18);
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        overflow: hidden;
+      }
+      #lin-fill {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        border-radius: 8px;
+        background: linear-gradient(90deg, #f59e0b, #fbbf24);
+      }
+      #lin-fill-red {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        border-radius: 8px;
+        background: linear-gradient(90deg, #dc2626, #f87171);
+        opacity: 0;
+      }
+      #lin-thresh {
+        position: absolute;
+        left: 224px;
+        top: 0;
+        width: 3px;
+        height: 100%;
+        background: rgba(248, 250, 252, 0.85);
+      }
+
+      /* =========================================================
+         FULL-FRAME EFFECT LAYERS (exempt from the y-band limits)
+         ========================================================= */
+      #flash {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 900px 760px at 58% 26%,
+          rgba(254, 202, 202, 0.95) 0%,
+          rgba(239, 68, 68, 0.55) 45%,
+          rgba(239, 68, 68, 0) 78%
+        );
+        opacity: 0;
+        pointer-events: none;
+      }
+      #grain {
+        position: absolute;
+        inset: 0;
+        opacity: 0.06;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="5.60"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="5.60"
+        data-track-index="1"
+      >
+        <div id="fade-wrap">
+          <div id="stage">
+            <!-- ============ TOP READOUT BAND ============ -->
+            <div id="readout">
+              <div id="readout-glow"></div>
+
+              <div id="amount">$2,000</div>
+
+              <div id="clock-wrap">
+                <svg width="104" height="104" viewBox="0 0 104 104">
+                  <circle
+                    cx="52" cy="52" r="45"
+                    fill="rgba(10,6,9,0.6)"
+                    stroke="rgba(226,232,240,0.55)" stroke-width="3"
+                  />
+                  <!-- 12 static hour ticks (deterministic, hand-listed) -->
+                  <g stroke="rgba(226,232,240,0.55)" stroke-width="3" stroke-linecap="round">
+                    <line x1="52" y1="13" x2="52" y2="21" />
+                    <line x1="71.5" y1="18.2" x2="67.5" y2="25.2" />
+                    <line x1="85.8" y1="32.5" x2="78.8" y2="36.5" />
+                    <line x1="91" y1="52" x2="83" y2="52" />
+                    <line x1="85.8" y1="71.5" x2="78.8" y2="67.5" />
+                    <line x1="71.5" y1="85.8" x2="67.5" y2="78.8" />
+                    <line x1="52" y1="91" x2="52" y2="83" />
+                    <line x1="32.5" y1="85.8" x2="36.5" y2="78.8" />
+                    <line x1="18.2" y1="71.5" x2="25.2" y2="67.5" />
+                    <line x1="13" y1="52" x2="21" y2="52" />
+                    <line x1="18.2" y1="32.5" x2="25.2" y2="36.5" />
+                    <line x1="32.5" y1="18.2" x2="36.5" y2="25.2" />
+                  </g>
+                  <!-- hands: endpoints are written from Math.cos/sin, never GSAP rotation -->
+                  <line
+                    id="hand-hour" x1="52" y1="52" x2="52" y2="29"
+                    stroke="#f8fafc" stroke-width="6" stroke-linecap="round"
+                  />
+                  <line
+                    id="hand-min" x1="52" y1="52" x2="52" y2="19"
+                    stroke="#fbbf24" stroke-width="4" stroke-linecap="round"
+                  />
+                  <circle cx="52" cy="52" r="4.5" fill="#f8fafc" />
+                </svg>
+              </div>
+
+              <div id="time">3:00 AM</div>
+            </div>
+
+            <!-- ============ VERDICT PLATE ============ -->
+            <div id="stamp">
+              <div id="stamp-glow"></div>
+              <span>BLOCKED</span>
+            </div>
+
+            <!-- ============ GAUGE COLUMN ============ -->
+            <div id="gauge-card">
+              <div id="gauge-glow"></div>
+
+              <svg id="gauge-svg" viewBox="0 0 340 340">
+                <!-- track -->
+                <path
+                  d="M 59.15 240 A 128 128 0 1 1 280.85 240"
+                  fill="none" stroke="rgba(148,163,184,0.20)"
+                  stroke-width="22" stroke-linecap="round"
+                />
+                <!-- normal band 0 - 45% -->
+                <path
+                  d="M 59.15 240 A 128 128 0 1 1 280.85 240"
+                  fill="none" stroke="rgba(52,211,153,0.28)"
+                  stroke-width="22" stroke-linecap="butt"
+                  stroke-dasharray="241.28 1000"
+                />
+                <!-- danger band 72% - 100% -->
+                <path
+                  d="M 59.15 240 A 128 128 0 1 1 280.85 240"
+                  fill="none" stroke="rgba(239,68,68,0.34)"
+                  stroke-width="22" stroke-linecap="butt"
+                  stroke-dasharray="0 386.04 150.13 1000"
+                />
+                <!-- threshold tick at 72% (static geometry) -->
+                <line
+                  x1="256.02" y1="110.70" x2="289.48" y2="85.31"
+                  stroke="rgba(248,250,252,0.9)" stroke-width="5" stroke-linecap="round"
+                />
+
+                <!-- amber (Act 1) value arc + needle -->
+                <g id="g-amber">
+                  <path
+                    id="arc-amber"
+                    d="M 59.15 240 A 128 128 0 1 1 280.85 240"
+                    fill="none" stroke="#f59e0b"
+                    stroke-width="22" stroke-linecap="round"
+                    stroke-dasharray="536.17" stroke-dashoffset="536.17"
+                  />
+                  <line
+                    id="ndl-amber" x1="170" y1="176" x2="73.01" y2="232.00"
+                    stroke="#fbbf24" stroke-width="7" stroke-linecap="round"
+                  />
+                </g>
+
+                <!-- red (Act 2) value arc + needle, same geometry -->
+                <g id="g-red">
+                  <path
+                    id="arc-red"
+                    d="M 59.15 240 A 128 128 0 1 1 280.85 240"
+                    fill="none" stroke="#ef4444"
+                    stroke-width="22" stroke-linecap="round"
+                    stroke-dasharray="536.17" stroke-dashoffset="536.17"
+                  />
+                  <line
+                    id="ndl-red" x1="170" y1="176" x2="73.01" y2="232.00"
+                    stroke="#f87171" stroke-width="7" stroke-linecap="round"
+                  />
+                </g>
+
+                <circle cx="170" cy="176" r="15" fill="#0b0709" stroke="#f8fafc" stroke-width="3" />
+              </svg>
+
+              <div id="lin-track">
+                <div id="lin-fill"></div>
+                <div id="lin-fill-red"></div>
+                <div id="lin-thresh"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- full-frame effect layers -->
+          <div id="flash" data-layout-allow-overflow="true"></div>
+          <svg id="grain" width="1080" height="1920" data-layout-allow-overflow="true">
+            <filter id="grain-f" x="0" y="0" width="100%" height="100%">
+              <feTurbulence
+                type="fractalNoise" baseFrequency="0.9"
+                numOctaves="2" stitchTiles="stitch" seed="7"
+              />
+            </filter>
+            <rect width="1080" height="1920" filter="url(#grain-f)" />
+          </svg>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      /* ---------------- gauge: numeric angle -> endpoint coords ---------------- */
+      const ARC_LEN = 536.17;          // 240deg of r=128
+      const CX = 170, CY = 176, NDL_R = 112;
+      const arcAmber = document.getElementById("arc-amber");
+      const arcRed = document.getElementById("arc-red");
+      const ndlAmber = document.getElementById("ndl-amber");
+      const ndlRed = document.getElementById("ndl-red");
+      const linFill = document.getElementById("lin-fill");
+      const linFillRed = document.getElementById("lin-fill-red");
+
+      const gs = { p: 0 };
+
+      function renderGauge() {
+        const p = gs.p;
+        const off = (ARC_LEN * (1 - p)).toFixed(3);
+        arcAmber.style.strokeDashoffset = off;
+        arcRed.style.strokeDashoffset = off;
+
+        // deterministic settling wobble, damped to ~0 as p approaches 1
+        const wob = 1.2 * Math.sin(p * 34) * (1 - p);
+        const deg = 210 - 240 * p + wob;
+        const a = (deg * Math.PI) / 180;
+        const x2 = (CX + NDL_R * Math.cos(a)).toFixed(2);
+        const y2 = (CY - NDL_R * Math.sin(a)).toFixed(2);
+        ndlAmber.setAttribute("x2", x2);
+        ndlAmber.setAttribute("y2", y2);
+        ndlRed.setAttribute("x2", x2);
+        ndlRed.setAttribute("y2", y2);
+
+        const w = (p * 100).toFixed(2) + "%";
+        linFill.style.width = w;
+        linFillRed.style.width = w;
+      }
+      renderGauge(); // matches the CSS/attribute frame-0 state exactly
+
+      /* ---------------- clock: numeric angles -> endpoint coords ---------------- */
+      const CCX = 52, CCY = 52;
+      const handHour = document.getElementById("hand-hour");
+      const handMin = document.getElementById("hand-min");
+      const cs = { h: 90, m: 90 };     // 90deg = pointing up = 12 o'clock
+
+      function renderClock() {
+        const ah = (cs.h * Math.PI) / 180;
+        const am = (cs.m * Math.PI) / 180;
+        handHour.setAttribute("x2", (CCX + 23 * Math.cos(ah)).toFixed(2));
+        handHour.setAttribute("y2", (CCY - 23 * Math.sin(ah)).toFixed(2));
+        handMin.setAttribute("x2", (CCX + 33 * Math.cos(am)).toFixed(2));
+        handMin.setAttribute("y2", (CCY - 33 * Math.sin(am)).toFixed(2));
+      }
+      renderClock();
+
+      /* ================= continuous motion: push-in ================= */
+      /* origin 552,546 -> band top 216 resolves to 207.75, card bottom 876 -> 884.25 */
+      tl.fromTo(
+        "#stage",
+        { scale: 1 },
+        { scale: 1.025, duration: 5.6, ease: "sine.inOut" },
+        0
+      );
+
+      /* ================= ACT 1 ================= */
+      /* 0.00 - band + amount (visible on frame 0 at 0.55 opacity, animates up) */
+      tl.fromTo(
+        "#readout",
+        { opacity: 0.55, x: 26, scale: 0.97 },
+        { opacity: 1, x: 0, scale: 1, duration: 0.45, ease: "power3.out" },
+        0
+      );
+
+      /* 0.70 - clock dial */
+      tl.fromTo(
+        "#clock-wrap",
+        { opacity: 0, scale: 0.82 },
+        {
+          opacity: 1,
+          scale: 1,
+          duration: 0.42,
+          ease: "power3.out",
+          immediateRender: false,
+        },
+        0.7
+      );
+      /* 0.85 - hands spin to 3:00 (hour 90->0, minute 90->-990 == 90 mod 360) */
+      tl.to(
+        cs,
+        {
+          h: 0,
+          m: -990,
+          duration: 1.4,
+          ease: "power2.inOut",
+          onUpdate: renderClock,
+        },
+        0.85
+      );
+
+      /* 1.45 - gauge column */
+      tl.fromTo(
+        "#gauge-card",
+        { opacity: 0, x: 30, scale: 0.94 },
+        {
+          opacity: 1,
+          x: 0,
+          scale: 1,
+          duration: 0.48,
+          ease: "power3.out",
+          immediateRender: false,
+        },
+        1.45
+      );
+
+      /* 2.35 - the time value */
+      tl.fromTo(
+        "#time",
+        { opacity: 0, y: 14 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.4,
+          ease: "power3.out",
+          immediateRender: false,
+        },
+        2.35
+      );
+
+      /* 2.95 - 3.50 : the score builds, still under the threshold */
+      tl.to(
+        gs,
+        { p: 0.44, duration: 0.55, ease: "power1.inOut", onUpdate: renderGauge },
+        2.95
+      );
+
+      /* ================= THE TURN @ 3.55 ================= */
+      /* arc slams past the threshold */
+      tl.to(
+        gs,
+        { p: 0.955, duration: 0.24, ease: "power4.out", onUpdate: renderGauge },
+        3.55
+      );
+      /* colour phase-shift amber -> red */
+      tl.fromTo(
+        "#g-red",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.12, ease: "power4.out", immediateRender: false },
+        3.55
+      );
+      tl.fromTo(
+        "#g-amber",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.12, ease: "power4.out", immediateRender: false },
+        3.55
+      );
+      tl.fromTo(
+        "#lin-fill-red",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.12, ease: "power4.out", immediateRender: false },
+        3.55
+      );
+      /* band goes red */
+      tl.to(
+        "#readout",
+        {
+          borderColor: "rgba(239,68,68,0.95)",
+          duration: 0.12,
+          ease: "power4.out",
+        },
+        3.55
+      );
+      tl.fromTo(
+        "#readout-glow",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.12, ease: "power4.out", immediateRender: false },
+        3.55
+      );
+      tl.to("#readout-glow", { opacity: 0.42, duration: 0.5, ease: "power3.out" }, 3.72);
+      tl.to(
+        "#gauge-card",
+        {
+          borderColor: "rgba(239,68,68,0.9)",
+          duration: 0.12,
+          ease: "power4.out",
+        },
+        3.55
+      );
+      tl.fromTo(
+        "#gauge-glow",
+        { opacity: 0 },
+        { opacity: 0.95, duration: 0.12, ease: "power4.out", immediateRender: false },
+        3.55
+      );
+      tl.to("#gauge-glow", { opacity: 0.45, duration: 0.5, ease: "power3.out" }, 3.72);
+
+      /* red flash - full-frame effect layer, masked away from the caption band */
+      const flash = gsap.timeline();
+      flash
+        .fromTo(
+          "#flash",
+          { opacity: 0 },
+          { opacity: 0.34, duration: 0.05, ease: "power4.out", immediateRender: false }
+        )
+        .to("#flash", { opacity: 0.1, duration: 0.06, ease: "power3.out" })
+        .to("#flash", { opacity: 0.24, duration: 0.05, ease: "power3.out" })
+        .to("#flash", { opacity: 0, duration: 0.16, ease: "power3.out" });
+      tl.add(flash, 3.57); /* ends 3.89 */
+
+      /* ================= ACT 2 ================= */
+      /* 3.95 - 4.12 : the two numbers retire, freeing the band for the verdict */
+      tl.fromTo(
+        "#amount",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.15, ease: "power3.out", immediateRender: false },
+        3.95
+      );
+      tl.fromTo(
+        "#clock-wrap",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.15, ease: "power3.out", immediateRender: false },
+        3.99
+      );
+      tl.fromTo(
+        "#time",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.15, ease: "power3.out", immediateRender: false },
+        3.97
+      );
+
+      /* 4.20 - BLOCKED lands, on the words "flagged or blocked" (output 42.60) */
+      tl.fromTo(
+        "#stamp",
+        { opacity: 0, scale: 1.12 },
+        {
+          opacity: 1,
+          scale: 1,
+          duration: 0.2,
+          ease: "power4.out",
+          immediateRender: false,
+        },
+        4.2
+      );
+      tl.fromTo(
+        "#stamp-glow",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.22, ease: "power3.out", immediateRender: false },
+        4.42
+      );
+
+      /* ambient: one full breathe on the gauge alarm glow.
+         true end = 4.45 + (1+1)*0.4 = 5.25  <  fade start 5.32.  repeat is ODD. */
+      tl.to(
+        "#gauge-glow",
+        { opacity: 0.9, duration: 0.4, ease: "sine.inOut", yoyo: true, repeat: 1 },
+        4.45
+      );
+
+      /* ================= FADE - finishes at exactly 5.600 ================= */
+      tl.fromTo(
+        "#fade-wrap",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.28, ease: "power3.out", immediateRender: false },
+        5.32
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

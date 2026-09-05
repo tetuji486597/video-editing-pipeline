@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP29 TikTok-style Title Box (brainrot intro)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;   /* never a takeover -- the presenter stays visible */
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      /* TikTok's native text sticker: each WRAPPED LINE is its own white rounded box.
+         Centred on x=540 (left:0/right:0/margin:auto) per the EP20-26 directive.
+         Wording (matches the RECORDED intro, which says "...moderation PIPELINES..."):
+         EXPLAINING CONTENT / MODERATION PIPELINES / TO GEN ALPHA / IN 30 SECONDS.
+         "MODERATION PIPELINES" is 20 chars -> whole stack at 44px (0.66 px/char/px
+         -> 29px/char -> ~581px text + 52 padding = ~633px box, under the 660 cap).
+         4 boxes x (44 + 42 padding = 86) + 3 x 12 = 380px -> y 210..590 (<690 brow).
+         --- original sizing notes below (written for the 50px / "MODERATION TO" cut) ---
+         "GEN ALPHA IN 30 SECONDS" (23 chars) cannot fit 660px at any legible size,
+         so it is split -> FOUR boxes. "EXPLAINING CONTENT" (18 chars) at Inter 800
+         56px measures ~667px text (EP25's 16-char line = 593px @56 -> 37px/char),
+         over the 660px cap even before padding, so the whole stack runs at 50px:
+         18 x 33.1 = ~596 + 2x26 padding = ~648px box -> x = 540 +- 324 = 216..864,
+         drift 1.01 about the top-centre origin -> 540 +- 327 = 213..867 (<=870).
+         Vertical: 4 boxes x (50 line + 20 + 22 padding = 92) + 3 x 12 gap = 404px;
+         top 210 -> 210..614 (x1.01 drift about top -> 618). INTRO take grid-measured:
+         hair top ~170, brow ~690 (zoom 1.0->1.08 about (540,730) moves the brow to
+         ~687). Stack sits over hair/forehead only, clears the brow by ~69px. */
+      #stack {
+        position: absolute;
+        left: 0;
+        right: 0;
+        margin: 0 auto;
+        top: 210px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        /* Frame-0 state from CSS -- tl.set() at position 0 never fires. */
+        opacity: 0.6;
+        transform: scale(0.94);
+        transform-origin: 50% 0%;
+      }
+      .tt-line {
+        background: #ffffff;
+        color: #111111;
+        font-size: 44px;
+        line-height: 44px;
+        font-weight: 800;
+        letter-spacing: -1px;
+        padding: 20px 26px 22px 26px;
+        border-radius: 16px;
+        white-space: nowrap;
+        /* soft shadow only; reach 1.6*16 = ~26px, far inside every band */
+        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.22);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="3.2"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="3.2"
+        data-track-index="1"
+      >
+        <div id="stack">
+          <div class="tt-line">EXPLAINING CONTENT</div>
+          <div class="tt-line">MODERATION PIPELINES</div>
+          <div class="tt-line">TO GEN ALPHA</div>
+          <div class="tt-line">IN 30 SECONDS</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // The four lines are ONE sticker -- they land together.
+      tl.fromTo(
+        "#stack",
+        { opacity: 0.6, scale: 0.94 },
+        { opacity: 1, scale: 1, duration: 0.28, ease: "power3.out" },
+        0
+      );
+
+      // Imperceptible drift so the motion linter's seek check advances. fromTo, not
+      // .to(), to avoid gsap_css_transform_conflict with the CSS transform.
+      tl.fromTo(
+        "#stack",
+        { scale: 1 },
+        { scale: 1.01, duration: 2.64, ease: "none", immediateRender: false },
+        0.28
+      );
+
+      // Fade FINISHES at exactly data-duration, zero buffer: 2.92 + 0.28 = 3.200.
+      tl.fromTo(
+        "#stack",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.28, ease: "power2.out", immediateRender: false },
+        2.92
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

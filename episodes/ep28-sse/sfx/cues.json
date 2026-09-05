@@ -1,0 +1,194 @@
+{
+ "video": "final_nosfx.mp4",
+ "out": "final.mp4",
+ "cues": [
+  {
+   "at": 0.25,
+   "sfx": "tt_click_trim",
+   "vol": 1.73,
+   "why": "INTRO: sticker pops"
+  },
+  {
+   "at": 3.6,
+   "sfx": "tt_keyboard_trim",
+   "vol": 1.22,
+   "why": "HOOK: the chat UI starts typing word by word"
+  },
+  {
+   "at": 6.38,
+   "sfx": "br_tralalero",
+   "vol": 0.77,
+   "why": "HOOK: Tralalero sprints alongside the cursor on 'is this real'"
+  },
+  {
+   "at": 8.09,
+   "sfx": "tt_bruh",
+   "vol": 0.26,
+   "why": "HOOK voice meme right after 'LARPing'"
+  },
+  {
+   "at": 9.9,
+   "sfx": "tt_record_scratch",
+   "vol": 0.67,
+   "why": "HOOK: the cursor stops mid-word, 'idk yet' bubble on 'doesn't know the end'"
+  },
+  {
+   "at": 12.82,
+   "sfx": "tt_vine_boom",
+   "vol": 0.14,
+   "why": "HOOK: mic-drop on 'from the dome'"
+  },
+  {
+   "at": 16.74,
+   "sfx": "riser",
+   "vol": 0.5,
+   "why": "PROBLEM: the spinner riser lands just before the first 'sixty-seven'"
+  },
+  {
+   "at": 16.74,
+   "sfx": "br_six_seven",
+   "vol": 0.18,
+   "why": "PROBLEM: 6-7 snippet on the first 'sixty-seven seconds' + LaMelo pop"
+  },
+  {
+   "at": 19.5,
+   "sfx": "br_six_seven_voice",
+   "vol": 1.28,
+   "why": "PROBLEM: kid-voice 'six seven!' on the second 'sixty-seven seconds' + LaMelo pop"
+  },
+  {
+   "at": 21.0,
+   "sfx": "tt_wrong_buzzer",
+   "vol": 0.22,
+   "why": "PROBLEM: the tab's X gets smashed on 'close the tab'"
+  },
+  {
+   "at": 21.05,
+   "sfx": "tt_error_glitch",
+   "vol": 0.37,
+   "why": "PROBLEM: browser window flies off-frame"
+  },
+  {
+   "at": 22.85,
+   "sfx": "br_touch_grass",
+   "vol": 0.69,
+   "why": "PROBLEM voice meme (Halo announcer) right after 'touch grass'; grass strip rises"
+  },
+  {
+   "at": 24.5,
+   "sfx": "br_sybau",
+   "vol": 0.26,
+   "why": "PROBLEM voice meme: SYBAU chip slams after 'Psy bow' (acoustic end 24.47)"
+  },
+  {
+   "at": 25.4,
+   "sfx": "swoosh_elec",
+   "vol": 0.5,
+   "why": "BUILD: MODEL -> PIPE -> phone assembles"
+  },
+  {
+   "at": 27.7,
+   "sfx": "tt_swoosh",
+   "vol": 0.38,
+   "why": "BUILD: first word launches down the pipe"
+  },
+  {
+   "at": 28.3,
+   "sfx": "pop_bubble",
+   "vol": 0.5,
+   "why": "BUILD: word 2 lands on the phone"
+  },
+  {
+   "at": 29.0,
+   "sfx": "tt_bubble_pop",
+   "vol": 0.3,
+   "why": "BUILD: word 3 lands"
+  },
+  {
+   "at": 29.7,
+   "sfx": "pop_balloon",
+   "vol": 0.14,
+   "why": "BUILD: word 4 lands"
+  },
+  {
+   "at": 31.72,
+   "sfx": "ding",
+   "vol": 0.26,
+   "why": "BUILD: the pipe glows OPEN on 'stays open'"
+  },
+  {
+   "at": 33.16,
+   "sfx": "tt_sparkle_trim",
+   "vol": 1.38,
+   "why": "BUILD: words keep falling on 'falling down it'"
+  },
+  {
+   "at": 36.15,
+   "sfx": "tt_camera_shutter",
+   "vol": 1.14,
+   "why": "NEW_COMPONENT: SERVER-SENT EVENTS headline lands"
+  },
+  {
+   "at": 37.7,
+   "sfx": "tt_whoosh",
+   "vol": 0.29,
+   "why": "NEW_COMPONENT: the one-way arrow slams on 'one direction'"
+  },
+  {
+   "at": 41.02,
+   "sfx": "br_skibidi_toilet",
+   "vol": 0.29,
+   "why": "NEW_COMPONENT: Skibidi Toilet + Cameraman yap both ways on 'both ways'"
+  },
+  {
+   "at": 43.6,
+   "sfx": "br_amongus_reveal",
+   "vol": 0.39,
+   "why": "NEW_COMPONENT: the NPC crewmate reveal on 'NPC listening'"
+  },
+  {
+   "at": 47.78,
+   "sfx": "tt_correct_ding",
+   "vol": 0.31,
+   "why": "NEW_COMPONENT: FIRST WORD 0.5s lands on 'half a second'"
+  },
+  {
+   "at": 49.64,
+   "sfx": "tt_click_trim",
+   "vol": 1.57,
+   "why": "NEW_COMPONENT: 'that was fast' brain chip"
+  },
+  {
+   "at": 51.74,
+   "sfx": "br_six_seven",
+   "vol": 0.19,
+   "why": "NEW_COMPONENT: deliberate 6-7 anchor repeat on the third 'sixty-seven' + LaMelo pop"
+  },
+  {
+   "at": 54.36,
+   "sfx": "br_rizz",
+   "vol": 0.16,
+   "why": "NEW_COMPONENT: AURA meter ticks on 'aura farming'"
+  },
+  {
+   "at": 55.88,
+   "sfx": "tt_notif_trim",
+   "vol": 0.56,
+   "why": "PAYOFF: the first-word cursor chip on 'first word right away'"
+  },
+  {
+   "at": 57.56,
+   "sfx": "drip",
+   "vol": 0.18,
+   "why": "PAYOFF: bed-rot chip on 'bed rot'"
+  },
+  {
+   "at": 60.58,
+   "sfx": "bass_drop",
+   "vol": 0.07,
+   "why": "PAYOFF: 'billion posts' tease beat"
+  }
+ ],
+ "_note": "EP28. 31 cues / 29 distinct (br_six_seven twice on purpose, tt_click_trim twice: sticker + brain chip). Voice memes: tralalero, bruh, six_seven_voice, touch_grass, sybau, skibidi_toilet.",
+ "_vol_note": "Brainrot edition: br_* volumes from sfx_shared/BRAINROT_SFX_NOTES.md (voice memes already carry the x1.25 bump), tt_*/legacy from TIKTOK_SFX_NOTES.md. Rules: no repeated sound within an episode except the deliberate 6-7 anchor; voice memes placed just AFTER the presenter's own word, >=1.5s apart, never over his punchline; bass-heavy files <=0.45 and never within 1s of each other. br_diabolical (uncensored) deliberately NOT used."
+}

@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP25 problem — release-day takeover</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .fill { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* TAKEOVER. Push-in: #scene scale 1 -> 1.05, transform-origin (480px, 730px).
+         Design box for ALL text/UI: x 80-840, y 210-1250. Worst-case post-push:
+           x=80  -> 480-(400*1.05)  = 60.0   (>= 60)
+           x=840 -> 480+(360*1.05)  = 858.0  (<= 860)
+           y=210 -> 730-(520*1.05)  = 184.0  (>= 180)
+           y=1250-> 730+(520*1.05)  = 1276.0 (<= 1280)
+         #bg-fill / #vignette / #flash / #dither are full-frame and exempt. */
+
+      #bg-fill { background: radial-gradient(120% 90% at 50% 10%, #17191d 0%, #0b0c0f 45%, #050607 82%, #030405 100%); }
+      #glow-grey {
+        position: absolute; left: 50%; top: 30%;
+        width: 1300px; height: 1300px; transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(148, 163, 184, 0.10) 0%, rgba(148, 163, 184, 0) 62%);
+      }
+      #glow-red {
+        position: absolute; left: 50%; top: 74%;
+        width: 1500px; height: 1500px; transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(239, 68, 68, 0.22) 0%, rgba(239, 68, 68, 0) 60%);
+        opacity: 0;
+      }
+      #vignette { background: linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 14%, rgba(0,0,0,0) 78%, rgba(0,0,0,0.65) 100%); }
+
+      #scene { transform-origin: 480px 730px; }
+
+      /* ---------- ACT 1: the wall calendar ---------- */
+      #calendar {
+        position: absolute; left: 190px; top: 240px; width: 580px; height: 540px;
+        border-radius: 18px; overflow: hidden;
+        background: linear-gradient(178deg, #eceff3 0%, #dfe3e9 100%);
+        box-shadow: 0 26px 60px rgba(0, 0, 0, 0.55);
+        transform-origin: 62% 68%;
+        opacity: 0.55;            /* frame-0 state from CSS; entrance tween at t=0 */
+        filter: saturate(1) brightness(1);   /* identity -- never tween filter from none */
+      }
+      #cal-header {
+        position: absolute; left: 0; right: 0; top: 0; height: 90px;
+        background: #3f4653; display: flex; align-items: center; justify-content: center;
+        color: #e8ebf0; font-size: 40px; font-weight: 800; letter-spacing: 10px;
+      }
+      #cal-grid {
+        position: absolute; left: 24px; right: 24px; top: 114px; bottom: 24px;
+        display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: repeat(5, 1fr);
+        gap: 4px;
+      }
+      .day {
+        border: 1px solid rgba(63, 70, 83, 0.18); border-radius: 6px;
+        color: #4d5563; font-size: 22px; padding: 6px 0 0 8px; opacity: 0;
+      }
+      /* red ring around the release date cell (r4c5 of the grid) + stamped tag.
+         Children of #calendar, so every zoom/recede transform moves them together. */
+      #ring-svg { position: absolute; left: 300px; top: 336px; width: 120px; height: 100px; overflow: visible; }
+      #ring {
+        fill: none; stroke: #dc2626; stroke-width: 5; stroke-linecap: round;
+      }
+      #release-tag {
+        position: absolute; left: 300px; top: 442px;
+        padding: 10px 20px; border-radius: 10px;
+        background: #dc2626; color: #ffffff; font-size: 34px; font-weight: 800;
+        letter-spacing: 2px; white-space: nowrap;
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4);
+        opacity: 0; transform-origin: 50% 50%;
+      }
+
+      /* ---------- the bundle: change chips -> one giant crate ---------- */
+      #months-chip {
+        position: absolute; left: 0; right: 120px; top: 820px; text-align: center;
+        color: #cbd5e1; font-size: 30px; font-weight: 700; letter-spacing: 4px;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8); opacity: 0;
+      }
+      #crate {
+        position: absolute; left: 330px; top: 910px; width: 300px; height: 240px;
+        border-radius: 10px;
+        background: linear-gradient(165deg, #6b4f2e 0%, #4e3920 55%, #3a2a17 100%);
+        border: 3px solid #2c2012;
+        box-shadow: 0 20px 46px rgba(0, 0, 0, 0.55);
+        transform-origin: 50% 100%;
+        opacity: 0;
+      }
+      .slat { position: absolute; left: 0; right: 0; height: 4px; background: rgba(20, 14, 7, 0.55); }
+      #crate .s1 { top: 58px; } #crate .s2 { top: 118px; } #crate .s3 { top: 178px; }
+      #crate .diag {
+        position: absolute; left: -30px; top: 116px; width: 360px; height: 6px;
+        background: rgba(20, 14, 7, 0.4); transform: rotate(38deg);
+      }
+      .chgchip {
+        position: absolute; left: 0; top: 0; width: 54px; height: 54px; border-radius: 8px;
+        background: rgba(100, 116, 139, 0.85); border: 2px solid rgba(203, 213, 225, 0.6);
+        opacity: 0;
+      }
+
+      /* ---------- the deploy lever ---------- */
+      #lever { position: absolute; left: 690px; top: 900px; width: 150px; height: 250px; opacity: 0; }
+      #lever-base {
+        position: absolute; left: 35px; top: 190px; width: 80px; height: 34px;
+        border-radius: 8px; background: #3f4653; border: 2px solid #565f70;
+      }
+      #lever-arm {
+        position: absolute; left: 68px; top: 50px; width: 14px; height: 150px;
+        border-radius: 7px; background: linear-gradient(#94a3b8, #64748b);
+        transform-origin: 50% 100%;   /* pivots at the base -- an HTML div with real
+                                         width/height, NOT an SVG line (rule 13 safe) */
+      }
+      #lever-knob {
+        position: absolute; left: -12px; top: -30px; width: 38px; height: 38px;
+        border-radius: 50%; background: #dc2626; border: 3px solid #7f1d1d;
+      }
+
+      /* ---------- ACT 2: tightrope over production ---------- */
+      #rope-svg { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: visible; }
+      #rope { fill: none; stroke: #cbd5e1; stroke-width: 5; stroke-linecap: round; opacity: 0.9; }
+      .post { position: absolute; width: 16px; height: 16px; border-radius: 50%; background: #94a3b8; opacity: 0; }
+      #post-l { left: 112px; top: 1052px; } #post-r { left: 832px; top: 1052px; }
+      #prod-label {
+        position: absolute; left: 0; right: 120px; top: 1150px; text-align: center;
+        color: rgba(248, 113, 113, 0.85); font-size: 28px; font-weight: 700; letter-spacing: 8px;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8); opacity: 0;
+      }
+
+      /* ---------- the risk gauge (act 2) ---------- */
+      #gauge { position: absolute; left: 600px; top: 300px; width: 240px; height: 300px; opacity: 0; }
+      #gauge svg { overflow: visible; }
+      #risk-label {
+        position: absolute; left: 0; right: 0; top: 268px; text-align: center;
+        color: #fca5a5; font-size: 30px; font-weight: 800; letter-spacing: 8px;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+      }
+
+      #flash { background: #ffffff; opacity: 0; pointer-events: none; }
+      #dither { opacity: 1; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="7.00" data-width="1080" data-height="1920">
+      <section id="main-clip" class="clip" data-start="0" data-duration="7.00" data-track-index="1">
+        <div id="content-all" class="fill">
+          <div id="bg-fill" class="fill">
+            <div id="glow-grey"></div>
+            <div id="glow-red"></div>
+            <div id="vignette" class="fill"></div>
+          </div>
+
+          <div id="scene" class="fill">
+            <!-- ACT 1 (grey): calendar + bundle-into-crate -->
+            <div id="calendar">
+              <div id="cal-header">OCTOBER</div>
+              <div id="cal-grid"></div>
+              <svg id="ring-svg" viewBox="0 0 120 100">
+                <ellipse id="ring" cx="60" cy="50" rx="52" ry="40" />
+              </svg>
+              <div id="release-tag">RELEASE DAY</div>
+            </div>
+
+            <div id="months-chip" class="mono">6 MONTHS OF CHANGES</div>
+
+            <div id="crate">
+              <div class="slat s1"></div><div class="slat s2"></div><div class="slat s3"></div>
+              <div class="diag"></div>
+            </div>
+            <div class="chgchip" id="ch1"></div>
+            <div class="chgchip" id="ch2"></div>
+            <div class="chgchip" id="ch3"></div>
+            <div class="chgchip" id="ch4"></div>
+            <div class="chgchip" id="ch5"></div>
+
+            <div id="lever">
+              <div id="lever-arm"><div id="lever-knob"></div></div>
+              <div id="lever-base"></div>
+            </div>
+
+            <!-- ACT 2 (red): tightrope over production + pinned risk gauge -->
+            <svg id="rope-svg" viewBox="0 0 1080 1920">
+              <path id="rope" d="M120,1060 Q480,1082 840,1060" />
+            </svg>
+            <div class="post" id="post-l"></div>
+            <div class="post" id="post-r"></div>
+            <div id="prod-label">P R O D</div>
+
+            <div id="gauge">
+              <svg viewBox="0 0 240 300" width="240" height="300">
+                <path d="M 37.7 237.5 A 95 95 0 1 1 202.3 237.5" fill="none" stroke="rgba(148,163,184,0.35)" stroke-width="14" stroke-linecap="round" />
+                <path d="M 187.2 122.8 A 95 95 0 0 1 202.3 237.5" fill="none" stroke="rgba(239,68,68,0.85)" stroke-width="14" stroke-linecap="round" />
+                <line id="needle" x1="120" y1="190" x2="40" y2="140" stroke="#f8fafc" stroke-width="7" stroke-linecap="round" />
+                <circle cx="120" cy="190" r="12" fill="#e2e8f0" />
+              </svg>
+              <div id="risk-label">RISK</div>
+            </div>
+          </div>
+
+          <div id="flash" class="fill"></div>
+          <div id="dither" class="fill"></div>
+        </div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter" x="0%" y="0%" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.045 0" />
+      </filter>
+    </svg>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      document.getElementById("dither").style.filter = "url(#grain-filter)";
+
+      // deterministic calendar grid: 35 cells, days 1..31 then 4 blanks
+      const grid = document.getElementById("cal-grid");
+      for (let i = 0; i < 35; i++) {
+        const d = document.createElement("div");
+        d.className = "day";
+        d.textContent = i < 31 ? String(i + 1) : "";
+        grid.appendChild(d);
+      }
+
+      // ring draw setup (deterministic, measured at load)
+      const ring = document.getElementById("ring");
+      const ringLen = ring.getTotalLength();
+      ring.style.strokeDasharray = String(ringLen);
+      ring.style.strokeDashoffset = String(ringLen);
+      const rope = document.getElementById("rope");
+      const ropeLen = rope.getTotalLength();
+      rope.style.strokeDasharray = String(ropeLen);
+      rope.style.strokeDashoffset = String(ropeLen);
+
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // camera push-in across the whole beat (bounds arithmetic in the CSS header)
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.05, duration: 7.0, ease: "sine.inOut" }, 0);
+
+      // ---------- ACT 1 (grey): calendar lands at t=0 ----------
+      tl.fromTo("#calendar", { opacity: 0.55, y: 14 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0);
+      tl.to(".day", { opacity: 1, duration: 0.25, ease: "power2.out", stagger: 0.012 }, 0.45);
+
+      // bundle: change chips fly into the crate — lands on "months of changes"
+      // (abs 14.31-15.17 = local 1.21-2.07)
+      tl.fromTo("#crate", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out", immediateRender: false }, 0.6);
+      tl.fromTo("#months-chip", { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 1.15);
+      const chipPaths = [
+        { sel: "#ch1", fx: 60,  fy: 700,  t: 0.75 },
+        { sel: "#ch2", fx: 900, fy: 760,  t: 1.00 },
+        { sel: "#ch3", fx: 40,  fy: 1180, t: 1.25 },
+        { sel: "#ch4", fx: 920, fy: 1160, t: 1.50 },
+        { sel: "#ch5", fx: 480, fy: 1330, t: 1.75 },
+      ]; // targets converge on the crate mouth (453, 960)
+      chipPaths.forEach((c) => {
+        tl.fromTo(c.sel,
+          { x: c.fx, y: c.fy, opacity: 0, scale: 1 },
+          { x: 453, y: 960, opacity: 0.95, scale: 0.5, duration: 0.45, ease: "power2.in", immediateRender: false },
+          c.t);
+        tl.to(c.sel, { opacity: 0, duration: 0.08, ease: "power1.out" }, c.t + 0.45);
+        tl.fromTo("#crate", { scale: 1 }, { scale: 1.03, duration: 0.09, ease: "power2.out", immediateRender: false }, c.t + 0.45);
+        tl.to("#crate", { scale: 1, duration: 0.14, ease: "power2.out" }, c.t + 0.54);
+      });
+
+      // ominous zoom onto the circled date — lands on "release day" (abs 16.43 = local 3.33)
+      tl.fromTo("#calendar", { scale: 1 }, { scale: 1.08, duration: 0.7, ease: "power2.inOut", immediateRender: false }, 2.6);
+      tl.to("#ring", { strokeDashoffset: 0, duration: 0.45, ease: "power2.inOut" }, 2.9);
+      tl.fromTo("#release-tag",
+        { opacity: 0, scale: 1.6 },
+        { opacity: 1, scale: 1, duration: 0.3, ease: "power4.out", immediateRender: false },
+        3.35);
+
+      // ---------- TURN: the lever is pulled; hard flash; grey -> red ----------
+      tl.fromTo("#lever", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 3.9);
+      // HTML div rotation with a real bbox + explicit pivot (rule-13-safe; not an SVG line)
+      tl.fromTo("#lever-arm", { rotation: 0 }, { rotation: 62, duration: 0.28, ease: "power4.in", immediateRender: false }, 4.5);
+      tl.fromTo("#flash", { opacity: 0 }, { opacity: 0.9, duration: 0.06, ease: "power3.out", immediateRender: false }, 4.78);
+      tl.to("#flash", { opacity: 0, duration: 0.25, ease: "power3.out" }, 4.84);
+
+      // phase shift to red; act-1 props dim/recede
+      tl.to("#glow-red", { opacity: 0.85, duration: 0.4, ease: "power2.out" }, 4.8);
+      tl.to("#glow-grey", { opacity: 0.3, duration: 0.5, ease: "power2.out" }, 4.8);
+      tl.to("#calendar", {
+        scale: 0.78, x: -180, y: -20, opacity: 0.10,
+        filter: "saturate(0.4) brightness(0.6)",
+        duration: 0.6, ease: "power3.out",
+      }, 4.85);   // 0.10: first render at 0.22 read as a blank grey slab, not a ghost
+      tl.to("#months-chip", { opacity: 0, duration: 0.3, ease: "power2.out" }, 4.85);
+      // text on the receded card goes fully out (unreadable-by-design text may not stay
+      // at a sampled 0.22 opacity — the ghost card keeps only paper/grid/ring)
+      tl.to([".day", "#cal-header", "#release-tag"], { opacity: 0, duration: 0.35, ease: "power2.out" }, 4.85);
+      // fully out -- at 0.15 it tangled visually with the rope's right anchor
+      tl.to("#lever", { opacity: 0, duration: 0.4, ease: "power2.out" }, 4.9);
+
+      // ---------- ACT 2 (red): the crate wobbles on a tightrope over PROD ----------
+      tl.to("#rope", { strokeDashoffset: 0, duration: 0.4, ease: "power2.out" }, 4.9);
+      tl.to(".post", { opacity: 0.9, duration: 0.25, ease: "power2.out" }, 5.05);
+      tl.fromTo("#prod-label", { opacity: 0 }, { opacity: 1, duration: 0.35, ease: "power2.out", immediateRender: false }, 5.15);
+      // crate onto the rope: scale 0.72 about its bottom-centre origin, bottom lands on y=1060
+      tl.to("#crate", { scale: 0.72, y: -79, duration: 0.6, ease: "power2.inOut" }, 5.0);
+      // wobble: fromTo 0->3 yoyo, ODD repeat so it lands back on base; ends 6.64 < 6.70
+      tl.fromTo("#crate", { rotation: 0 }, { rotation: 3, duration: 0.26, ease: "sine.inOut", yoyo: true, repeat: 3, immediateRender: false }, 5.6);
+
+      // risk gauge sweeps and PINS — lands on "big … risk" (abs 19.71-20.18 = local 6.61-7.08)
+      tl.fromTo("#gauge", { opacity: 0, y: -14 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 5.2);
+      // rule 13: never GSAP-rotate a degenerate-bbox SVG line — tween a plain angle and
+      // write the needle endpoint via trig every frame instead.
+      const needle = document.getElementById("needle");
+      const sweep = { a: 212 };   // degrees; 212 = rest (low), -28 = pinned (max)
+      const setNeedle = () => {
+        const r = (sweep.a * Math.PI) / 180;
+        needle.setAttribute("x2", String(120 + 95 * Math.cos(r)));
+        needle.setAttribute("y2", String(190 - 95 * Math.sin(r)));
+      };
+      setNeedle();
+      tl.to(sweep, { a: -20, duration: 1.2, ease: "power2.in", onUpdate: setNeedle }, 5.45);
+      tl.to(sweep, { a: -26, duration: 0.1, ease: "power2.out", onUpdate: setNeedle }, 6.65);
+      // ambient red pulse; yoyo odd repeat, ends 6.60 < 6.70
+      tl.fromTo("#glow-red", { opacity: 0.85 }, { opacity: 0.6, duration: 0.6, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 5.4);
+
+      // ---------- fade: FINISHES at exactly 7.000 (6.70 + 0.30) ----------
+      tl.fromTo("#content-all", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 6.7);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

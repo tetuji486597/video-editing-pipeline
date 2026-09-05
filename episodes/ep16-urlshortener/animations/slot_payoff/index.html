@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body {
+        font-family: Inter, sans-serif;
+      }
+
+      /* ---------------------------------------------------------------
+         BACKGROUND GROUP -- NOT an opaque takeover. EP16 has already
+         spent both of its takeovers (slot_problem, slot_new_component),
+         so this photo card sits OVER the live footage: a localized
+         radial scrim that falls to zero alpha at the frame edges, and
+         the whole group is masked off before the burned-in caption band.
+         --------------------------------------------------------------- */
+      #bg-group {
+        position: absolute;
+        inset: 0;
+        -webkit-mask-image: linear-gradient(
+          to bottom,
+          #000 0 1180px,
+          transparent 1300px
+        );
+        mask-image: linear-gradient(
+          to bottom,
+          #000 0 1180px,
+          transparent 1300px
+        );
+      }
+
+      #scrim {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 760px 660px at 50% 42%,
+          rgba(4, 11, 18, 0.88) 0%,
+          rgba(4, 11, 18, 0.84) 42%,
+          rgba(4, 11, 18, 0.55) 68%,
+          rgba(4, 11, 18, 0.18) 86%,
+          rgba(4, 11, 18, 0) 100%
+        );
+      }
+
+      /* Not inset:0 -- an explicitly-bounded blob layer (y = 230..1170),
+         so it is a background accent rather than a full-frame overlay. */
+      #glow {
+        position: absolute;
+        left: 60px;
+        top: 230px;
+        width: 960px;
+        height: 940px;
+        opacity: 1;
+        background:
+          radial-gradient(
+            ellipse 520px 300px at 32% 22%,
+            rgba(20, 148, 160, 0.3) 0%,
+            rgba(20, 148, 160, 0) 100%
+          ),
+          radial-gradient(
+            ellipse 460px 260px at 70% 82%,
+            rgba(180, 120, 30, 0.2) 0%,
+            rgba(180, 120, 30, 0) 100%
+          );
+      }
+
+      #vignette {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 700px 820px at 50% 46%,
+          rgba(0, 0, 0, 0) 0%,
+          rgba(0, 0, 0, 0) 48%,
+          rgba(2, 6, 10, 0.42) 80%,
+          rgba(2, 6, 10, 0.72) 100%
+        );
+      }
+
+      #grain {
+        position: absolute;
+        inset: 0;
+        opacity: 0.045;
+      }
+
+      /* ---------------------------------------------------------------
+         HEADLINE -- one line, 3 words, 124px.
+         Box y = 220 .. 358.9   (line-height 1.12 -> 138.88px)
+         --------------------------------------------------------------- */
+      #headline {
+        position: absolute;
+        left: 0;
+        top: 220px;
+        width: 1080px;
+        text-align: center;
+        font-size: 124px;
+        line-height: 1.12;
+        font-weight: 800;
+        letter-spacing: -2px;
+        white-space: nowrap;
+        color: #f8fafc;
+        opacity: 0;
+        text-shadow:
+          0 2px 8px rgba(0, 0, 0, 0.9),
+          0 0 20px rgba(0, 0, 0, 0.75),
+          0 0 24px rgba(3, 12, 20, 0.6);
+      }
+
+      /* ---------------------------------------------------------------
+         PHOTO CARD -- real TinyURL product surface.
+         #card-drift carries the slow drift (scale 1 -> 1.03, y 0 -> -10)
+         about its OWN centre. #card carries the entrance + the fade.
+         Box at rest y = 452 .. 970,  x = 120 .. 960.
+         --------------------------------------------------------------- */
+      #card-drift {
+        position: absolute;
+        left: 120px;
+        top: 452px;
+        width: 840px;
+        height: 518px;
+        transform-origin: 50% 50%;
+      }
+      #card {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 840px;
+        height: 518px;
+        border-radius: 22px;
+        overflow: hidden;
+        border: 2px solid rgba(56, 189, 248, 0.32);
+        background: #041826;
+        opacity: 0.55;
+        transform: scale(0.985);
+        transform-origin: 50% 50%;
+        box-shadow:
+          0 12px 30px rgba(0, 0, 0, 0.62),
+          0 0 28px rgba(34, 197, 194, 0.22);
+      }
+      #card img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: 50% 50%;
+        filter: brightness(1.06) contrast(1.03) saturate(1.05);
+      }
+      #card-sheen {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: linear-gradient(
+          172deg,
+          rgba(255, 255, 255, 0.07) 0%,
+          rgba(255, 255, 255, 0) 38%,
+          rgba(0, 0, 0, 0.22) 100%
+        );
+      }
+
+      /* ---------------------------------------------------------------
+         THE SWAP SLOT -- the costume, then the number underneath.
+         #int  box y = 1070 .. 1204.4   (112px, line-height 1.2)
+         #pill box y = 1060 .. 1210,  x = 48 .. 1032
+         --------------------------------------------------------------- */
+      #int {
+        position: absolute;
+        left: 0;
+        top: 1070px;
+        width: 1080px;
+        text-align: center;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 112px;
+        line-height: 1.2;
+        font-weight: 700;
+        letter-spacing: 0;
+        white-space: nowrap;
+        color: #fcd34d;
+        opacity: 0;
+        transform-origin: 50% 50%;
+        text-shadow:
+          0 3px 12px rgba(0, 0, 0, 0.92),
+          0 0 22px rgba(0, 0, 0, 0.8),
+          0 0 26px rgba(251, 191, 36, 0.35);
+      }
+
+      #pill {
+        position: absolute;
+        left: 48px;
+        top: 1060px;
+        width: 984px;
+        height: 150px;
+        border-radius: 75px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(180deg, #0e2230 0%, #071420 100%);
+        border: 2px solid rgba(45, 212, 191, 0.5);
+        opacity: 0;
+        transform-origin: 50% 50%;
+        box-shadow:
+          0 10px 26px rgba(0, 0, 0, 0.6),
+          inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      }
+      #code {
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 76px;
+        font-weight: 600;
+        letter-spacing: 0;
+        white-space: nowrap;
+        color: #6ee7d7;
+        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.85);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="5.600"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="5.600"
+        data-track-index="1"
+      >
+        <div id="bg-group" data-layout-allow-overflow="true">
+          <div id="scrim"></div>
+          <div id="glow"></div>
+          <div id="vignette"></div>
+          <svg id="grain" width="1080" height="1920" aria-hidden="true">
+            <filter id="grain-f" x="0" y="0" width="100%" height="100%">
+              <feTurbulence
+                type="fractalNoise"
+                baseFrequency="0.82"
+                numOctaves="3"
+                seed="7"
+                stitchTiles="stitch"
+              />
+            </filter>
+            <rect width="1080" height="1920" filter="url(#grain-f)" />
+          </svg>
+        </div>
+
+        <div id="headline">Just A Number</div>
+
+        <div id="card-drift">
+          <div id="card">
+            <img src="assets/tinyurl_ui.jpg" alt="" />
+            <div id="card-sheen"></div>
+          </div>
+        </div>
+
+        <div id="int" data-layout-allow-occlusion="true">3,084,478,806</div>
+        <div id="pill" data-layout-allow-occlusion="true">
+          <span id="code">tinyurl.com/3mK9Qa</span>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      /* ------------------------------------------------------------------
+         t = 0.00  slow drift under everything (one-shot, never repeats).
+         transform-origin is the card's OWN centre, so the push-in is
+         symmetric about y = 711 rather than about the frame centre.
+         ------------------------------------------------------------------ */
+      tl.to(
+        "#card-drift",
+        { scale: 1.03, y: -10, duration: 5.6, ease: "sine.inOut" },
+        0
+      );
+
+      /* t = 0.00  PRIMARY ENTRANCE -- starts at 0.55 opacity, never 0. */
+      tl.fromTo(
+        "#card",
+        { opacity: 0.55, scale: 0.985 },
+        { opacity: 1, scale: 1, duration: 0.75, ease: "power3.out" },
+        0
+      );
+
+      /* t = 0.50  ambient life: background glow breathes.
+         repeat:3 (ODD) -> 4 iterations -> lands back on the CSS base of 1.
+         true end = 0.50 + 4 * 1.10 = 4.90, comfortably before the fade. */
+      tl.to(
+        "#glow",
+        {
+          opacity: 0.78,
+          duration: 1.1,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 3,
+        },
+        0.5
+      );
+
+      /* t = 0.62  the costume settles on. */
+      tl.fromTo(
+        "#pill",
+        { opacity: 0, y: 20 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.5,
+          ease: "power3.out",
+          immediateRender: false,
+        },
+        0.62
+      );
+
+      /* ------------------------------------------------------------------
+         THE TURN -- t = 1.75 .. 2.33, inside "just a number wearing a
+         costume" (local 0.97 - 2.35). The code lifts off and dissolves;
+         the plain integer rises into the slot it vacated.
+         ------------------------------------------------------------------ */
+      tl.fromTo(
+        "#pill",
+        { opacity: 1, y: 0, scale: 1 },
+        {
+          opacity: 0,
+          y: -26,
+          scale: 1.035,
+          duration: 0.45,
+          ease: "power3.out",
+          immediateRender: false,
+        },
+        1.75
+      );
+
+      tl.fromTo(
+        "#int",
+        { opacity: 0, y: 14, scale: 0.985 },
+        {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.48,
+          ease: "power3.out",
+          immediateRender: false,
+        },
+        1.85
+      );
+
+      /* t = 2.95  the headline settles in and names it. */
+      tl.fromTo(
+        "#headline",
+        { opacity: 0, y: 16 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.65,
+          ease: "power3.out",
+          immediateRender: false,
+        },
+        2.95
+      );
+
+      /* ------------------------------------------------------------------
+         FINAL FADE -- applied to LEAVES, explicit fromTo {opacity:1},
+         starts 5.30, duration 0.30, FINISHES at exactly 5.600.
+         #pill is excluded: it is already at opacity 0 from the lift-off.
+         ------------------------------------------------------------------ */
+      tl.fromTo(
+        ["#scrim", "#glow", "#vignette", "#grain", "#headline", "#card", "#int"],
+        { opacity: 1 },
+        {
+          opacity: 0,
+          duration: 0.3,
+          ease: "power3.out",
+          immediateRender: false,
+        },
+        5.3
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

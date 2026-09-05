@@ -1,0 +1,74 @@
+{
+  "video": "final_nosfx.mp4",
+  "out": "final.mp4",
+  "cues": [
+    {
+      "at": 1.86,
+      "sfx": "tt_vine_boom",
+      "vol": 0.3,
+      "why": "HOOK: the 200-char URL collapsing to six characters"
+    },
+    {
+      "at": 9.82,
+      "sfx": "tt_record_scratch",
+      "vol": 0.517,
+      "why": "PROBLEM: the truncation blade -- hashing is the wrong answer"
+    },
+    {
+      "at": 10.36,
+      "sfx": "tt_wrong_buzzer",
+      "vol": 0.293,
+      "why": "PROBLEM: the COLLISION badge landing"
+    },
+    {
+      "at": 18.1,
+      "sfx": "tt_bubble_pop",
+      "vol": 0.447,
+      "why": "BUILD: counter tick 'one'"
+    },
+    {
+      "at": 18.46,
+      "sfx": "tt_bubble_pop",
+      "vol": 0.447,
+      "why": "BUILD: counter tick 'two'"
+    },
+    {
+      "at": 18.76,
+      "sfx": "tt_bubble_pop",
+      "vol": 0.447,
+      "why": "BUILD: counter tick 'three'"
+    },
+    {
+      "at": 20.3,
+      "sfx": "tt_swoosh",
+      "vol": 0.503,
+      "why": "BUILD: the number dropping into the Base62 encoder"
+    },
+    {
+      "at": 28.22,
+      "sfx": "tt_vine_boom",
+      "vol": 0.3,
+      "why": "NEW_COMPONENT: the hero 62 slamming in -- the episode's biggest reveal"
+    },
+    {
+      "at": 36.34,
+      "sfx": "tt_sheesh",
+      "vol": 0.38,
+      "why": "SCALE: six characters cover over fifty billion links"
+    },
+    {
+      "at": 39.55,
+      "sfx": "tt_correct_ding",
+      "vol": 0.75,
+      "why": "REDIRECT: the lookup resolving to 301"
+    },
+    {
+      "at": 43.65,
+      "sfx": "tt_sparkle_trim",
+      "vol": 0.72,
+      "why": "PAYOFF: the short code lifting off the integer"
+    }
+  ],
+  "_vol_note": "Volumes derived from each file's measured mean level, partially normalised (k=0.6) toward -18 dB so a 32 dB spread across the set does not make hot files dominate and quiet ones vanish. sparkle/vine_boom/bass_drop carry stated manual overrides.",
+  "_meme_note": "Voice meme tt_sheesh placed at 36.34 in place of tt_bass_drop, per request. One per episode, on the beat whose narration the meme actually matches."
+}

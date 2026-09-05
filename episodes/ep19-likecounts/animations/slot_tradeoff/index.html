@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+
+      :root {
+        --cyan: #22d3ee;
+        --cyan-lt: #67e8f9;
+        --amber: #f59e0b;
+        --amber-lt: #fbbf24;
+      }
+
+      #root { position: relative; width: 1080px; height: 1920px; }
+      .fill { position: absolute; inset: 0; }
+
+      /* ================= BACKGROUND STACK — all SIBLINGS, never nested,
+         so no fade multiplies into another fade ================= */
+      #bg-fill {
+        background: radial-gradient(125% 88% at 50% 34%, #131820 0%, #0b0f14 40%, #06080b 76%, #020304 100%);
+      }
+      #glow-cyan {
+        position: absolute;
+        left: 50%; top: 700px;
+        width: 1500px; height: 1500px;
+        margin-left: -750px; margin-top: -750px;
+        background: radial-gradient(circle, rgba(34, 211, 238, 0.155) 0%, rgba(34, 211, 238, 0) 62%);
+      }
+      #glow-amber {
+        position: absolute;
+        left: 50%; top: 1030px;
+        width: 1500px; height: 1500px;
+        margin-left: -750px; margin-top: -750px;
+        background: radial-gradient(circle, rgba(245, 158, 11, 0.16) 0%, rgba(245, 158, 11, 0) 60%);
+        opacity: 0;
+      }
+      #vignette {
+        background:
+          radial-gradient(ellipse 780px 900px at 50% 40%,
+            rgba(0,0,0,0) 0%, rgba(0,0,0,0) 46%, rgba(3,4,6,0.55) 78%, rgba(2,3,5,0.94) 100%),
+          linear-gradient(to bottom,
+            rgba(0,0,0,0.52) 0%, rgba(0,0,0,0) 12%, rgba(0,0,0,0) 66%, rgba(0,0,0,0.80) 100%);
+      }
+
+      /* ================= SCENE — push-in + the ACT-1 / ACT-2 grade =================
+         Explicit identity-ish filter declared in CSS so the grade tween never
+         starts from a computed `none` (which GSAP reads as brightness(0)). */
+      #scene {
+        transform-origin: 540px 732px;
+        filter: grayscale(0.22) contrast(0.92) brightness(0.96) saturate(0.82);
+      }
+
+      /* ---------- axis header (y 380-444) ---------- */
+      .axis {
+        position: absolute;
+        top: 380px;
+        width: 360px;
+        height: 64px;
+        font-size: 56px;
+        line-height: 64px;
+        font-weight: 700;
+        letter-spacing: 6px;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+        white-space: nowrap;
+        opacity: 0.5;
+      }
+      #axis-speed    { left: 150px; text-align: left;  color: #67e8f9; }
+      #axis-accuracy { left: 570px; text-align: right; color: #fbbf24; }
+
+      /* ---------- shared slider chrome ---------- */
+      .track {
+        position: absolute;
+        left: 150px;
+        width: 780px;
+        height: 16px;
+        border-radius: 8px;
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.78);
+        background:
+          repeating-linear-gradient(90deg,
+            rgba(255,255,255,0.14) 0 2px, rgba(255,255,255,0) 2px 78px),
+          linear-gradient(90deg,
+            rgba(34,211,238,0.10) 0%, rgba(148,163,184,0.05) 50%, rgba(245,158,11,0.10) 100%);
+      }
+      .fillbar {
+        position: absolute;
+        left: 152px;
+        height: 12px;
+        width: 388px;
+        border-radius: 6px;
+      }
+      .handle {
+        position: absolute;
+        left: 505px;
+        width: 70px;
+        height: 96px;
+        border-radius: 20px;
+      }
+      .handle::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 26px;
+        width: 2px;
+        height: 44px;
+        margin-left: -1px;
+        background: rgba(6, 12, 18, 0.5);
+        border-radius: 1px;
+      }
+      .thumb-label {
+        position: absolute;
+        font-size: 64px;
+        line-height: 72px;
+        font-weight: 800;
+        letter-spacing: 2px;
+        text-align: center;
+      }
+
+      /* ---------- SLIDER 1 — LIKES (cyan) ---------- */
+      #track1 { top: 688px; opacity: 0.5; }
+      #fill1 {
+        top: 690px;
+        background: linear-gradient(90deg, rgba(34,211,238,0.9) 0%, rgba(103,232,249,0.6) 100%);
+        box-shadow: 0 0 18px rgba(34, 211, 238, 0.4);
+        opacity: 0.5;
+      }
+      #handle1 {
+        top: 648px;
+        background: linear-gradient(180deg, #eafcff 0%, #7dd3fc 100%);
+        border: 2px solid rgba(103, 232, 249, 0.92);
+        box-shadow: 0 0 26px 3px rgba(34, 211, 238, 0.42);
+        opacity: 0.5;
+      }
+      #label1 {
+        left: 410px; top: 548px; width: 260px; height: 72px;
+        color: #e9fbff;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.85), 0 0 26px rgba(34,211,238,0.35);
+        opacity: 0.5;
+      }
+
+      /* ---------- SLIDER 2 — BANK BALANCE (amber) ---------- */
+      #track2 { top: 1028px; opacity: 0; }
+      #fill2 {
+        top: 1030px;
+        background: linear-gradient(90deg, rgba(245,158,11,0.6) 0%, rgba(251,191,36,0.9) 100%);
+        box-shadow: 0 0 18px rgba(245, 158, 11, 0.4);
+        opacity: 0;
+      }
+      #handle2 {
+        top: 988px;
+        background: linear-gradient(180deg, #fff8e6 0%, #fbbf24 100%);
+        border: 2px solid rgba(251, 191, 36, 0.92);
+        box-shadow: 0 0 26px 3px rgba(245, 158, 11, 0.42);
+        opacity: 0;
+      }
+      #label2 {
+        left: 370px; top: 816px; width: 340px; height: 144px;
+        color: #fff4da;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.85), 0 0 26px rgba(245,158,11,0.35);
+        opacity: 0;
+      }
+
+      /* ---------- full-frame effect layers (exempt from the y-band) ---------- */
+      #grain { pointer-events: none; }
+      #flash { background: #eaf6ff; opacity: 0; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="6.90"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="main-clip" class="clip" data-start="0" data-duration="6.90" data-track-index="1">
+        <!-- background: siblings, never nested -->
+        <div id="bg-fill" class="fill"></div>
+        <div id="glow-cyan" data-layout-allow-overflow="true"></div>
+        <div id="glow-amber" data-layout-allow-overflow="true"></div>
+        <div id="vignette" class="fill"></div>
+
+        <!-- content -->
+        <div id="scene" class="fill">
+          <div id="axis-speed" class="axis">SPEED</div>
+          <div id="axis-accuracy" class="axis">ACCURACY</div>
+
+          <div id="track1" class="track"></div>
+          <div id="fill1" class="fillbar"></div>
+          <div id="handle1" class="handle"></div>
+          <div id="label1" class="thumb-label">LIKES</div>
+
+          <div id="track2" class="track"></div>
+          <div id="fill2" class="fillbar"></div>
+          <div id="handle2" class="handle"></div>
+          <div id="label2" class="thumb-label">BANK<br />BALANCE</div>
+        </div>
+
+        <div id="grain" class="fill"></div>
+        <div id="flash" class="fill"></div>
+      </section>
+    </div>
+
+    <!-- static deterministic grain; filter REGION PINNED so feTurbulence cannot
+         generate outside the element (default -10%/120% would paint the caption band) -->
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter" x="0%" y="0%" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" seed="7" result="noise" />
+        <feColorMatrix in="noise" type="matrix"
+          values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.042 0" />
+      </filter>
+    </svg>
+
+    <script>
+      document.getElementById("grain").style.filter = "url(#grain-filter)";
+
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      /* =====================================================================
+         FRAME-0 CONTRACT — every state below comes from CSS, never from tl.set()
+         (a set at position 0 never fires in this renderer).
+           #bg-fill 1 · #glow-cyan 1 · #glow-amber 0 · #vignette 1 · #grain 1
+           #axis-speed .5 · #axis-accuracy .5 · #track1 .5 · #fill1 .5 (w 388)
+           #handle1 .5 (x 0) · #label1 .5 (x 0)
+           #track2 0 · #fill2 0 (w 388) · #handle2 0 · #label2 0
+           #flash 0
+           #scene  transform-origin 540px 732px, ACT-1 grade filter
+         Consequence: EVERY fromTo at position > 0 carries immediateRender:false,
+         otherwise its from-vars get stamped onto frame 0 at build time.
+         ===================================================================== */
+
+      const D = 6.9;
+      const FADE_AT = 6.60, FADE_DUR = 0.30;   // 6.60 + 0.30 = 6.90 exactly
+
+      const GRADE_ACT1 = "grayscale(0.22) contrast(0.92) brightness(0.96) saturate(0.82)";
+      const GRADE_ACT2 = "grayscale(0) contrast(1.28) brightness(1.06) saturate(1.10)";
+
+      // ---- continuous camera push-in (origin pinned to the content band centre) ----
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.05, duration: D, ease: "sine.inOut" }, 0);
+
+      /* ============ OPENING STATE @ t=0 — axis + slider 1 all rise from 0.5 ======
+         One composed opening state, not a stack of reveals. Nothing is at
+         opacity 0 on frame 0. Different durations give it internal life. */
+      tl.fromTo("#axis-speed",    { opacity: 0.5 }, { opacity: 1, duration: 0.50, ease: "power3.out" }, 0);
+      tl.fromTo("#axis-accuracy", { opacity: 0.5 }, { opacity: 1, duration: 0.60, ease: "power3.out" }, 0);
+      tl.fromTo("#track1",        { opacity: 0.5 }, { opacity: 1, duration: 0.55, ease: "power3.out" }, 0);
+      tl.fromTo("#fill1",         { opacity: 0.5 }, { opacity: 1, duration: 0.65, ease: "power3.out" }, 0);
+      tl.fromTo("#handle1",       { opacity: 0.5 }, { opacity: 1, duration: 0.70, ease: "power3.out" }, 0);
+      tl.fromTo("#label1",        { opacity: 0.5 }, { opacity: 1, duration: 0.80, ease: "power3.out" }, 0);
+
+      /* ============ ACT 1 — LIKES is pushed hard toward SPEED @ 1.05 ============ */
+      // handle centre 540 -> 300 ; fill right edge follows it
+      tl.fromTo("#handle1", { x: 0 }, { x: -240, duration: 0.55, ease: "power4.out", immediateRender: false }, 1.05);
+      tl.fromTo("#label1",  { x: 0 }, { x: -240, duration: 0.55, ease: "power4.out", immediateRender: false }, 1.05);
+      tl.fromTo("#fill1", { width: 388 }, { width: 148, duration: 0.55, ease: "power4.out", immediateRender: false }, 1.05);
+
+      // ambient life on the cyan handle. repeat:3 = 4 iterations (ODD repeat, yoyo
+      // lands back on the base). true end = 1.75 + 4*0.9 = 5.35 < 6.60 fade start.
+      tl.fromTo("#handle1",
+        { boxShadow: "0 0 26px 3px rgba(34,211,238,0.42)" },
+        { boxShadow: "0 0 40px 8px rgba(34,211,238,0.75)",
+          duration: 0.9, ease: "sine.inOut", yoyo: true, repeat: 3, immediateRender: false },
+        1.75);
+
+      /* ================= THE TURN @ 3.20 — slider snap + hard contrast cut ====== */
+      // 1. the snap: handle1 slams into the SPEED end stop (centre 300 -> 212)
+      tl.fromTo("#handle1", { x: -240 }, { x: -328, duration: 0.16, ease: "power4.out", immediateRender: false }, 3.20);
+      tl.fromTo("#label1",  { x: -240 }, { x: -328, duration: 0.16, ease: "power4.out", immediateRender: false }, 3.20);
+      tl.fromTo("#fill1", { width: 148 }, { width: 60, duration: 0.16, ease: "power4.out", immediateRender: false }, 3.20);
+
+      // 2. the contrast cut — 0.08s ~= 2 frames, reads as a cut, never from `none`
+      tl.fromTo("#scene", { filter: GRADE_ACT1 }, { filter: GRADE_ACT2, duration: 0.08, ease: "power4.out", immediateRender: false }, 3.20);
+
+      // 3. impact flash (full-frame effect layer)
+      tl.fromTo("#flash", { opacity: 0 }, { opacity: 0.55, duration: 0.05, ease: "power4.out", immediateRender: false }, 3.20);
+      tl.fromTo("#flash", { opacity: 0.55 }, { opacity: 0, duration: 0.24, ease: "power2.out", immediateRender: false }, 3.25);
+
+      // 4. colour phase-shift, cyan act -> amber act
+      tl.fromTo("#glow-cyan",  { opacity: 1 }, { opacity: 0.30, duration: 0.40, ease: "power3.out", immediateRender: false }, 3.20);
+      tl.fromTo("#glow-amber", { opacity: 0 }, { opacity: 1,    duration: 0.40, ease: "power3.out", immediateRender: false }, 3.20);
+
+      // 5. end-stop recoil (centre 212 -> 228, final pin = 78px from the SPEED end)
+      tl.fromTo("#handle1", { x: -328 }, { x: -312, duration: 0.24, ease: "power2.out", immediateRender: false }, 3.38);
+      tl.fromTo("#label1",  { x: -328 }, { x: -312, duration: 0.24, ease: "power2.out", immediateRender: false }, 3.38);
+      tl.fromTo("#fill1", { width: 60 }, { width: 76, duration: 0.24, ease: "power2.out", immediateRender: false }, 3.38);
+
+      /* ============ ACT 2 — the mirror: BANK BALANCE pinned at ACCURACY ======== */
+      // reveal 2 @ 3.90 (3.90s after the opening state)
+      tl.fromTo("#track2", { opacity: 0 }, { opacity: 1, duration: 0.55, ease: "power3.out", immediateRender: false }, 3.90);
+
+      // reveal 3 @ 4.60 (0.70s later) — thumb2 as one component, internal stagger
+      tl.fromTo("#handle2", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out", immediateRender: false }, 4.60);
+      tl.fromTo("#fill2",   { opacity: 0 },        { opacity: 1, duration: 0.42, ease: "power3.out", immediateRender: false }, 4.60);
+      tl.fromTo("#label2",  { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.44, ease: "power3.out", immediateRender: false }, 4.76);
+
+      // the mirrored slam: centre 540 -> 868, lands 5.47
+      tl.fromTo("#handle2", { x: 0 }, { x: 328, duration: 0.42, ease: "power4.out", immediateRender: false }, 5.05);
+      tl.fromTo("#label2",  { x: 0 }, { x: 328, duration: 0.42, ease: "power4.out", immediateRender: false }, 5.05);
+      tl.fromTo("#fill2", { width: 388 }, { width: 716, duration: 0.42, ease: "power4.out", immediateRender: false }, 5.05);
+
+      // end-stop recoil -> final pin at centre 852 = 78px from the ACCURACY end,
+      // the exact mirror of handle1's 78px from the SPEED end. Resolved at 5.69,
+      // 0.14s before "opposite treatment" at LOCAL 5.83 / output 52.13.
+      tl.fromTo("#handle2", { x: 328 }, { x: 312, duration: 0.22, ease: "power2.out", immediateRender: false }, 5.47);
+      tl.fromTo("#label2",  { x: 328 }, { x: 312, duration: 0.22, ease: "power2.out", immediateRender: false }, 5.47);
+      tl.fromTo("#fill2", { width: 716 }, { width: 700, duration: 0.22, ease: "power2.out", immediateRender: false }, 5.47);
+
+      // ambient life on the amber handle. repeat:1 = 2 iterations (ODD repeat).
+      // true end = 5.75 + 2*0.40 = 6.55 < 6.60 fade start.
+      tl.fromTo("#handle2",
+        { boxShadow: "0 0 26px 3px rgba(245,158,11,0.42)" },
+        { boxShadow: "0 0 40px 8px rgba(245,158,11,0.75)",
+          duration: 0.40, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false },
+        5.75);
+
+      /* ===================== FINAL FADE — 6.60 -> 6.90 exactly =================
+         One fromTo per VISIBLE LEAF. No wrapper is faded: #scene carries the
+         push-in + grade and is deliberately excluded, and the background layers
+         are siblings so no two fades multiply. #flash is excluded (already 0).
+         power2.out: only the very last frame is near-zero, so there is neither a
+         dead frame nor a hard cut into slot_payoff at output 53.200. */
+      [
+        ["#bg-fill", 1],
+        ["#glow-cyan", 0.30],   // post-turn value
+        ["#glow-amber", 1],
+        ["#vignette", 1],
+        ["#grain", 1],
+        ["#axis-speed", 1],
+        ["#axis-accuracy", 1],
+        ["#track1", 1],
+        ["#fill1", 1],
+        ["#handle1", 1],
+        ["#label1", 1],
+        ["#track2", 1],
+        ["#fill2", 1],
+        ["#handle2", 1],
+        ["#label2", 1],
+      ].forEach(function (pair) {
+        tl.fromTo(pair[0], { opacity: pair[1] },
+          { opacity: 0, duration: FADE_DUR, ease: "power2.out", immediateRender: false }, FADE_AT);
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

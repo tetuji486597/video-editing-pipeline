@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body {
+        font-family: Inter, sans-serif;
+      }
+
+      /* ==========================================================
+         EP18 slot_hook — TRANSPARENT BAND. Linework + type only.
+         NO #bg-fill, no full-frame wash, no vignette, no grain:
+         every one of those would raise alpha across the whole
+         frame and turn this into a takeover by measurement.
+
+         Measured on draft_18A.mp4 (720x1280 -> x1.5):
+           hair top      ~ y=285 (worst case of 5 sampled frames)
+           hairline      ~ y=645
+           eyebrows      ~ y=765
+           chin bottom   ~ y=1295
+         => the only band that clears the FACE is y=180..640.
+            Everything here lives in 232..606 and overlaps hair
+            only. Eyes / nose / mouth are never covered.
+         ========================================================== */
+
+      :root {
+        --cyan: #22d3ee;
+        --cyan-lt: #67e8f9;
+        --amber: #fbbf24;
+      }
+
+      /* ---------- headline: "A whole relay race" ---------- */
+      #headline {
+        position: absolute;
+        left: 0;
+        top: 238px;
+        width: 1080px;
+        height: 110px;
+        text-align: center;
+        white-space: nowrap;
+        font-size: 110px;
+        line-height: 110px;
+        font-weight: 700;
+        letter-spacing: -2.5px;
+        color: #eaf7fb;
+        /* max blur 16px -> 1.6x reach = 25.6px. 238-25.6 = 212.4 > 180 */
+        text-shadow: 0 2px 3px rgba(0, 0, 0, 0.92), 0 0 10px rgba(0, 0, 0, 0.88),
+          0 0 16px rgba(2, 18, 26, 0.85);
+        /* frame-0 state from CSS — primary entrance begins at t=0, not from 0 */
+        opacity: 0.55;
+      }
+
+      /* ---------- the relay track ----------
+         SVG box y 380..580, viewBox min-y 380 -> SVG user units == canvas px.
+         Track line y = 462.  Nodes cx = 120 / 330 / 540 / 750 / 960.
+         Widest vertical extent inside: 420.5 .. 503.5 (pulse ring r40 + 3px stroke)
+      */
+      #track-svg {
+        position: absolute;
+        left: 0;
+        top: 380px;
+        width: 1080px;
+        height: 200px;
+        overflow: visible;
+      }
+
+      /* dark contrast stroke so the linework reads over live footage */
+      #base-dark {
+        fill: none;
+        stroke: rgba(3, 10, 18, 0.5);
+        stroke-width: 14;
+        stroke-linecap: butt;
+      }
+      #base-dim {
+        fill: none;
+        stroke: rgba(148, 163, 184, 0.58);
+        stroke-width: 4;
+        stroke-linecap: butt;
+      }
+      #run-glow {
+        fill: none;
+        stroke: rgba(34, 211, 238, 0.34);
+        stroke-width: 18;
+        stroke-linecap: butt;
+        opacity: 0;
+      }
+      #run-line {
+        fill: none;
+        stroke: #22d3ee;
+        stroke-width: 6;
+        stroke-linecap: butt;
+        opacity: 0;
+      }
+
+      .node-halo {
+        fill: none;
+        stroke: rgba(34, 211, 238, 0.22);
+        stroke-width: 12;
+        opacity: 0;
+      }
+      .node-ring {
+        fill: rgba(6, 18, 26, 0.3);
+        stroke: rgba(103, 232, 249, 0.88);
+        stroke-width: 4;
+        opacity: 0;
+      }
+      .node-core {
+        fill: #22d3ee;
+        opacity: 0;
+      }
+      .node-pulse {
+        fill: none;
+        stroke: rgba(103, 232, 249, 0.9);
+        stroke-width: 3;
+        opacity: 0;
+      }
+
+      /* the baton — a real 44x28 capsule. Moved with translateX only.
+         NEVER a GSAP rotation on a degenerate <line>. */
+      #baton-halo {
+        fill: rgba(251, 191, 36, 0.3);
+        opacity: 0;
+      }
+      #baton {
+        fill: #fbbf24;
+        stroke: rgba(255, 255, 255, 0.55);
+        stroke-width: 2;
+        opacity: 0;
+      }
+
+      /* ---------- the two node labels — the ONLY other type ---------- */
+      .node-label {
+        position: absolute;
+        top: 566px;
+        width: 240px;
+        height: 40px;
+        text-align: center;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 32px;
+        line-height: 40px;
+        font-weight: 700;
+        letter-spacing: 4px;
+        color: #67e8f9;
+        /* max blur 12px -> reach 19.2px -> top 546.8, bottom 625.2 */
+        text-shadow: 0 2px 3px rgba(0, 0, 0, 0.92), 0 0 8px rgba(0, 0, 0, 0.9),
+          0 0 12px rgba(2, 18, 26, 0.85);
+        opacity: 0;
+      }
+      /* centred on node 1 (cx=120) and node 5 (cx=960) */
+      #label-enter {
+        left: 0px;
+      }
+      #label-paint {
+        left: 840px;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="5.60"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="5.60"
+        data-track-index="1"
+      >
+        <div id="headline">A whole relay race</div>
+
+        <svg id="track-svg" viewBox="0 380 1080 200">
+          <!-- base track: dark contrast stroke + dim rail, drawn together -->
+          <path
+            id="base-dark"
+            class="base-stroke"
+            d="M120 462 H960"
+            stroke-dasharray="840"
+            stroke-dashoffset="840"
+          />
+          <path
+            id="base-dim"
+            class="base-stroke"
+            d="M120 462 H960"
+            stroke-dasharray="840"
+            stroke-dashoffset="840"
+          />
+
+          <!-- the lit "run" the baton leaves behind it -->
+          <path
+            id="run-glow"
+            class="run-stroke"
+            d="M120 462 H960"
+            stroke-dasharray="840"
+            stroke-dashoffset="840"
+          />
+          <path
+            id="run-line"
+            class="run-stroke"
+            d="M120 462 H960"
+            stroke-dasharray="840"
+            stroke-dashoffset="840"
+          />
+
+          <!-- five hand-off nodes -->
+          <circle id="halo1" class="node-halo" cx="120" cy="462" r="34" />
+          <circle id="halo2" class="node-halo" cx="330" cy="462" r="34" />
+          <circle id="halo3" class="node-halo" cx="540" cy="462" r="34" />
+          <circle id="halo4" class="node-halo" cx="750" cy="462" r="34" />
+          <circle id="halo5" class="node-halo" cx="960" cy="462" r="34" />
+
+          <circle id="ring1" class="node-ring" cx="120" cy="462" r="6" />
+          <circle id="ring2" class="node-ring" cx="330" cy="462" r="6" />
+          <circle id="ring3" class="node-ring" cx="540" cy="462" r="6" />
+          <circle id="ring4" class="node-ring" cx="750" cy="462" r="6" />
+          <circle id="ring5" class="node-ring" cx="960" cy="462" r="6" />
+
+          <circle id="core1" class="node-core" cx="120" cy="462" r="13" />
+          <circle id="core2" class="node-core" cx="330" cy="462" r="13" />
+          <circle id="core3" class="node-core" cx="540" cy="462" r="13" />
+          <circle id="core4" class="node-core" cx="750" cy="462" r="13" />
+          <circle id="core5" class="node-core" cx="960" cy="462" r="13" />
+
+          <circle id="pulse1" class="node-pulse" cx="120" cy="462" r="24" />
+          <circle id="pulse2" class="node-pulse" cx="330" cy="462" r="24" />
+          <circle id="pulse3" class="node-pulse" cx="540" cy="462" r="24" />
+          <circle id="pulse4" class="node-pulse" cx="750" cy="462" r="24" />
+          <circle id="pulse5" class="node-pulse" cx="960" cy="462" r="24" />
+
+          <!-- the baton, parked on node 1 -->
+          <rect
+            id="baton-halo"
+            class="baton-part"
+            x="92"
+            y="442"
+            width="56"
+            height="40"
+            rx="20"
+          />
+          <rect
+            id="baton"
+            class="baton-part"
+            x="98"
+            y="448"
+            width="44"
+            height="28"
+            rx="14"
+          />
+        </svg>
+
+        <div id="label-enter" class="node-label">ENTER</div>
+        <div id="label-paint" class="node-label">PAINT</div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      /* All frame-0 state comes from CSS / markup attributes.
+         There is no tl.set() anywhere — a set at position 0 never fires. */
+
+      /* =================== ACT 1 — the track draws itself ===================
+         0.00  headline entrance (from opacity .55 in CSS, never 0 on frame 0)
+         0.70  the rail draws left -> right, planting five nodes as it passes
+         1.85  ENTER names the start of the race
+      */
+
+      // fromTo at t=0: immediateRender stamps opacity .55 / y 16 onto frame 0,
+      // which is exactly the required frame-0 state (never 0 on frame 0).
+      tl.fromTo(
+        "#headline",
+        { opacity: 0.55, y: 16 },
+        { opacity: 1, y: 0, duration: 0.65, ease: "power3.out" },
+        0
+      );
+
+      // rail draw 0.70 -> 1.75, power2.inOut
+      tl.to(
+        ".base-stroke",
+        {
+          attr: { "stroke-dashoffset": 0 },
+          duration: 1.05,
+          ease: "power2.inOut",
+        },
+        0.7
+      );
+
+      // node rings pop exactly where/when the drawing tip reaches them
+      // (power2.inOut solved for x = 120 / 330 / 540 / 750 / 960)
+      const RING_T = [0.72, 1.07, 1.23, 1.38, 1.75];
+      RING_T.forEach((t, i) => {
+        tl.to(
+          "#ring" + (i + 1),
+          {
+            attr: { r: 26 },
+            opacity: 1,
+            duration: 0.35,
+            ease: "power3.out",
+          },
+          t
+        );
+      });
+
+      tl.fromTo(
+        "#label-enter",
+        { opacity: 0, y: 12 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.45,
+          ease: "power3.out",
+          immediateRender: false,
+        },
+        1.85
+      );
+
+      /* ================ THE TURN @2.45 — the baton starts moving ============
+         An amber object appears on node 1, node 1 fires, and the race is on.
+         The colour shift (cyan rail / amber baton) carries the turn.
+      */
+      const TURN = 2.45;
+
+      tl.fromTo(
+        ".baton-part",
+        { opacity: 0 },
+        {
+          opacity: 1,
+          duration: 0.22,
+          ease: "power3.out",
+          immediateRender: false,
+        },
+        TURN
+      );
+      tl.fromTo(
+        ".run-stroke",
+        { opacity: 0 },
+        {
+          opacity: 1,
+          duration: 0.2,
+          ease: "power3.out",
+          immediateRender: false,
+        },
+        TURN
+      );
+
+      // light a node: core fills, halo blooms, a ring pulses out and dies
+      function lightNode(n, t) {
+        tl.to(
+          "#core" + n,
+          { opacity: 1, duration: 0.2, ease: "power3.out" },
+          t
+        );
+        tl.to(
+          "#halo" + n,
+          { opacity: 0.95, duration: 0.28, ease: "power3.out" },
+          t
+        );
+        tl.fromTo(
+          "#pulse" + n,
+          { attr: { r: 24 }, opacity: 0.95 },
+          {
+            attr: { r: 40 },
+            opacity: 0,
+            duration: 0.5,
+            ease: "power2.out",
+            immediateRender: false,
+          },
+          t
+        );
+      }
+
+      lightNode(1, TURN);
+
+      /* ================== ACT 2 — the baton runs, accelerating ==============
+         Segment A 2.55 -> 3.25  node1 -> node3, ease power2.in  (accelerates)
+         Segment B 3.25 -> 3.80  node3 -> node5, ease power2.out (arrives)
+         The run line's dashoffset uses the SAME eases and endpoints, so the
+         lit trail's tip sits exactly under the baton at every frame.
+
+         Baton translateX: 0 -> 420 -> 840  (rect x=98, cx 120 -> 540 -> 960)
+      */
+      tl.to(
+        ".baton-part",
+        { x: 420, duration: 0.7, ease: "power2.in" },
+        2.55
+      );
+      tl.to(
+        ".run-stroke",
+        {
+          attr: { "stroke-dashoffset": 420 },
+          duration: 0.7,
+          ease: "power2.in",
+        },
+        2.55
+      );
+
+      tl.to(
+        ".baton-part",
+        { x: 840, duration: 0.55, ease: "power2.out" },
+        3.25
+      );
+      tl.to(
+        ".run-stroke",
+        {
+          attr: { "stroke-dashoffset": 0 },
+          duration: 0.55,
+          ease: "power2.out",
+        },
+        3.25
+      );
+
+      // nodes 2..5 light as the baton passes them (solved from the two eases).
+      // NARRATION LANDS: "a whole relay race happens" @ local 3.20 — the baton
+      // is at x=482 travelling flat out, nodes 1 and 2 already lit.
+      lightNode(2, 3.05);
+      lightNode(3, 3.25);
+      lightNode(4, 3.41);
+      lightNode(5, 3.8); // track completes
+
+      // arrival — PAINT is part of the same landing event, not a new reveal
+      tl.fromTo(
+        "#label-paint",
+        { opacity: 0, y: 12 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.45,
+          ease: "power3.out",
+          immediateRender: false,
+        },
+        3.85
+      );
+
+      /* ==================== SETTLE 4.30 -> 5.30 (1.00s) =====================
+         One ambient breathe. repeat:1 is ODD, so it lands back on opacity 1.
+         True end = 3.95 + 2*0.55 = 5.05  <  5.30 fade start.
+         No other repeating tween exists.
+      */
+      tl.to(
+        "#run-glow",
+        {
+          opacity: 0.62,
+          duration: 0.55,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 1,
+        },
+        3.95
+      );
+
+      /* ====================== FADE — FINISHES AT 5.600 ======================
+         One fade per visible LEAF. These four are siblings inside #scene, so
+         no opacity is ever multiplied by a second fading ancestor.
+         Children of #track-svg that ended at opacity 0 (the pulse rings) keep
+         their own 0 and are not resurrected, because the fade is applied to
+         the container, never to them.
+      */
+      ["#headline", "#label-enter", "#label-paint", "#track-svg"].forEach(
+        (sel) => {
+          tl.fromTo(
+            sel,
+            { opacity: 1 },
+            {
+              opacity: 0,
+              duration: 0.3,
+              ease: "power3.out",
+              immediateRender: false,
+            },
+            5.3
+          );
+        }
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

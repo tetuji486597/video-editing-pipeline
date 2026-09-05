@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP21 slot_scan - the real range response</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .fill { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* ---------- background (exempt) ---------- */
+      #bg-fill {
+        background: radial-gradient(120% 90% at 50% 12%, #071a20 0%, #05121a 45%, #030a10 80%, #020507 100%);
+      }
+      #glow-cyan {
+        position: absolute; left: 50%; top: 30%;
+        width: 1500px; height: 1500px; transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(34, 211, 238, 0.13) 0%, rgba(34, 211, 238, 0) 60%);
+      }
+      #glow-green {
+        position: absolute; left: 50%; top: 72%;
+        width: 1300px; height: 1300px; transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(74, 222, 128, 0.14) 0%, rgba(74, 222, 128, 0) 60%);
+        opacity: 0;
+      }
+      #vignette {
+        background: linear-gradient(to bottom,
+          rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 14%,
+          rgba(0,0,0,0) 78%, rgba(0,0,0,0.65) 100%);
+      }
+
+      #scene { transform-origin: 480px 730px; }
+
+      /* ---------- header: the REAL API request ---------- */
+      #hdr-chip {
+        position: absolute; left: 145px; top: 220px; width: 670px; height: 50px;
+        border-radius: 12px;
+        background: rgba(8, 24, 32, 0.85);
+        border: 1.5px solid rgba(34, 211, 238, 0.65);
+        color: #a5f3fc; font-size: 28px;
+        display: flex; align-items: center; justify-content: center;
+        letter-spacing: 0;
+        opacity: 0.55;
+        white-space: nowrap;
+      }
+      #hdr-chip .pfx { color: #fbbf24; font-weight: 700; }
+
+      #count-chip {
+        position: absolute; left: 285px; top: 300px; width: 390px; height: 44px;
+        border-radius: 10px;
+        background: rgba(8, 24, 32, 0.8);
+        border: 1.5px solid rgba(165, 243, 252, 0.5);
+        color: #e0f2fe; font-size: 26px;
+        display: flex; align-items: center; justify-content: center;
+        opacity: 0;
+        white-space: nowrap;
+      }
+
+      /* ---------- the wall of real suffixes ---------- */
+      #wall { position: absolute; left: 0; top: 0; width: 1080px; height: 0; }
+      .wrow {
+        position: absolute; left: 0; width: 960px;
+        text-align: center;
+        color: #67e8f9;
+        font-size: 21px; line-height: 22px;
+        letter-spacing: 0;
+        opacity: 0;
+        white-space: nowrap;
+      }
+
+      #scanline {
+        position: absolute; left: 200px; top: 372px; width: 560px; height: 30px;
+        border-radius: 15px;
+        background: linear-gradient(to bottom,
+          rgba(34, 211, 238, 0) 0%, rgba(34, 211, 238, 0.30) 50%, rgba(34, 211, 238, 0) 100%);
+        border-top: 1px solid rgba(34, 211, 238, 0.6);
+        border-bottom: 1px solid rgba(34, 211, 238, 0.6);
+        opacity: 0;
+      }
+
+      #found-chip {
+        position: absolute; left: 330px; top: 958px; width: 300px; height: 44px;
+        border-radius: 10px;
+        background: rgba(6, 46, 24, 0.9);
+        border: 1.5px solid rgba(74, 222, 128, 0.85);
+        color: #86efac; font-size: 25px; font-weight: 700; letter-spacing: 2px;
+        display: flex; align-items: center; justify-content: center;
+        opacity: 0;
+        white-space: nowrap;
+      }
+
+      #flash { background: #ccfbf1; opacity: 0; pointer-events: none; }
+      #dither { opacity: 1; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="5.8"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="main-clip" class="clip" data-start="0" data-duration="5.8" data-track-index="1">
+        <div id="content-all" class="fill">
+          <div id="bg-fill" class="fill">
+            <div id="glow-cyan"></div>
+            <div id="glow-green"></div>
+            <div id="vignette" class="fill"></div>
+          </div>
+
+          <div id="scene" class="fill">
+            <div id="hdr-chip" class="mono">GET&nbsp;api.pwnedpasswords.com/range/<span class="pfx">CBFDA</span></div>
+            <div id="count-chip" class="mono">1,972 hashes returned</div>
+
+            <div id="wall">
+          <div class="wrow mono" id="row_0" style="top: 380px;">C2AEC31E71F560214C8A5BD85E711C621F0:1</div>
+          <div class="wrow mono" id="row_1" style="top: 404px;">C2CB0EC54C3ABE3420DE11B3F06F1A7CA7C:1</div>
+          <div class="wrow mono" id="row_2" style="top: 428px;">C316BFE82DF7F79A67EEC0FC4AA36F9D818:8</div>
+          <div class="wrow mono" id="row_3" style="top: 452px;">C3202444282C44D398890F9D32A3E0B9FDB:1</div>
+          <div class="wrow mono" id="row_4" style="top: 476px;">C36AC11A931F71030D8DC84405DEE9EDC10:2</div>
+          <div class="wrow mono" id="row_5" style="top: 500px;">C37C1B064F0B2F5B1CD14043ED46A7C7531:10</div>
+          <div class="wrow mono" id="row_6" style="top: 524px;">C3C0B6DD1D5943DB6781C759AD0131C39ED:13</div>
+          <div class="wrow mono" id="row_7" style="top: 548px;">C3C6645ADD96A356FA8648927C51D059263:2</div>
+          <div class="wrow mono" id="row_8" style="top: 572px;">C3CD1BCB97CC5B25D415EEBF214FFBDFA71:8</div>
+          <div class="wrow mono" id="row_9" style="top: 596px;">C3F0792B526475E2693FEFCA2DE31533BB3:1</div>
+          <div class="wrow mono" id="row_10" style="top: 620px;">C41AFCAC90F88EF0B5E2FC19A3D83B69111:7</div>
+          <div class="wrow mono" id="row_11" style="top: 644px;">C4659DBB38B9B34CF45C54C9EE60AEE0F1A:168</div>
+          <div class="wrow mono" id="row_12" style="top: 668px;">C48552213222D0BCCBFACA63FE22309BDF9:1</div>
+          <div class="wrow mono" id="row_13" style="top: 692px;">C49D1CD0AFCA8E17407DCD0D0A6F8617F74:17</div>
+          <div class="wrow mono" id="row_14" style="top: 716px;">C4A25E7B0136FB44E6F42DA3564542AAAA2:4</div>
+          <div class="wrow mono" id="row_15" style="top: 740px;">C4B44319415852244E86B7338473ED249E1:44</div>
+          <div class="wrow mono" id="row_16" style="top: 764px;">C52EBD5F7C17A036EC8C59DF49827C75638:3</div>
+          <div class="wrow mono" id="row_17" style="top: 788px;">C536D69F5256CDAC372B76E644DB604547D:1</div>
+          <div class="wrow mono" id="row_18" style="top: 812px;">C565F02AFBA54DFD1AAF12AD20473FB9C7C:3</div>
+          <div class="wrow mono" id="row_19" style="top: 836px;">C572E90CCF8B3D8B97A68ADF3906435BCB6:1</div>
+          <div class="wrow mono" id="row_20" style="top: 860px;">C57C4BD677D06293F227F2D0BCCDA758997:5</div>
+          <div class="wrow mono" id="row_21" style="top: 884px;">C57D5F961B544390D5D0FD3003B10511736:1</div>
+          <div class="wrow mono" id="row_22" style="top: 908px;">C5A8C49CD024B82E517C98732CFB0F8A23C:1</div>
+          <div class="wrow mono" id="row_23" style="top: 932px;">C5BA69E75BA54CD26FCA5F68B55FA04FE59:375</div>
+          <div class="wrow mono" id="row_24" data-layout-allow-occlusion="true" data-layout-allow-overlap="true" style="top: 956px;">C5CF01651BA5DDFEB78DF966A29DD11A215:12</div>
+          <div class="wrow mono" id="row_25" data-layout-allow-occlusion="true" data-layout-allow-overlap="true" style="top: 980px;">C5DE2D08BADD5F48360C7D9CFAFEF4512EB:20</div>
+          <div class="wrow mono" id="row_26" data-layout-allow-occlusion="true" data-layout-allow-overlap="true" style="top: 1004px;">C5ED33E0DCF809CC77E3D1D1E7148041393:59</div>
+          <div class="wrow mono" id="row_27" data-layout-allow-occlusion="true" data-layout-allow-overlap="true" style="top: 1028px;">C6008F9CAB4083784CBD1874F76618D2A97:2266543</div>
+          <div class="wrow mono" id="row_28" data-layout-allow-occlusion="true" data-layout-allow-overlap="true" style="top: 1052px;">C6336DEAF4B46A3601C03F20860547491AA:52</div>
+          <div class="wrow mono" id="row_29" style="top: 1076px;">C698A1F8D9172595948A0C3B70C379BF569:14</div>
+          <div class="wrow mono" id="row_30" style="top: 1100px;">C6B5BD96BD11352481B6C0FB37BB187CC18:4</div>
+          <div class="wrow mono" id="row_31" style="top: 1124px;">C6D435AB83FF5501A8FE4FF2AAD64F89E77:1</div>
+          <div class="wrow mono" id="row_32" style="top: 1148px;">C7072648CD6A86864ABF6B8EAF55BB06A11:2</div>
+          <div class="wrow mono" id="row_33" style="top: 1172px;">C7344664264EE723B679B1F8AE23F6E70B9:3</div>
+          <div class="wrow mono" id="row_34" style="top: 1196px;">C767B976D3957B1F2EEFEF40D8FBDC81A8A:9</div>
+          <div class="wrow mono" id="row_35" style="top: 1220px;">C78EBBDA56FF32F3C27DAAD9015241DE9D3:2</div>
+            </div>
+
+            <div id="scanline"></div>
+            <div id="found-chip">FOUND LOCALLY</div>
+          </div>
+
+          <div id="flash" class="fill"></div>
+          <div id="dither" class="fill"></div>
+        </div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter" x="0%" y="0%" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.04 0" />
+      </filter>
+    </svg>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      document.getElementById("dither").style.filter = "url(#grain-filter)";
+
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // slow push-in across the whole beat, origin at content-band centre
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.035, duration: 5.8, ease: "sine.inOut" }, 0);
+
+      // ---------- Act 1 (cyan): the response pours in ----------
+      // header visible at t=0 (CSS 0.55), bg-fill instant
+      tl.fromTo("#hdr-chip", { opacity: 0.55, y: -12 },
+        { opacity: 1, y: 0, duration: 0.35, ease: "power3.out" }, 0);
+      for (let i = 0; i < 36; i++) {
+        tl.fromTo("#row_" + i, { opacity: 0, x: -10 },
+          { opacity: 0.85, x: 0, duration: 0.3, ease: "power2.out",
+            immediateRender: false }, 0.35 + i * 0.045);
+      }
+      // wall fully in ~2.2s; the real line count lands on "hundreds of them"
+      tl.fromTo("#count-chip", { opacity: 0, scale: 0.85 },
+        { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(1.5)",
+          immediateRender: false, transformOrigin: "50% 50%" }, 2.65);
+
+      // ---------- Turn: the wall settles; the device-side scan begins ----------
+      tl.to(".wrow", { opacity: 0.55, duration: 0.35, ease: "power2.out" }, 3.15);
+      tl.fromTo("#scanline", { opacity: 0 },
+        { opacity: 1, duration: 0.2, ease: "power3.out", immediateRender: false }, 3.2);
+      // constant-velocity sweep (a scan: constant speed IS the point) to the match row
+      tl.fromTo("#scanline", { y: 0 },
+        { y: 653, duration: 1.25, ease: "none", immediateRender: false }, 3.35);
+      // scanline top 372 + 653 = 1025 -> centred on row_27 (y 1028-1050)
+
+      // ---------- Act 2: the REAL matching suffix lights, locally ----------
+      tl.to("#row_27", { color: "#4ade80", opacity: 1, scale: 1.25,
+        textShadow: "0 0 18px rgba(74,222,128,0.75), 0 2px 8px rgba(0,0,0,0.9)",
+        transformOrigin: "50% 50%", duration: 0.3, ease: "power4.out" }, 4.65);
+      tl.fromTo("#flash", { opacity: 0 }, { opacity: 0.22, duration: 0.05, ease: "power3.out",
+        immediateRender: false }, 4.65);
+      tl.to("#flash", { opacity: 0, duration: 0.2, ease: "power3.out" }, 4.7);
+      tl.to("#glow-green", { opacity: 1, duration: 0.5, ease: "power3.out" }, 4.7);
+      tl.to("#scanline", { opacity: 0, duration: 0.3, ease: "power3.out" }, 4.8);
+      // dim everything that is NOT the match (incl. the rows behind the chip)
+      const dimIds = [];
+      for (let i = 0; i < 36; i++) if (i !== 27) dimIds.push("#row_" + i);
+      tl.to(dimIds, { opacity: 0.22, duration: 0.35, ease: "power2.out" }, 4.8);
+      tl.fromTo("#found-chip", { opacity: 0, y: 10 },
+        { opacity: 1, y: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 4.95);
+      // one green breathe on the match; odd repeat, ends 5.04+2*0.2=5.44 < 5.5
+      tl.to("#row_27", { textShadow: "0 0 26px rgba(74,222,128,1), 0 2px 8px rgba(0,0,0,0.9)",
+        duration: 0.2, ease: "sine.inOut", yoyo: true, repeat: 1 }, 5.04);
+
+      // ---------- fade out, FINISHING exactly at 5.8 ----------
+      tl.fromTo("#content-all", { opacity: 1 },
+        { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 5.5);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

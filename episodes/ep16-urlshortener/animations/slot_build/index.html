@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+
+      :root {
+        --cyan: #22d3ee;
+        --cyan-light: #67e8f9;
+        --amber: #fbbf24;
+        --amber-light: #fde68a;
+      }
+
+      #root { position: relative; width: 1080px; height: 1920px; }
+      #content-all { position: absolute; inset: 0; }
+
+      /* camera push-in target.  origin = centre of the design band
+         (x 56-1066 -> 561 ; y 200-1258 -> 729).  scale 1 -> 1.022 */
+      #scene {
+        position: absolute;
+        inset: 0;
+        transform-origin: 561px 729px;
+      }
+
+      /* ================= HEADLINE LOCKUP : x 56-736, y 200-372 ================= */
+      #headline-block {
+        position: absolute;
+        left: 56px;
+        top: 200px;
+        width: 680px;
+        height: 172px;
+        border-radius: 16px;
+        background: linear-gradient(180deg, rgba(5, 12, 18, 0.62), rgba(3, 8, 13, 0.52));
+        box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.26);
+        opacity: 0;
+      }
+      /* x 78-84, y 222-350 */
+      #accent {
+        position: absolute;
+        left: 22px;
+        top: 22px;
+        width: 6px;
+        height: 128px;
+        border-radius: 3px;
+        background: linear-gradient(180deg, var(--cyan-light), var(--cyan));
+      }
+      /* text origin x 102, y 214 ; 2 lines x 72px = y 214-358 */
+      #headline {
+        position: absolute;
+        left: 46px;
+        top: 14px;
+        width: 600px;
+        font-size: 62px;
+        line-height: 72px;
+        font-weight: 800;
+        letter-spacing: 3px;
+        color: #eaf9ff;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.92), 0 0 22px rgba(0, 0, 0, 0.6);
+      }
+
+      /* ================= PANEL HALO : x 786-1062, y 314-1258 ================== */
+      #panel-glow {
+        position: absolute;
+        left: 786px;
+        top: 314px;
+        width: 276px;
+        height: 944px;
+        border-radius: 40px;
+        background: radial-gradient(
+          62% 52% at 64% 50%,
+          rgba(34, 211, 238, 0.17) 0%,
+          rgba(34, 211, 238, 0.06) 46%,
+          rgba(34, 211, 238, 0) 74%
+        );
+        opacity: 1;
+      }
+
+      /* ================= PANEL : x 806-1058, y 330-1240 ======================= */
+      /* translucent so it reads as a light panel over live footage, never a slab */
+      #panel {
+        position: absolute;
+        left: 806px;
+        top: 330px;
+        width: 252px;
+        height: 910px;
+        border-radius: 22px;
+        background: linear-gradient(180deg, rgba(6, 14, 21, 0.70), rgba(3, 9, 14, 0.78));
+        /* NO drop shadow: 0 26px 60px would reach y=1322 and breach the 1280 floor.
+           ring only -> reach 1241.5 */
+        box-shadow: 0 0 0 1.5px rgba(34, 211, 238, 0.38), inset 0 0 56px rgba(34, 211, 238, 0.07);
+        opacity: 1;
+      }
+
+      /* ================= LINK QUEUE : x 815-1049 ============================== */
+      /* rows are textless on purpose - visual events cost nothing to read */
+      .row {
+        position: absolute;
+        left: 815px;
+        width: 234px;
+        height: 60px;
+        border-radius: 12px;
+        background: rgba(148, 163, 184, 0.10);
+        box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.20);
+        opacity: 0;
+      }
+      #row-1 { top: 356px; }
+      #row-2 { top: 458px; }
+      #row-3 { top: 560px; }
+      .row-ico { position: absolute; left: 12px; top: 16px; width: 28px; height: 28px; }
+      .row-ico svg { width: 28px; height: 28px; }
+      .row-bar {
+        position: absolute;
+        left: 52px;
+        top: 24px;
+        width: 130px;
+        height: 12px;
+        border-radius: 6px;
+        background: linear-gradient(
+          to right,
+          rgba(148, 163, 184, 0.42) 0%,
+          rgba(148, 163, 184, 0.30) 62%,
+          rgba(148, 163, 184, 0.14) 100%
+        );
+      }
+      .row-dot {
+        position: absolute;
+        right: 14px;
+        top: 22px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: rgba(148, 163, 184, 0.35);
+      }
+
+      /* ================= ODOMETER : x 815-1049, y 668-818 ===================== */
+      #odo-chassis {
+        position: absolute;
+        left: 815px;
+        top: 668px;
+        width: 234px;
+        height: 150px;
+        border-radius: 14px;
+        background: #050d13;
+        opacity: 0;
+      }
+      /* the VALUE is a separate layer so it can detach and drop into the encoder,
+         leaving the empty chassis behind */
+      #odo-value {
+        position: absolute;
+        left: 815px;
+        top: 668px;
+        width: 234px;
+        height: 150px;
+        border-radius: 14px;
+        overflow: hidden;
+        transform-origin: 50% 50%;
+        opacity: 0;
+      }
+      .col { position: absolute; top: 0; width: 78px; height: 150px; }
+      #col-h { left: 0; }
+      #col-t { left: 78px; }
+      #col-o { left: 156px; }
+      /* stacked pre-rendered digits.  DOM order 9..0 so '0' paints on top.
+         each span is OPAQUE, so hiding the top one reveals exactly one digit
+         underneath -> one `set` per increment, never a hide-all + show-one pair. */
+      .d {
+        position: absolute;
+        inset: 0;
+        background: #050d13;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-weight: 700;
+        font-size: 110px;
+        line-height: 150px;
+        text-align: center;
+        color: #e8fcff;
+        opacity: 1;
+      }
+      /* ring + column dividers ride ABOVE the opaque digits */
+      #odo-frame {
+        position: absolute;
+        left: 815px;
+        top: 668px;
+        width: 234px;
+        height: 150px;
+        border-radius: 14px;
+        box-shadow: inset 0 0 0 1.5px rgba(34, 211, 238, 0.40);
+        opacity: 0;
+      }
+      .divider {
+        position: absolute;
+        top: 18px;
+        width: 1px;
+        height: 114px;
+        background: rgba(34, 211, 238, 0.22);
+      }
+      #div-a { left: 78px; }
+      #div-b { left: 156px; }
+
+      /* ================= ENCODER : x 815-1049, y 866-992 ====================== */
+      #encoder {
+        position: absolute;
+        left: 815px;
+        top: 866px;
+        width: 234px;
+        height: 126px;
+        border-radius: 14px;
+        overflow: hidden;
+        background: linear-gradient(180deg, rgba(9, 20, 28, 0.80), rgba(5, 13, 19, 0.86));
+        box-shadow: inset 0 0 0 1.5px rgba(34, 211, 238, 0.34);
+        filter: brightness(1);
+        opacity: 0;
+      }
+      #enc-head {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 234px;
+        height: 44px;
+        border-bottom: 1px solid rgba(34, 211, 238, 0.26);
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-weight: 700;
+        font-size: 24px;
+        line-height: 43px;
+        letter-spacing: 7px;
+        text-align: center;
+        text-indent: 7px;
+        color: var(--cyan-light);
+      }
+      #enc-body { position: absolute; left: 0; top: 44px; width: 234px; height: 82px; }
+      #chev {
+        position: absolute;
+        left: 87px;
+        top: 16px;
+        width: 60px;
+        height: 50px;
+      }
+      #enc-scan {
+        position: absolute;
+        left: 57px;
+        top: 0;
+        width: 120px;
+        height: 82px;
+        background: linear-gradient(
+          100deg,
+          rgba(34, 211, 238, 0) 12%,
+          rgba(103, 232, 249, 0.26) 50%,
+          rgba(34, 211, 238, 0) 88%
+        );
+      }
+      #enc-flash {
+        position: absolute;
+        inset: 0;
+        background: rgba(226, 250, 255, 0.9);
+        opacity: 0;
+      }
+
+      /* ================= CODE OUT : x 815-1049, y 1040-1220 =================== */
+      /* act 2 colour phase: cyan -> amber */
+      #code-tile {
+        position: absolute;
+        left: 815px;
+        top: 1040px;
+        width: 234px;
+        height: 180px;
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(22, 15, 4, 0.80), rgba(12, 8, 2, 0.86));
+        /* blur 24 -> reach 1016 / 1244, both inside the 180-1280 band */
+        box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.50), 0 0 24px rgba(251, 191, 36, 0.26);
+        filter: brightness(0.45) saturate(0.55);
+        opacity: 0;
+      }
+      #code {
+        position: absolute;
+        inset: 0;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-weight: 700;
+        font-size: 150px;
+        line-height: 180px;
+        text-align: center;
+        color: #fff8e7;
+        text-shadow: 0 0 22px rgba(251, 191, 36, 0.55);
+        opacity: 0;
+      }
+
+      /* ================= GRAIN : confined to the panel rect =================== */
+      #grain {
+        position: absolute;
+        left: 806px;
+        top: 330px;
+        width: 252px;
+        height: 910px;
+        border-radius: 22px;
+        pointer-events: none;
+        opacity: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="6.60"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section id="main-clip" class="clip" data-start="0" data-duration="6.60" data-track-index="1">
+        <div id="content-all">
+          <div id="scene">
+            <!-- ============ headline ============ -->
+            <div id="headline-block">
+              <div id="accent"></div>
+              <div id="headline">COUNT,<br />THEN ENCODE</div>
+            </div>
+
+            <!-- ============ panel ============ -->
+            <div id="panel-glow"></div>
+            <div id="panel"></div>
+
+            <!-- ============ act 1 : links arrive ============ -->
+            <div class="row" id="row-1">
+              <div class="row-ico">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M9.4 14.6L14.6 9.4" stroke="#9fb3c8" stroke-width="2" stroke-linecap="round" />
+                  <path d="M12.9 7.1L14.7 5.3a3.6 3.6 0 015.1 5.1l-1.8 1.8" stroke="#9fb3c8" stroke-width="2" stroke-linecap="round" />
+                  <path d="M11.1 16.9l-1.8 1.8a3.6 3.6 0 01-5.1-5.1l1.8-1.8" stroke="#9fb3c8" stroke-width="2" stroke-linecap="round" />
+                </svg>
+              </div>
+              <div class="row-bar"></div>
+              <div class="row-dot" id="dot-1"></div>
+            </div>
+
+            <div class="row" id="row-2">
+              <div class="row-ico">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M9.4 14.6L14.6 9.4" stroke="#9fb3c8" stroke-width="2" stroke-linecap="round" />
+                  <path d="M12.9 7.1L14.7 5.3a3.6 3.6 0 015.1 5.1l-1.8 1.8" stroke="#9fb3c8" stroke-width="2" stroke-linecap="round" />
+                  <path d="M11.1 16.9l-1.8 1.8a3.6 3.6 0 01-5.1-5.1l1.8-1.8" stroke="#9fb3c8" stroke-width="2" stroke-linecap="round" />
+                </svg>
+              </div>
+              <div class="row-bar" style="width: 152px"></div>
+              <div class="row-dot" id="dot-2"></div>
+            </div>
+
+            <div class="row" id="row-3">
+              <div class="row-ico">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M9.4 14.6L14.6 9.4" stroke="#9fb3c8" stroke-width="2" stroke-linecap="round" />
+                  <path d="M12.9 7.1L14.7 5.3a3.6 3.6 0 015.1 5.1l-1.8 1.8" stroke="#9fb3c8" stroke-width="2" stroke-linecap="round" />
+                  <path d="M11.1 16.9l-1.8 1.8a3.6 3.6 0 01-5.1-5.1l1.8-1.8" stroke="#9fb3c8" stroke-width="2" stroke-linecap="round" />
+                </svg>
+              </div>
+              <div class="row-bar" style="width: 118px"></div>
+              <div class="row-dot" id="dot-3"></div>
+            </div>
+
+            <!-- ============ counter ============ -->
+            <div id="odo-chassis"></div>
+
+            <div id="odo-value">
+              <div class="col" id="col-h">
+                <span class="d" data-layout-allow-overlap="true" data-layout-allow-occlusion="true" id="h-9">9</span><span class="d" data-layout-allow-overlap="true" data-layout-allow-occlusion="true" id="h-8">8</span><span class="d" data-layout-allow-overlap="true" data-layout-allow-occlusion="true" id="h-7">7</span
+                ><span class="d" data-layout-allow-overlap="true" data-layout-allow-occlusion="true" id="h-6">6</span><span class="d" data-layout-allow-overlap="true" data-layout-allow-occlusion="true" id="h-5">5</span><span class="d" data-layout-allow-overlap="true" data-layout-allow-occlusion="true" id="h-4">4</span
+                ><span class="d" data-layout-allow-overlap="true" data-layout-allow-occlusion="true" id="h-3">3</span><span class="d" data-layout-allow-overlap="true" data-layout-allow-occlusion="true" id="h-2">2</span><span class="d" data-layout-allow-overlap="true" data-layout-allow-occlusion="true" id="h-1">1</span
+                ><span class="d" data-layout-allow-overlap="true" data-layout-allow-occlusion="true" id="h-0">0</span>
+              </div>
+              <div class="col" id="col-t">
+                <span class="d" data-layout-allow-overlap="true" data-layout-allow-occlusion="true" id="t-9">9</span><span class="d" data-layout-allow-overlap="true" data-layout-allow-occlusion="true" id="t-8">8</span><span class="d" data-layout-allow-overlap="true" data-layout-allow-occlusion="true" id="t-7">7</span
+                ><span class="d" data-layout-allow-overlap="true" data-layout-allow-occlusion="true" id="t-6">6</span><span class="d" data-layout-allow-overlap="true" data-layout-allow-occlusion="true" id="t-5">5</span><span class="d" data-layout-allow-overlap="true" data-layout-allow-occlusion="true" id="t-4">4</span
+                ><span class="d" data-layout-allow-overlap="true" data-layout-allow-occlusion="true" id="t-3">3</span><span class="d" data-layout-allow-overlap="true" data-layout-allow-occlusion="true" id="t-2">2</span><span class="d" data-layout-allow-overlap="true" data-layout-allow-occlusion="true" id="t-1">1</span
+                ><span class="d" data-layout-allow-overlap="true" data-layout-allow-occlusion="true" id="t-0">0</span>
+              </div>
+              <div class="col" id="col-o">
+                <span class="d" data-layout-allow-overlap="true" data-layout-allow-occlusion="true" id="o-9">9</span><span class="d" data-layout-allow-overlap="true" data-layout-allow-occlusion="true" id="o-8">8</span><span class="d" data-layout-allow-overlap="true" data-layout-allow-occlusion="true" id="o-7">7</span
+                ><span class="d" data-layout-allow-overlap="true" data-layout-allow-occlusion="true" id="o-6">6</span><span class="d" data-layout-allow-overlap="true" data-layout-allow-occlusion="true" id="o-5">5</span><span class="d" data-layout-allow-overlap="true" data-layout-allow-occlusion="true" id="o-4">4</span
+                ><span class="d" data-layout-allow-overlap="true" data-layout-allow-occlusion="true" id="o-3">3</span><span class="d" data-layout-allow-overlap="true" data-layout-allow-occlusion="true" id="o-2">2</span><span class="d" data-layout-allow-overlap="true" data-layout-allow-occlusion="true" id="o-1">1</span
+                ><span class="d" data-layout-allow-overlap="true" data-layout-allow-occlusion="true" id="o-0">0</span>
+              </div>
+            </div>
+
+            <div id="odo-frame">
+              <div class="divider" id="div-a"></div>
+              <div class="divider" id="div-b"></div>
+            </div>
+
+            <!-- ============ encoder ============ -->
+            <div id="encoder">
+              <div id="enc-head">BASE62</div>
+              <div id="enc-body">
+                <div id="enc-scan"></div>
+                <svg id="chev" viewBox="0 0 60 50" fill="none">
+                  <path d="M10 8 L30 24 L50 8" stroke="#22d3ee" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.85" />
+                  <path d="M10 26 L30 42 L50 26" stroke="#22d3ee" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.45" />
+                </svg>
+              </div>
+              <div id="enc-flash"></div>
+            </div>
+
+            <!-- ============ act 2 : the short code ============ -->
+            <div id="code-tile">
+              <div id="code">dF</div>
+            </div>
+
+            <div id="grain"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <!-- filterUnits region pinned to the element box.  The SVG default is
+           x=-10% y=-10% w=120% h=120%, and feTurbulence is a GENERATOR: it
+           fills the whole region regardless of its input, so the default
+           painted grain 91px below #grain's own box -> y=1331, breaching the
+           y=1280 floor.  Verified on the decoded alpha plane. -->
+      <filter id="grain-filter" x="0%" y="0%" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.042 0" />
+      </filter>
+    </svg>
+
+    <script>
+      document.getElementById("grain").style.filter = "url(#grain-filter)";
+
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      /* =====================================================================
+         EP16 slot_build - HALF-SCREEN PANEL, duration 6.600s
+         Act 1 (cyan)  links arrive, the counter ticks 1-2-3 on the words
+         TURN          the value detaches and drops into the encoder
+         Act 2 (amber) the encoder emits the Base62 code  847 -> dF
+         ===================================================================== */
+
+      /* ---------- camera push-in : origin 561/729, 1.000 -> 1.022 ----------
+         top    729 - 529*1.022 = 188.4   (headline block y=200)
+         bottom 729 + 529*1.022 = 1269.6  (panel halo y=1258)
+         both inside the 180-1280 band. */
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.022, duration: 6.6, ease: "sine.inOut" }, 0);
+
+      /* ---------- PRIMARY ENTRANCE at t=0, visible on frame 0 (opacity .5) --- */
+      tl.fromTo(
+        ["#panel", "#panel-glow", "#grain"],
+        { opacity: 0.5, y: 14 },
+        { opacity: 1, y: 0, duration: 0.55, ease: "power3.out" },
+        0
+      );
+
+      /* ---------- headline ---------- */
+      tl.fromTo(
+        "#headline-block",
+        { opacity: 0, x: -16 },
+        { opacity: 1, x: 0, duration: 0.46, ease: "power3.out", immediateRender: false },
+        0.62
+      );
+
+      /* ---------- counter chassis lands showing 000 ---------- */
+      tl.fromTo(
+        ["#odo-chassis", "#odo-value", "#odo-frame"],
+        { opacity: 0, y: 16 },
+        { opacity: 1, y: 0, duration: 0.42, ease: "power3.out", immediateRender: false },
+        1.24
+      );
+
+      /* ---------- encoder ---------- */
+      tl.fromTo(
+        "#encoder",
+        { opacity: 0, y: 16 },
+        { opacity: 1, y: 0, duration: 0.42, ease: "power3.out", immediateRender: false },
+        1.86
+      );
+
+      /* ---------- empty output slot (dim until act 2) ---------- */
+      tl.fromTo(
+        "#code-tile",
+        { opacity: 0, y: 16 },
+        { opacity: 1, y: 0, duration: 0.42, ease: "power3.out", immediateRender: false },
+        2.48
+      );
+
+      /* ---------- ambient : panel edge breathes.  odd repeat -> back to base.
+         end = 0.90 + 4*1.35 = 6.30  (< 6.32 fade start) ---------- */
+      tl.to(
+        "#panel",
+        {
+          boxShadow: "0 0 0 1.5px rgba(34,211,238,0.62), inset 0 0 70px rgba(34,211,238,0.13)",
+          duration: 1.35,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 3,
+        },
+        0.9
+      );
+
+      /* ---------- ambient : encoder scan sweep.
+         end = 2.00 + 4*1.05 = 6.20  (< 6.32) ---------- */
+      tl.fromTo(
+        "#enc-scan",
+        { x: -104 },
+        { x: 104, duration: 1.05, ease: "sine.inOut", yoyo: true, repeat: 3, immediateRender: false },
+        2.0
+      );
+
+      /* ===================== ACT 1 : three links arrive ======================
+         Rows land 0.10s ahead of each tick so the eye reads arrival -> issue. */
+      const rows = [
+        { row: "#row-1", dot: "#dot-1", tRow: 3.1, tTick: 3.2 },
+        { row: "#row-2", dot: "#dot-2", tRow: 3.46, tTick: 3.56 },
+        { row: "#row-3", dot: "#dot-3", tRow: 3.76, tTick: 3.86 },
+      ];
+      rows.forEach((r) => {
+        tl.fromTo(
+          r.row,
+          { opacity: 0, x: 18 },
+          { opacity: 1, x: 0, duration: 0.3, ease: "power3.out", immediateRender: false },
+          r.tRow
+        );
+        tl.fromTo(
+          r.dot,
+          { backgroundColor: "rgba(148,163,184,0.35)", boxShadow: "0 0 0 0 rgba(34,211,238,0)" },
+          {
+            backgroundColor: "rgba(103,232,249,1)",
+            boxShadow: "0 0 14px 2px rgba(34,211,238,0.7)",
+            duration: 0.24,
+            ease: "power3.out",
+            immediateRender: false,
+          },
+          r.tTick
+        );
+        /* micro-pop on the odometer at each increment */
+        tl.fromTo(
+          "#odo-value",
+          { scale: 1 },
+          { scale: 1.035, duration: 0.09, ease: "power3.out", immediateRender: false },
+          r.tTick
+        );
+        tl.fromTo(
+          "#odo-value",
+          { scale: 1.035 },
+          { scale: 1, duration: 0.16, ease: "power2.out", immediateRender: false },
+          r.tTick + 0.09
+        );
+      });
+
+      /* ---------------------------------------------------------------------
+         COUNTER DIGIT SWAPS.
+         Every digit 0-9 is pre-rendered, stacked and OPAQUE, with '0' painted
+         last (on top).  An increment therefore hides exactly ONE element - the
+         outgoing digit - and the next digit is already sitting underneath.
+         One `set` per increment, every position unique: there is never a
+         blanket hide-all plus a show-one at the same position, which is the
+         pair that renders a blank boundary frame.
+         Frame-0 state ('000') comes from CSS, not from a `set` at position 0.
+         --------------------------------------------------------------------- */
+
+      /* the recital, ON the words: "one" 3.20  "two" 3.56  "three" 3.86 */
+      tl.set("#o-0", { opacity: 0 }, 3.2); /* 000 -> 001 */
+      tl.set("#o-1", { opacity: 0 }, 3.56); /* 001 -> 002 */
+      tl.set("#o-2", { opacity: 0 }, 3.86); /* 002 -> 003 */
+
+      /* "...and so on" : the counter races ahead to 847.
+         Composite reads 003 103 113 213 214 314 324 424 425 525 535 635 636
+         736 746 846 847 - strictly increasing, so it reads as counting. */
+      const roll = [
+        ["#h-0", 4.12], ["#t-0", 4.15], ["#h-1", 4.182], ["#o-3", 4.2],
+        ["#h-2", 4.244], ["#t-1", 4.275], ["#h-3", 4.306], ["#o-4", 4.32],
+        ["#h-4", 4.368], ["#t-2", 4.4], ["#h-5", 4.43], ["#o-5", 4.44],
+        ["#h-6", 4.492], ["#t-3", 4.525], ["#h-7", 4.554], ["#o-6", 4.56],
+      ];
+      roll.forEach((s) => tl.set(s[0], { opacity: 0 }, s[1]));
+
+      /* the race itself, felt as a swell rather than read digit by digit */
+      tl.fromTo(
+        "#odo-value",
+        { scale: 1 },
+        { scale: 1.055, duration: 0.22, ease: "power2.out", immediateRender: false },
+        4.12
+      );
+      tl.fromTo(
+        "#odo-value",
+        { scale: 1.055 },
+        { scale: 1, duration: 0.26, ease: "power3.out", immediateRender: false },
+        4.34
+      );
+
+      /* ===================== TURN : the value drops into the encoder =========
+         odo-value centre (932,743) -> encoder funnel mouth (932,950): dy 207 */
+      tl.to([".row"], { filter: "brightness(0.4) saturate(0.6)", duration: 0.5, ease: "power2.out" }, 4.8);
+
+      tl.fromTo(
+        "#odo-value",
+        { y: 0, scale: 1, opacity: 1 },
+        { y: 207, scale: 0.3, opacity: 0, duration: 0.4, ease: "power2.in", immediateRender: false },
+        4.86
+      );
+      tl.to(
+        ["#odo-chassis", "#odo-frame"],
+        { filter: "brightness(0.45) saturate(0.6)", duration: 0.45, ease: "power2.out" },
+        5.0
+      );
+
+      /* the encoder swallows it */
+      tl.fromTo(
+        "#enc-flash",
+        { opacity: 0 },
+        { opacity: 0.85, duration: 0.07, ease: "power3.out", immediateRender: false },
+        5.18
+      );
+      tl.fromTo(
+        "#enc-flash",
+        { opacity: 0.85 },
+        { opacity: 0, duration: 0.34, ease: "power2.out", immediateRender: false },
+        5.25
+      );
+
+      /* ===================== ACT 2 : the Base62 code =========================
+         LANDS ON "encode that number in Base62" -> local 5.40 (output 20.30) */
+      tl.fromTo(
+        "#code-tile",
+        { filter: "brightness(0.45) saturate(0.55)" },
+        { filter: "brightness(1) saturate(1)", duration: 0.3, ease: "power3.out", immediateRender: false },
+        5.24
+      );
+      tl.fromTo(
+        "#code",
+        { opacity: 0, y: 26, scale: 0.88 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.42, ease: "power4.out", immediateRender: false },
+        5.28
+      );
+      tl.to("#encoder", { filter: "brightness(0.55) saturate(0.7)", duration: 0.45, ease: "power2.out" }, 5.5);
+
+      /* settle pulse on the code.  odd repeat -> lands on base.
+         end = 5.72 + 2*0.29 = 6.30  (< 6.32 fade start) */
+      tl.to(
+        "#code-tile",
+        {
+          boxShadow: "0 0 0 2px rgba(251,191,36,0.85), 0 0 24px rgba(251,191,36,0.5)",
+          duration: 0.29,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 1,
+        },
+        5.72
+      );
+
+      /* ---------- fade : 6.32 + 0.28 = 6.600 exactly, zero buffer ----------
+         applied to leaves; every target is genuinely at opacity 1 here
+         (all dimming above was done with `filter`, not opacity).
+         #odo-value is excluded - it is already at opacity 0 after the drop. */
+      tl.fromTo(
+        [
+          "#headline-block",
+          "#panel-glow",
+          "#panel",
+          "#row-1",
+          "#row-2",
+          "#row-3",
+          "#odo-chassis",
+          "#odo-frame",
+          "#encoder",
+          "#code-tile",
+          "#code",
+          "#grain",
+        ],
+        { opacity: 1 },
+        { opacity: 0, duration: 0.28, ease: "power2.in", immediateRender: false },
+        6.32
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

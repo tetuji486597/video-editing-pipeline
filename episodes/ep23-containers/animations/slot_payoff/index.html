@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP23 payoff — ship the environment, not the code</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .fill { position: absolute; inset: 0; }
+
+      /* FULL-BLEED PHOTO scene. The photograph (full-frame layer, exempt from the
+         x/y bands) is masked OFF below ~y=1240 so the caption band sits over live
+         footage, per OVERLAY_SPEC trap 6. The TYPE is NOT exempt: all lines resolve
+         inside x=60-860, y=180-1280 (arithmetic in the type comments). */
+      #fade-all { position: absolute; inset: 0; opacity: 1; }
+      #photomask {
+        position: absolute; inset: 0; overflow: hidden;
+        -webkit-mask-image: linear-gradient(to bottom, #000 0px, #000 1180px, transparent 1300px);
+        mask-image: linear-gradient(to bottom, #000 0px, #000 1180px, transparent 1300px);
+      }
+      #photowrap { position: absolute; inset: 0; transform-origin: 50% 40%; }
+      #photowrap img {
+        width: 1080px; height: 1920px; object-fit: cover;
+        /* identity-complete filter declared in CSS so the settle tween never starts
+           from computed `none` */
+        filter: brightness(0.45) saturate(0.92) contrast(1.04);
+      }
+      /* scrims live inside the mask, so they vanish below y~1240 with the photo */
+      #scrim-top {
+        position: absolute; inset: 0;
+        background: linear-gradient(to bottom, rgba(2, 4, 8, 0.6) 0%, rgba(2, 4, 8, 0.42) 34%,
+          rgba(2, 4, 8, 0.12) 55%, rgba(2, 4, 8, 0) 70%);
+      }
+      #scrim-ellipse {
+        position: absolute; left: 460px; top: 552px; width: 980px; height: 700px;
+        transform: translate(-50%, -50%);
+        background: radial-gradient(ellipse, rgba(0, 0, 0, 0.52) 0%, rgba(0, 0, 0, 0.3) 48%, rgba(0, 0, 0, 0) 72%);
+      }
+      #pvignette {
+        background: radial-gradient(120% 100% at 50% 45%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.4) 100%);
+      }
+
+      /* type: centred on x=460 (SAFE_ZONE centre). 100px Inter 800, -2px tracking.
+         Widest line "ENVIRONMENT," ~ 12 glyphs * ~0.63em - tracking ~ 730-760px
+         -> ~x 80-840; with the 1.015 drift about x=460: 460+380*1.015 = 845.7 <= 860 OK.
+         Lines: SHIP THE y372-472, ENVIRONMENT, y482-582 (one lockup, 10px leading),
+         NOT THE CODE y632-732 (50px group gap, rule 8). All in y=180-1280. */
+      #type {
+        position: absolute; left: -160px; right: 0; top: 372px;
+        display: flex; flex-direction: column; align-items: center;
+        transform-origin: 50% 50%;
+      }
+      .pline {
+        color: #f8fafc; font-size: 100px; line-height: 100px; font-weight: 800;
+        letter-spacing: -2px; white-space: nowrap;
+        text-shadow: 0 3px 10px rgba(0, 0, 0, 0.95), 0 10px 40px rgba(0, 0, 0, 0.8),
+          0 0 80px rgba(0, 0, 0, 0.65);
+        opacity: 0;
+      }
+      #pl2 { margin-top: 10px; }
+      #pl3 { margin-top: 50px; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="5.3"
+         data-width="1080" data-height="1920">
+      <section id="main-clip" class="clip" data-start="0" data-duration="5.3" data-track-index="1">
+        <div id="fade-all">
+          <div id="photomask">
+            <div id="photowrap">
+              <img src="assets/ship_crop.jpg" alt="" />
+            </div>
+            <div id="scrim-top"></div>
+            <div id="scrim-ellipse"></div>
+            <div id="pvignette" class="fill"></div>
+          </div>
+
+          <div id="type">
+            <div id="pl1" class="pline">SHIP THE</div>
+            <div id="pl2" class="pline">ENVIRONMENT,</div>
+            <div id="pl3" class="pline">NOT THE CODE</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ACT 1 -- the plate settles: photo is FULLY PRESENT on frame 0 (CSS), only a
+      // short brightness lift + the continuous push-in read as the settle.
+      tl.to("#photowrap img", { filter: "brightness(0.62) saturate(0.92) contrast(1.04)", duration: 0.35, ease: "power2.out" }, 0);
+      tl.fromTo("#photowrap", { scale: 1 }, { scale: 1.07, duration: 5.3, ease: "sine.inOut" }, 0);
+
+      // TURN -- the line lands with the words. "kitchen" A-local 0.498: lockup A;
+      // "recipe" A-local 1.458: line B. (>=0.6s between reveals; lockup counts once.)
+      tl.fromTo("#pl1", { opacity: 0, y: 26, scale: 1.05 }, { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: "power3.out", immediateRender: false }, 0.50);
+      tl.fromTo("#pl2", { opacity: 0, y: 26, scale: 1.05 }, { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: "power3.out", immediateRender: false }, 0.62);
+      tl.fromTo("#pl3", { opacity: 0, y: 26, scale: 1.05 }, { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: "power3.out", immediateRender: false }, 1.46);
+
+      // ACT 2 -- quiet hold: imperceptible drift on the type so nothing sits static.
+      tl.fromTo("#type", { scale: 1 }, { scale: 1.015, duration: 3.0, ease: "none", immediateRender: false }, 1.95);
+
+      // FADE -- finishes at exactly 5.30, zero buffer. NO tease chip in this slot.
+      tl.fromTo("#fade-all", { opacity: 1 }, { opacity: 0, duration: 0.35, ease: "power2.out", immediateRender: false }, 4.95);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

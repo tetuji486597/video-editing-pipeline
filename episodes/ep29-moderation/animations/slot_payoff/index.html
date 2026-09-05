@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP29 payoff — the un-booted post (photo card)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      @font-face { font-family: "Anton"; src: url("assets/fonts/anton.woff2") format("woff2"); font-weight: 400; font-style: normal; }
+      .meme { font-family: Anton, Inter, sans-serif; }
+
+      /* PHOTO CARD, held. Band x 70-860, y 210-640. Grid-measured on the real PAYOFF frame
+         (src 243.5s): hair top ~130 raw, brow ~680 raw / ~676 at the 1.08 zoom worst case.
+         Card + headline sit over hair/background only; lowest content 626 + shadow 22 < 676.
+         NO tease chip (series convention). */
+      /* ghosted funnel behind the card: x 120-820, y 215-640 (stroke only, 0.22 alpha) */
+      #funnel { position: absolute; left: 120px; top: 215px; width: 700px; height: 425px; opacity: 0; }
+      #funnel path { fill: rgba(34, 211, 238, 0.05); stroke: rgba(165, 243, 252, 0.35); stroke-width: 3; stroke-linejoin: round; }
+
+      /* the card: x 210-730, y 222-548 (520x326). Explicit base; slow drift via scale. */
+      #card { position: absolute; left: 210px; top: 222px; width: 520px; height: 326px; border-radius: 22px; opacity: 0.5; transform-origin: 50% 50%;
+        background: #0f172a; border: 2px solid rgba(74, 222, 128, 0.7); box-shadow: 0 16px 30px rgba(0, 0, 0, 0.6), 0 0 14px rgba(74, 222, 128, 0.25); }
+      #card .hdr { position: absolute; left: 16px; top: 14px; height: 40px; display: flex; align-items: center; gap: 10px; }
+      #card .av { width: 40px; height: 40px; border-radius: 50%; overflow: hidden; border: 2px solid #f472b6; }
+      #card .av img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 8%; }
+      #card .handle { color: #f8fafc; font-size: 24px; font-weight: 700; }
+      #card .ver { width: 20px; height: 20px; }
+      #photo { position: absolute; left: 16px; top: 66px; width: 488px; height: 200px; border-radius: 12px; overflow: hidden; background: #1e293b; }
+      #photo img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 18%; }
+      #card .ftr { position: absolute; left: 16px; top: 278px; height: 36px; display: flex; align-items: center; gap: 18px; }
+      #card .ftr svg { width: 28px; height: 28px; }
+      #card .ftr .cnt { color: #cbd5e1; font-size: 20px; }
+      /* green check badge (the un-boot), card-local right 16 / top 274 -> abs x 666-714, y 496-544 */
+      #ok { position: absolute; left: 456px; top: 274px; width: 48px; height: 48px; opacity: 0; transform-origin: 50% 50%; }
+
+      /* headline: x 120-820, y 566-626 */
+      #head { position: absolute; left: 120px; top: 566px; width: 700px; height: 60px; text-align: center; font-size: 54px; line-height: 60px;
+        letter-spacing: 3px; color: #f8fafc; opacity: 0; text-shadow: 0 3px 10px rgba(0, 0, 0, 0.9), 0 0 18px rgba(74, 222, 128, 0.35); }
+
+      /* Among Us "YOU" crewmate: label x 750-850 y 416-446; sprite x 770-840 y 452-544 */
+      #you { position: absolute; left: 750px; top: 416px; width: 100px; height: 30px; text-align: center; font-size: 28px; line-height: 30px; letter-spacing: 4px; color: #fecaca; opacity: 0;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9); }
+      #crew { position: absolute; left: 770px; top: 452px; width: 70px; height: 92px; opacity: 0; transform-origin: 50% 100%; image-rendering: pixelated;
+        filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6)); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="7.3" data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="7.3" data-track-index="1">
+        <svg id="funnel" viewBox="0 0 700 425">
+          <path d="M20 20 L680 20 L400 300 L400 410 L300 410 L300 300 Z" />
+        </svg>
+
+        <div id="card">
+          <div class="hdr">
+            <div class="av"><img src="assets/livvy_dunne_2025_1000.jpg" alt="" /></div>
+            <span class="handle">livvydunne</span>
+            <svg class="ver" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="#3b82f6"/><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div id="photo"><img src="assets/livvy_dunne_2025_1000.jpg" alt="" /></div>
+          <div class="ftr">
+            <svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.6-9.5-9.2C1 8 3.5 4.5 7 4.5c2 0 3.5 1 5 2.8 1.5-1.8 3-2.8 5-2.8 3.5 0 6 3.5 4.5 7.3C19.5 16.4 12 21 12 21z" fill="#f43f5e"/></svg>
+            <span class="cnt">2.4M</span>
+            <svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z" fill="none" stroke="#cbd5e1" stroke-width="2" stroke-linejoin="round"/></svg>
+            <span class="cnt">18K</span>
+          </div>
+          <svg id="ok" viewBox="0 0 48 48"><circle cx="24" cy="24" r="22" fill="#16a34a" stroke="#bbf7d0" stroke-width="3"/><path d="M13 25l8 8 14-16" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+
+        <div id="head" class="meme">PEOPLE DO THE HARD ONES</div>
+        <div id="you" class="meme">YOU</div>
+        <img id="crew" src="assets/amongus_red_crewmate_600.png" alt="" />
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // entrance at t=0: the card settles in; the ghost funnel fades up behind it
+      tl.fromTo("#card", { opacity: 0.5, y: 24, scale: 0.96 }, { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: "power3.out" }, 0);
+      tl.fromTo("#funnel", { opacity: 0 }, { opacity: 1, duration: 0.8, ease: "power2.out", immediateRender: false }, 0.2);
+      // the un-boot: green check pops on "easy ones" (@0.58)
+      tl.fromTo("#ok", { opacity: 0, scale: 0.3 }, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(2.4)", immediateRender: false }, 0.58);
+      // headline lands on "weird ones" (@1.92)
+      tl.fromTo("#head", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 1.85);
+      // slow drift on the held card (one-shot, not linear)
+      tl.fromTo("#card", { scale: 1 }, { scale: 1.03, duration: 6.4, ease: "sine.inOut", immediateRender: false }, 0.5);
+      // "You're the NPC" (@6.22): the YOU crewmate pops in the corner
+      tl.fromTo("#crew", { opacity: 0, scale: 0.4, y: 0 }, { opacity: 1, scale: 1, y: 0, duration: 0.35, ease: "back.out(2.2)", immediateRender: false }, 6.22);
+      tl.fromTo("#you", { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.25, ease: "power3.out", immediateRender: false }, 6.35);
+      tl.fromTo("#crew", { rotation: 0 }, { rotation: -8, duration: 0.14, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 6.6); // ends 6.88 < fade start 7.0
+
+      // ---------- fade: finishes at EXACTLY 7.3 (7.0 + 0.3), zero buffer; per leaf ----------
+      ["#card", "#funnel", "#head", "#you", "#crew", "#ok"].forEach((s) => {
+        tl.fromTo(s, { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 7.0);
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

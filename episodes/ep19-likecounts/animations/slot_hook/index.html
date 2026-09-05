@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      html, body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;
+      }
+      body { font-family: Inter, sans-serif; }
+
+      /* ------------------------------------------------------------------
+         PANEL FORMAT. There is no #bg-fill and no full-frame layer of any
+         kind. The ONLY thing this composition paints is the post card,
+         x=80..1000, y=210..794 (920 x 584 = 26.0% of the frame).
+         ------------------------------------------------------------------ */
+
+      /* #card is the single opacity-animated ancestor: it carries BOTH the
+         entrance (0 -> 0.5) and the final fade (5.0 -> 5.3). No other
+         ancestor animates opacity, so no leaf ever has two fading parents. */
+      #card {
+        position: absolute;
+        left: 80px;
+        top: 210px;
+        width: 920px;
+        height: 584px;
+        border-radius: 26px;
+        overflow: hidden;
+        background: linear-gradient(
+          165deg,
+          rgba(19, 24, 32, 0.975) 0%,
+          rgba(12, 16, 22, 0.982) 52%,
+          rgba(9, 12, 17, 0.986) 100%
+        );
+        border: 1.5px solid rgba(56, 189, 248, 0.34);
+        /* top alpha reach = 210 + 8 - 1.6*16 = 192.4  (>= 180 limit, 12.4px clear)
+           bottom alpha reach = 794 + 8 + 25.6 = 827.6 (far above the 1280 floor) */
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.62);
+        /* explicit identity filter so nothing is ever tweened from computed `none` */
+        filter: saturate(1) brightness(1) contrast(1);
+        opacity: 0.55; /* primary entrance starts here on frame 0, NOT at 0 */
+      }
+
+      /* ---------- deterministic film grain, card-local only ---------- */
+      #grain {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 920px;
+        height: 584px;
+        opacity: 0.045;
+        pointer-events: none;
+        mix-blend-mode: overlay;
+        z-index: 9;
+      }
+
+      /* ---------- media (left column) ---------- */
+      #photo-frame {
+        position: absolute;
+        left: 22px;
+        top: 22px;
+        width: 352px;
+        height: 302px;
+        border-radius: 16px;
+        overflow: hidden;
+        background: #05070a;
+        border: 1px solid rgba(148, 163, 184, 0.16);
+      }
+      #photo {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: 50% 38%;
+        filter: saturate(1) brightness(1) contrast(1);
+      }
+
+      /* ---------- meta (right column) ---------- */
+      #hdr {
+        position: absolute;
+        left: 414px;
+        top: 22px;
+        width: 400px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      #avatar-ring {
+        width: 60px;
+        height: 60px;
+        border-radius: 30px;
+        overflow: hidden;
+        flex: 0 0 60px;
+        border: 2px solid rgba(56, 189, 248, 0.5);
+        background: #05070a;
+      }
+      #avatar {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: 50% 42%;
+        filter: saturate(1) brightness(1) contrast(1);
+      }
+      #handle {
+        font-size: 32px;
+        font-weight: 600;
+        color: #e4ebf3;
+        letter-spacing: -0.2px;
+        white-space: nowrap;
+      }
+
+      #menu {
+        position: absolute;
+        left: 858px;
+        top: 46px;
+        width: 40px;
+        height: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .menu-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 4px;
+        background: rgba(148, 163, 184, 0.5);
+      }
+
+      .cap-bar {
+        position: absolute;
+        height: 18px;
+        border-radius: 9px;
+      }
+      #cap1 {
+        left: 414px;
+        top: 120px;
+        width: 436px;
+        background: rgba(226, 232, 240, 0.13);
+      }
+      #cap2 {
+        left: 414px;
+        top: 178px;
+        width: 296px;
+        background: rgba(226, 232, 240, 0.09);
+      }
+
+      #actions {
+        position: absolute;
+        left: 414px;
+        top: 270px;
+        width: 484px;
+        height: 54px;
+      }
+      .act-ico {
+        position: absolute;
+        top: 0;
+        width: 54px;
+        height: 54px;
+      }
+      #ico-heart-wrap { left: 0; }
+      #ico-comment { left: 94px; }
+      #ico-share { left: 188px; }
+
+      #heart-outline,
+      #heart-fill {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 54px;
+        height: 54px;
+      }
+      #heart-fill { opacity: 0; }
+
+      #divider {
+        position: absolute;
+        left: 22px;
+        top: 352px;
+        width: 876px;
+        height: 1px;
+        background: rgba(148, 163, 184, 0.16);
+      }
+
+      /* ---------- counter well ---------- */
+      #well {
+        position: absolute;
+        left: 22px;
+        top: 378px;
+        width: 876px;
+        height: 184px;
+        border-radius: 16px;
+        background: #080c12;
+        border: 1px solid rgba(56, 189, 248, 0.2);
+      }
+
+      /* Stacked pre-rendered values. All are opacity:1 from CSS and are
+         z-ordered so the EARLIEST value sits on TOP. A tick is exactly ONE
+         zero-duration set on the OUTGOING span; the next value is already
+         painted underneath, so no frame is ever blank and no two sets ever
+         share a timeline position. Frame-0 state (847,206) comes from CSS. */
+      #stackA {
+        position: absolute;
+        left: 22px;
+        top: 390px;
+        width: 876px;
+        height: 160px;
+        text-align: center;
+      }
+      .val {
+        position: absolute;
+        left: 50%;
+        top: 0;
+        transform: translateX(-50%);
+        height: 160px;
+        line-height: 160px;
+        white-space: nowrap;
+        padding: 0 14px;
+        /* opaque, well-coloured plate so an upper value fully occludes a lower one */
+        background: #080c12;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 120px;
+        font-weight: 700;
+        color: #eaf1f9;
+        opacity: 1;
+      }
+      #v0 { z-index: 5; }
+      #v1 { z-index: 4; }
+      #v2 { z-index: 3; }
+      #v3 { z-index: 2; }
+      #v4 { z-index: 1; }
+
+      #counterB {
+        position: absolute;
+        left: 466px;
+        top: 407px;
+        width: 424px;
+        height: 126px;
+        line-height: 126px;
+        text-align: center;
+        font-family: "JetBrains Mono", Menlo, monospace;
+        font-size: 94px;
+        font-weight: 700;
+        color: #fbbf24;
+        white-space: nowrap;
+        opacity: 0;
+        z-index: 6;
+      }
+
+      #glitch {
+        position: absolute;
+        left: 22px;
+        top: 378px;
+        width: 876px;
+        height: 184px;
+        border-radius: 16px;
+        background: rgba(251, 191, 36, 0.5);
+        opacity: 0;
+        pointer-events: none;
+        z-index: 8;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="5.3"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="5.3"
+        data-track-index="1"
+      >
+        <div id="card">
+          <!-- media -->
+          <div id="photo-frame">
+            <img id="photo" data-layout-allow-overflow="true" src="assets/post_photo.jpg" alt="" />
+          </div>
+
+          <!-- poster meta -->
+          <div id="hdr">
+            <div id="avatar-ring">
+              <img id="avatar" src="assets/avatar.jpg" alt="" />
+            </div>
+            <div id="handle">@cristiano</div>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10.5" fill="#38bdf8" />
+              <path
+                d="M6.8 12.3l3.5 3.5 6.9-7"
+                stroke="#08131c"
+                stroke-width="2.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+
+          <div id="menu">
+            <div class="menu-dot"></div>
+            <div class="menu-dot"></div>
+            <div class="menu-dot"></div>
+          </div>
+
+          <div class="cap-bar" id="cap1"></div>
+          <div class="cap-bar" id="cap2"></div>
+
+          <!-- action row -->
+          <div id="actions">
+            <div class="act-ico" id="ico-heart-wrap">
+              <svg id="heart-outline" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M12 20.7l-1.3-1.19C6.0 15.15 3 12.42 3 9.06 3 6.32 5.15 4.2 7.9 4.2c1.55 0 3.04.72 4.1 1.86A5.53 5.53 0 0 1 16.1 4.2C18.85 4.2 21 6.32 21 9.06c0 3.36-3 6.09-7.7 10.45L12 20.7z"
+                  stroke="#93a3b5"
+                  stroke-width="1.7"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              <svg id="heart-fill" viewBox="0 0 24 24">
+                <path
+                  d="M12 20.7l-1.3-1.19C6.0 15.15 3 12.42 3 9.06 3 6.32 5.15 4.2 7.9 4.2c1.55 0 3.04.72 4.1 1.86A5.53 5.53 0 0 1 16.1 4.2C18.85 4.2 21 6.32 21 9.06c0 3.36-3 6.09-7.7 10.45L12 20.7z"
+                  fill="#f43f5e"
+                />
+              </svg>
+            </div>
+            <svg class="act-ico" id="ico-comment" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M20.4 11.6a7.9 7.9 0 0 1-8.5 7.87 8.4 8.4 0 0 1-2.9-.6L4.2 20.3l1.5-4.6a7.7 7.7 0 0 1-1.1-4.1 7.9 7.9 0 0 1 7.9-7.87 7.9 7.9 0 0 1 7.9 7.87z"
+                stroke="#93a3b5"
+                stroke-width="1.7"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <svg class="act-ico" id="ico-share" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M21.2 3.1L10.6 13.7M21.2 3.1l-6.7 18.1-3.9-7.5-7.5-3.9 18.1-6.7z"
+                stroke="#93a3b5"
+                stroke-width="1.7"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+
+          <div id="divider"></div>
+
+          <!-- counter -->
+          <div id="well"></div>
+
+          <div id="stackA" data-layout-allow-overflow="true">
+            <span class="val" id="v0" data-layout-allow-overlap="true" data-layout-allow-occlusion="true">847,206</span>
+            <span class="val" id="v1" data-layout-allow-overlap="true" data-layout-allow-occlusion="true">847,209</span>
+            <span class="val" id="v2" data-layout-allow-overlap="true" data-layout-allow-occlusion="true">847,213</span>
+            <span class="val" id="v3" data-layout-allow-overlap="true" data-layout-allow-occlusion="true">847,218</span>
+            <span class="val" id="v4" data-layout-allow-overlap="true" data-layout-allow-occlusion="true">847,224</span>
+          </div>
+
+          <div id="counterB" data-layout-allow-overlap="true" data-layout-allow-occlusion="true">847,196</div>
+
+          <div id="glitch" data-layout-allow-occlusion="true"></div>
+
+          <svg id="grain">
+            <filter id="grainFilter" x="0" y="0" width="100%" height="100%">
+              <feTurbulence
+                type="fractalNoise"
+                baseFrequency="0.85"
+                numOctaves="3"
+                seed="19"
+                stitchTiles="stitch"
+              />
+            </filter>
+            <rect width="920" height="584" filter="url(#grainFilter)" />
+          </svg>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // frame grid @24fps
+      const F = 1 / 24;
+
+      /* ================= ACT 1 — the post lands, the count climbs ============ */
+
+      // primary entrance: begins at local t=0, visible (0.55) on frame 0
+      tl.fromTo(
+        "#card",
+        { opacity: 0.55, scale: 0.965, y: 18 },
+        { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: "power3.out" },
+        0
+      );
+
+      // ambient life: slow drift INSIDE the clipped photo frame.
+      // No camera push-in anywhere -- the card's own bounds never grow.
+      tl.fromTo(
+        "#photo",
+        { scale: 1 },
+        { scale: 1.05, duration: 4.5, ease: "sine.inOut" },
+        0
+      );
+
+      // the like lands: heart fills with a pop  (ends 1.192)
+      tl.fromTo(
+        "#heart-fill",
+        { opacity: 0, scale: 0.7 },
+        { opacity: 1, scale: 1.2, duration: 0.12, ease: "power4.out", immediateRender: false },
+        19 * F // 0.7917
+      );
+      tl.to("#heart-fill", { scale: 1, duration: 0.28, ease: "power3.out" }, 22 * F);
+
+      // counter climb: 5 pre-rendered values, 4 ticks, ONE set each, outgoing only
+      tl.set("#v0", { opacity: 0 }, 14 * F); // -> 847,209   @0.5833
+      tl.set("#v1", { opacity: 0 }, 20 * F); // -> 847,213   @0.8333
+      tl.set("#v2", { opacity: 0 }, 25 * F); // -> 847,218   @1.0417
+      tl.set("#v3", { opacity: 0 }, 29 * F); // -> 847,224   @1.2083
+
+      /* ================= THE TURN — local 1.375 ("...isn't exact") ========== */
+
+      // stutter: the reading jumps backwards for single frames.
+      // Each set is one element at one unique position; an upper (opaque,
+      // well-coloured) plate fully occludes the value beneath it.
+      tl.set("#v2", { opacity: 1 }, 31 * F); // 1.2917 -> 847,213
+      tl.set("#v2", { opacity: 0 }, 32 * F); // 1.3333 -> 847,224
+      tl.set("#v3", { opacity: 1 }, 33 * F); // 1.3750 -> 847,218  (the break)
+      tl.set("#v3", { opacity: 0 }, 34 * F); // 1.4167 -> 847,224
+
+      // physical judder, fully resolved to x:0 before the fork tween takes x
+      tl.to("#stackA", { x: -11, duration: 2 * F, ease: "power4.out" }, 29 * F);
+      tl.to("#stackA", { x: 9, duration: 1 * F, ease: "power4.out" }, 31 * F);
+      tl.to("#stackA", { x: 0, duration: 1 * F, ease: "power4.out" }, 32 * F);
+
+      // amber break flash across the well (opacity only -- never a filter tween)
+      tl.fromTo(
+        "#glitch",
+        { opacity: 0 },
+        { opacity: 0.42, duration: 2 * F, ease: "power4.out", immediateRender: false },
+        32 * F
+      );
+      tl.fromTo(
+        "#glitch",
+        { opacity: 0.42 },
+        { opacity: 0, duration: 0.3, ease: "power3.out", immediateRender: false },
+        34 * F
+      );
+
+      // THE FORK — the single reading splits and slides left  (ends 1.925)
+      tl.to(
+        "#stackA",
+        { x: -218, scale: 0.783333, duration: 0.55, ease: "power4.out" },
+        33 * F // 1.375
+      );
+
+      // phase colour shift: cyan (settled) -> amber (diverged)
+      tl.to("#card", { borderColor: "rgba(251,191,36,0.46)", duration: 0.45 }, 33 * F);
+      tl.to("#well", { borderColor: "rgba(251,191,36,0.34)", duration: 0.45 }, 33 * F);
+
+      /* ================= ACT 2 — two values disagree ======================== */
+
+      // the second, disagreeing reading  (revealed 1.500, 0.708s after the heart)
+      tl.fromTo(
+        "#counterB",
+        { opacity: 0, y: 22 },
+        { opacity: 1, y: 0, duration: 0.5, ease: "power3.out", immediateRender: false },
+        36 * F // 1.5
+      );
+
+      // ambient breathe on the disagreeing value.
+      // odd repeat -> lands back on the base value; ends 3.35, well before the fade.
+      tl.to(
+        "#counterB",
+        { opacity: 0.68, duration: 0.55, yoyo: true, repeat: 1, ease: "sine.inOut" },
+        2.25
+      );
+
+      /* ================= SETTLE — one value survives ========================= */
+
+      tl.fromTo(
+        "#counterB",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.45, ease: "power3.out", immediateRender: false },
+        86 * F // 3.5833  -> ends 4.033
+      );
+      tl.to(
+        "#stackA",
+        { x: 0, scale: 1, duration: 0.6, ease: "power3.out" },
+        86 * F // -> ends 4.183
+      );
+      tl.to("#card", { borderColor: "rgba(56,189,248,0.34)", duration: 0.6 }, 86 * F);
+      tl.to("#well", { borderColor: "rgba(56,189,248,0.2)", duration: 0.6 }, 86 * F);
+
+      // hold the settled state 4.183 -> 5.000  (0.817s settle)
+
+      /* ================= FADE — finishes at exactly 5.300 =================== */
+      tl.fromTo(
+        "#card",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.3, ease: "power3.out", immediateRender: false },
+        5.0
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

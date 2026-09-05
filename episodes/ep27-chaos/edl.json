@@ -1,0 +1,158 @@
+{
+  "version": 1,
+  "sources": {
+    "ep27": "C:/Users/gordo/Downloads/drive-download-20260904T054818Z-1-001/ep27.mp4"
+  },
+  "ranges": [
+    {
+      "source": "ep27",
+      "start": 4.28,
+      "end": 10.64,
+      "beat": "HOOK",
+      "quote": "Six, seven. Okay, so Netflix has a robot, and the robot's whole job is to break Netflix on purpose. What the skibidi?",
+      "reason": "COLD OPEN -- there is no intro take on this shoot; the episode opens on the hook. Only take. Acoustic onset 4.33 vs ASR 'Six,' at 4.46 (ASR 110ms LATE -- cutting at the ASR start would clip the attack of 'Six'); a -35dB lip click at 4.01-4.03 sits outside the range. Acoustic end 10.52 vs ASR 'skibidi?' end 10.50 (agree). Start 50ms before onset, end 120ms after last speech.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep27",
+      "start": 17.13,
+      "end": 28.62,
+      "beat": "PROBLEM",
+      "quote": "Every company be glazing themselves like, \"Oh, our stuff never goes down.\" And then it goes down at Among Us three AM, and some poor NPC gets woken up, and everybody's crashing out. Blood was capping. Holy aura loss.",
+      "reason": "Only take. Acoustic onset 17.19 vs ASR 'Every' at 17.24 (agree within 50ms); acoustic end 28.50 vs ASR 'loss.' end 28.46 (agree). The 0.36s beat after 'three AM,' (22.61-22.97) is the natural turn inside the beat and is kept. Start 60ms before onset, end 120ms after last speech.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep27",
+      "start": 33.22,
+      "end": 44.05,
+      "beat": "BUILD",
+      "quote": "So Netflix went, \"Fine, we'll cook it ourselves.\" That robot's called Chaos Monkey, and it just unplugs a server in the middle of the day while everybody's sitting right there watching. That's diabolical work, but let him cook.",
+      "reason": "Only take. ONE range spanning both phrases: the 0.43s breath between 'ourselves.' and 'That robot's' (35.41-35.84 acoustically, ASR gap 0.50s) is kept as the natural turn. Acoustic onset 33.28 vs ASR 'So' at 33.34 (ASR 60ms late); last speech 43.88 vs ASR 'cook.' end 44.00 -- the ASR box covers a -40dB mouth noise at 43.99-44.01, so the end is padded past it rather than cut through it. Start 60ms before onset, end 170ms after last speech.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep27",
+      "start": 85.1,
+      "end": 103.93,
+      "beat": "NEW_COMPONENT",
+      "quote": "The fancy name for this is chaos engineering. You go, \"Okay, if I unalive this box, nobody should notice.\" And then you slime out the box and watch. If nothing happened, W rizz. If something did break, low-key also Ws because you found out at lunch instead of your two AM Diddy party. And then you get braver and start yeeting way more boxes at once, like a whole Ohio of boxes.",
+      "reason": "LAST full take (fourth attempt). DROPPED earlier attempts: 48.82 dies at 'instead of--' and is followed by three 'because you found out' restarts (61.88 / 63.18 / 64.76); 68.94 dies at 'And then...'; 78.08 dies at 'if I--' with a restart at 81.80 that also dies. Acoustic onset 85.16 vs ASR 'The' at 85.17 (agree). BIGGEST ASR DISAGREEMENT IN THE EPISODE: Scribe boxes 'boxes.' as 103.28-104.78, a 1.50s word, but find_dead_air puts the acoustic end at 103.81 -- trusting the ASR box would have shipped ~0.9s of dead tail on the beat. End = 103.93 off the acoustic edge (120ms pad).",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    },
+    {
+      "source": "ep27",
+      "start": 108.51,
+      "end": 113.72,
+      "beat": "PAYOFF",
+      "quote": "So break your own stuff in the day so it can't break you at night. Next, we'll talk about why ChatGPT types like an unk",
+      "reason": "Only take. Acoustic onset 108.57 vs ASR 'So' at 108.62 (ASR 50ms late); acoustic end 113.60 vs ASR 'unk' end 113.60 (agree). The take ends on 'unk' with no trailing punctuation in the ASR -- the line is delivered complete, the cadence just drops off at the end; 1.98s of room tone follows, nothing else was recorded. Start 60ms before onset, end 120ms after last speech.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 730
+      }
+    }
+  ],
+  "grade": "eq=contrast=1.15:saturation=1.05,colorbalance=rs=-0.04:gs=0.02:bs=0.05:rm=0.01:gm=0.0:bm=-0.01:rh=0.06:gh=0.02:bh=-0.06,vignette=angle=0.7,unsharp=5:5",
+  "overlays": [
+    {
+      "file": "animations/slot_tiktok_title/render.webm",
+      "start_in_output": 0.0,
+      "duration": 6.3667
+    },
+    {
+      "file": "animations/slot_hook/render.webm",
+      "start_in_output": 0.0,
+      "duration": 6.3667
+    },
+    {
+      "file": "animations/slot_problem/render.webm",
+      "start_in_output": 8.2,
+      "duration": 10.0
+    },
+    {
+      "file": "animations/slot_build/render.webm",
+      "start_in_output": 20.7,
+      "duration": 8.7
+    },
+    {
+      "file": "animations/slot_new_component/render.webm",
+      "start_in_output": 29.4,
+      "duration": 18.0667
+    },
+    {
+      "file": "animations/slot_payoff/render.webm",
+      "start_in_output": 48.025,
+      "duration": 4.7667
+    }
+  ],
+  "subtitles": "master.ass",
+  "_variant": "Single variant -- brainrot edition, cold open on the hook, no intro take exists.",
+  "_zoom_note": "Slow FACE-ANCHORED zoom, focal (540,730) = eye line, magnitude 1.08, direction alternating so the drift is continuous across cuts (HOOK 1.0->1.08, PROBLEM 1.08->1.0, BUILD 1.0->1.08, NEW_COMPONENT 1.08->1.0, PAYOFF 1.0->1.08). Same standard as EP20-26: render.py's supersampled zoom chain with the crop offset derived from the frame's actual quantized size.",
+  "_edge_note": "Every range START/END measured acoustically (find_dead_air.py relative-RMS at 0.10s, then a 0.02s-window RMS pass around each edge; speech level -23.9 dB, floor -41.9 dB). Scribe pads word boxes badly on this shoot ('boxes.' boxed as a 1.50s word, 'Six,' starts 110ms late). Starts sit 50-60ms before acoustic onset; ends sit 120-170ms after the last speech window. No internal dead air >0.8s in any range (longest internal gaps: 0.43s BUILD breath, 0.36s PROBLEM turn).",
+  "_beat_windows_output_timeline": {
+    "HOOK": [
+      0.0,
+      6.375
+    ],
+    "PROBLEM": [
+      6.375,
+      17.875
+    ],
+    "BUILD": [
+      17.875,
+      28.7083
+    ],
+    "NEW_COMPONENT": [
+      28.7083,
+      47.5417
+    ],
+    "PAYOFF": [
+      47.5417,
+      52.7917
+    ]
+  },
+  "total_duration_s": 52.7917,
+  "_windows_note": "Output-timeline windows on render.py's real 24fps extract grid: each segment's rendered duration is ceil((end-start)*24)/24, not the raw source span. Verified against rendered clips where measurable. Overlay start_in_output values are derived from THESE numbers.",
+  "_overlay_note": "Durations sit on the HyperFrames 30fps render grid (191/300/261/542/143 frames) so the declared duration equals the rendered file and every fade lands on the file's true end. Gap audit (this.end -> next.start): sticker+hook end 6.3667 -> problem 8.2 = 1.833s deliberate (presenter on camera for 'every company be glazing'); problem end 18.2 -> build 20.7 = 2.5s deliberate; build end 29.4 -> new_component 29.4 = 0 (exact); new_component end 47.4667 -> payoff 48.025 = 0.558s deliberate; payoff end 52.7917 = total_duration_s. The sticker and hook fade together, finishing 0.008s before the PROBLEM cut at 6.375.",
+  "gameplay": {
+    "file": "../../shared_assets/brainrot/gameplay/subway_surfers_QPW3XwBoQlw.mp4",
+    "src_start": 3.0,
+    "y": 1300,
+    "h": 620,
+    "crop": {
+      "x": 0,
+      "y": 1000,
+      "w": 1080,
+      "h": 620
+    },
+    "_note": "Brainrot gameplay strip (user request). Bottom 620px = shirt only (chin ~1200). Composited above overlays, below captions; muted."
+  }
+}

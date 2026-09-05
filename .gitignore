@@ -5,3 +5,12 @@
 *.webm
 .env
 .env.local
+
+# scratch / audit output (regenerable)
+_f*/
+_overlay_snapshots/
+.playwright-mcp/
+*.log
+*.bak
+.render.hf-transaction-*/
+safe_zone_audit_*.txt

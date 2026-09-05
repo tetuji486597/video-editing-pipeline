@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "sources": {
+    "13": "C:/Users/gordo/Downloads/13.mp4"
+  },
+  "ranges": [
+    {
+      "source": "13", "start": 21.53, "end": 27.80,
+      "beat": "HOOK",
+      "quote": "You ever spam a button and get too many requests? Well, the app is defending itself. Here's the mechanism.",
+      "reason": "Take 4 of 4. Takes 1-2 (1.94, 10.98) use the wrong tense ('and gotten') or abort. Take 3 (15.16) is clean but its final word 'requests?' carries 1.8s of trailing dead air vs 0.64s here. This take is tighter AND runs continuously into the 'Well, the app is defending itself' tag, so hook + tag are one unbroken delivery with a natural 0.66s beat between them."
+    },
+    {
+      "source": "13", "start": 33.01, "end": 41.50,
+      "beat": "PROBLEM",
+      "quote": "So without limits, one buggy script or one attacker can flood your server with thousands of requests a second, knocking it over for everyone.",
+      "reason": "Single clean take, only delivery. Cutting in at 33.01 drops 0.85s of dead air after the hook tag."
+    },
+    {
+      "source": "13", "start": 42.35, "end": 48.34,
+      "beat": "BUILD",
+      "quote": "The classic fix is a token bucket. Each user gets a bucket that refills with tokens at a steady rate.",
+      "reason": "Single clean take, only delivery. Contiguous with PROBLEM in the source but kept as its own range so the beat can carry its own overlay."
+    },
+    {
+      "source": "13", "start": 108.87, "end": 118.32,
+      "beat": "NEW_COMPONENT",
+      "quote": "Every request spends one token. Got a token? You're served. Bucket empty? You get a 429 too many requests until it refills.",
+      "reason": "Take 4 of 5 — the ONLY take containing the scripted 'until it refills' clause. It aborts immediately after on 'This allows short bursts but caps...' (118.36-120.44), so it is spliced to the clean completion in the next range. Cut lands after 'refills.' (ends 118.28) at a sentence boundary; edge padded only +40ms because the aborted 'This' onset sits just 80ms later."
+    },
+    {
+      "source": "13", "start": 125.57, "end": 131.02,
+      "beat": "NEW_COMPONENT_B",
+      "quote": "This allows short bursts, but caps the sustained rate. Fair to real users, but it's brutal to floods.",
+      "reason": "Clean completion of the sentence the previous range aborts on, and the better read of the two available: 'Fair to real users' matches the script where the 60.44 take says 'which is fair to real users'."
+    },
+    {
+      "source": "13", "start": 132.05, "end": 139.18,
+      "beat": "AI_ANGLE",
+      "quote": "AI-driven rate limiting goes further, learning normal traffic patterns so it can throttle bot-like behavior while leaving humans untouched.",
+      "reason": "Single clean take, only delivery. TRAILING AIR TRIMMED (user-reported dead silence at the 0:42 mark): Scribe timestamps the final word 'untouched.' out to 140.78, but that is the ASR's word box, not the audio — silencedetect puts the acoustic end at 139.095 and the waveform's last speech transient at ~138.9, with flat room tone until the next take at ~140.95. Cutting at 139.18 leaves ~180ms after the final consonant and removes 1.68s of dead air. This does NOT violate Hard Rule 6 (never cut inside a word) — the cut lands in silence; the ASR box merely extends past the audible word."
+    },
+    {
+      "source": "13", "start": 152.87, "end": 159.82,
+      "beat": "PAYOFF",
+      "quote": "So a bucket of tokens is all that stands between you and chaos. Next, we'll talk about why feeds never end.",
+      "reason": "Take 3 of 3. Take 1 (141.46) reverses the line into 'So a bucket is a token'; take 2 (148.06) aborts at 'is all that stands...'. This take is clean and runs continuously into the 'next episode' tease with a natural 0.66s beat."
+    }
+  ],
+  "grade": "eq=contrast=1.15:saturation=1.05,colorbalance=rs=-0.04:gs=0.02:bs=0.05:rm=0.01:gm=0.0:bm=-0.01:rh=0.06:gh=0.02:bh=-0.06,vignette=angle=0.7,unsharp=5:5",
+  "overlays": [
+    {"file": "animations/slot_title/render.webm",          "start_in_output":  0.000, "duration": 2.766},
+    {"file": "animations/slot_hook/render.webm",           "start_in_output":  2.800, "duration": 3.400},
+    {"file": "animations/slot_problem/render.webm",        "start_in_output":  7.200, "duration": 5.800},
+    {"file": "animations/slot_build/render.webm",          "start_in_output": 15.600, "duration": 4.300},
+    {"file": "animations/slot_new_component/render.webm",  "start_in_output": 21.700, "duration": 8.200},
+    {"file": "animations/slot_ai_angle/render.webm",       "start_in_output": 36.600, "duration": 6.000},
+    {"file": "animations/slot_payoff/render.webm",         "start_in_output": 43.720, "duration": 4.400}
+  ],
+  "_beat_windows_output_timeline": {
+    "HOOK":            [0.000,  6.292],
+    "PROBLEM":         [6.292, 14.792],
+    "BUILD":          [14.792, 20.792],
+    "NEW_COMPONENT":  [20.792, 35.709],
+    "AI_ANGLE":       [35.709, 42.859],
+    "PAYOFF":         [42.859, 49.817]
+  },
+  "_trim_note": "AI_ANGLE's trailing air was trimmed 1.68s in the SOURCE domain (140.86 -> 139.18). Downstream items were shifted by that same 1.68s: payoff overlay 45.400 -> 43.720, payoff SFX ding 48.10 -> 46.42. Overlays at or before ai_angle are unaffected (the trim is at the END of the AI_ANGLE range). CORRECTION, recorded rather than re-rendered: the source-domain delta does NOT translate 1:1 to the output, because render.py extracts at 24fps (-r 24, line 273) and each segment quantizes to that frame grid. Rendered duration went 51.541 -> 49.931, i.e. the real output shift is 1.610s, so the strictly-correct values would be 43.790 and 46.49 — both 70ms later than shipped. Verified on frames rather than assumed: the payoff overlay sits correctly inside its beat either way, and at 46.42 the hero is mid-reveal ('A BUCKET') vs fully landed at 46.49, so the shipped ding actually matches the series' 'hit anticipates the pop' convention better. Left as-is; 70ms did not justify a full re-render. Lesson: any source-domain edit must be re-derived against the 24fps output grid, not carried across arithmetically.",
+  "_overlay_gap_audit": "title->hook +0.034 (matches the identical handoff shipped in ep4/ep5/ep6); hook->problem +1.000; problem->build +2.600; build->new_component +1.800; new_component->ai_angle +6.700; ai_angle->payoff +2.800. No small accidental gaps (rule 12's EP11 bug was 170ms); every gap is deliberate breathing room, consistent with the 49-54% coverage shipped in ep4/ep5/ep6.",
+  "subtitles": "master.ass",
+  "total_duration_s": 49.73
+}
