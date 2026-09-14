@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP35 TikTok-style Title Box (intro sticker)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;   /* never a takeover -- the presenter stays visible */
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      /* TikTok-native text sticker: each line is its own white rounded box, the stack
+         centred on x=540 (left:0/right:0/margin:auto). Wording per BATCH_PLAN_EP30-35:
+         EPISODE 35 / MONOLITH VS / MICROSERVICES / IN 30 SECONDS (recorded intro says
+         "Monolith versus microservices in 30 seconds." -- transcript checked).
+         Widest line "MICROSERVICES" = 13 chars at 48px Inter 800 (~0.66em/char = 31.7px)
+         -> ~412px text + 52px padding = ~464px box, far under the 660px cap.
+         Stack height: episode box 36 + 16 + 18 = 70; three 48px boxes at 48+20+22 = 90
+         each = 270; gaps 3 x 12 = 36 -> 376px total, top 210 -> y 210..586; the 1.01
+         drift about the top-centre origin -> 590. INTRO frame grid-measured: hair top
+         ~130, brow ~640 (zoom 1.0->1.08 about (540,720) moves it to ~634). The stack
+         sits over hair/forehead only and clears the brow by ~44px.
+         The sticker is the ONE slot allowed inside the countdown reserve (the countdown
+         starts at the INTRO end, when this has faded to alpha 0). */
+      #stack {
+        position: absolute;
+        left: 0;
+        right: 0;
+        margin: 0 auto;
+        top: 210px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        /* Frame-0 state from CSS -- tl.set() at position 0 never fires. */
+        opacity: 0.6;
+        transform: scale(0.94);
+        transform-origin: 50% 0%;
+      }
+      .tt-line {
+        background: #ffffff;
+        color: #111111;
+        font-size: 48px;
+        line-height: 48px;
+        font-weight: 800;
+        letter-spacing: -1px;
+        padding: 20px 26px 22px 26px;
+        border-radius: 16px;
+        white-space: nowrap;
+        /* soft shadow only; reach 1.6*16 = ~26px, far inside every band */
+        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.22);
+      }
+      .tt-line.ep {
+        font-size: 36px;
+        line-height: 36px;
+        padding: 16px 22px 18px 22px;
+        border-radius: 14px;
+        letter-spacing: 0px;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="2.8333"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="2.8333"
+        data-track-index="1"
+      >
+        <div id="stack">
+          <div class="tt-line ep">EPISODE 35</div>
+          <div class="tt-line">MONOLITH VS</div>
+          <div class="tt-line">MICROSERVICES</div>
+          <div class="tt-line">IN 30 SECONDS</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // The four lines are ONE sticker -- they land together.
+      tl.fromTo(
+        "#stack",
+        { opacity: 0.6, scale: 0.94 },
+        { opacity: 1, scale: 1, duration: 0.28, ease: "power3.out" },
+        0
+      );
+
+      // Imperceptible drift so the motion linter's seek check advances. fromTo, not
+      // .to(), to avoid gsap_css_transform_conflict with the CSS transform.
+      tl.fromTo(
+        "#stack",
+        { scale: 1 },
+        { scale: 1.01, duration: 2.2533, ease: "none", immediateRender: false },
+        0.28
+      );
+
+      // Fade FINISHES at exactly data-duration (the INTRO end, 85 frames @30fps),
+      // zero buffer: 2.5333 + 0.30 = 2.8333.
+      tl.fromTo(
+        "#stack",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.30, ease: "power2.out", immediateRender: false },
+        2.5333
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

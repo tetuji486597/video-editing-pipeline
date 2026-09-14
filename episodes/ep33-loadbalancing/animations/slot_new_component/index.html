@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP33 new component — least connections, health checks, pulled out</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; }
+      .fill { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* ---------- background (TAKEOVER) ---------- */
+      #bg-fill { background: radial-gradient(120% 90% at 45% 12%, #0f1620 0%, #0a0e15 45%, #05070b 80%, #030405 100%); }
+      #glow-cyan {
+        position: absolute; left: 40%; top: 48%; width: 1300px; height: 1300px;
+        transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(34, 211, 238, 0.14) 0%, rgba(34, 211, 238, 0) 62%);
+      }
+      #glow-green {
+        position: absolute; left: 45%; top: 55%; width: 1400px; height: 1300px;
+        transform: translate(-50%, -50%); opacity: 0;
+        background: radial-gradient(circle, rgba(52, 211, 153, 0.14) 0%, rgba(52, 211, 153, 0) 60%);
+      }
+      #vignette {
+        background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 13%, rgba(0,0,0,0) 80%, rgba(0,0,0,0.6) 100%);
+      }
+
+      /* ---------- scene: push-in 1 -> 1.04 about (480,800).
+         Design band x 120-840, y 380-1240 resolves to x 105.6-854.4, y 363.2-1257.6
+         (+~8px shadow -> 1266 < 1280). COUNTDOWN RESERVE (x>=670, y<=330): only the
+         dark background reaches it (headline top 380 -> 363 worst). ---------- */
+      #scene { transform-origin: 480px 800px; }
+
+      #head {
+        position: absolute; left: 100px; top: 380px; width: 740px; text-align: center;
+        font-size: 54px; line-height: 70px; font-weight: 900; letter-spacing: 2px; color: #a5f3fc;
+        text-shadow: 0 4px 18px rgba(0, 0, 0, 0.85), 0 0 26px rgba(34, 211, 238, 0.45);
+        white-space: nowrap; opacity: 0;
+      }
+
+      /* ---------- the balancer ---------- */
+      #lb { position: absolute; left: 430px; top: 470px; width: 100px; height: 80px; opacity: 0.55; }
+      #lb .diamond {
+        position: absolute; left: 22px; top: 12px; width: 56px; height: 56px; border-radius: 10px;
+        background: linear-gradient(160deg, rgba(34, 211, 238, 0.95), rgba(14, 116, 144, 0.95));
+        border: 3px solid #cffafe; transform: rotate(45deg);
+        box-shadow: 0 0 18px rgba(34, 211, 238, 0.55), 0 6px 12px rgba(0, 0, 0, 0.5);
+      }
+      #lb .stripe { position: absolute; left: 36px; top: 38px; width: 28px; height: 4px; border-radius: 2px; background: #ecfeff; }
+      #lb-ring {
+        position: absolute; left: 430px; top: 470px; width: 100px; height: 80px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(165, 243, 252, 0.6) 0%, rgba(34, 211, 238, 0.2) 40%, rgba(34, 211, 238, 0) 65%);
+        opacity: 0;
+      }
+      #lanes { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: visible; }
+      .lane { fill: none; stroke: rgba(226, 232, 240, 0.28); stroke-width: 2; stroke-dasharray: 6 8; stroke-linecap: round; }
+      .laneB { opacity: 0; }
+      .req {
+        position: absolute; left: 0; top: 0; width: 18px; height: 18px; border-radius: 50%;
+        background: #a5f3fc; box-shadow: 0 0 12px rgba(34, 211, 238, 0.85); opacity: 0;
+      }
+
+      /* ---------- the three servers, each with a connections stack ---------- */
+      .srv {
+        position: absolute; top: 590px; width: 200px; height: 310px; border-radius: 18px;
+        background: linear-gradient(170deg, rgba(20, 28, 40, 0.92), rgba(9, 13, 20, 0.96));
+        border: 2px solid rgba(148, 163, 184, 0.45);
+        box-shadow: 0 8px 14px rgba(0, 0, 0, 0.55);
+        opacity: 0;
+      }
+      #srv1 { left: 120px; } #srv2 { left: 380px; } #srv3 { left: 640px; }
+      .srv .top { position: absolute; left: 16px; top: 14px; width: 168px; height: 46px; }
+      .srv .bay { position: absolute; left: 0; width: 140px; height: 7px; border-radius: 3px; background: rgba(148, 163, 184, 0.28); }
+      .srv .bay.a { top: 6px; } .srv .bay.b { top: 20px; } .srv .bay.c { top: 34px; }
+      .srv .led { position: absolute; right: 2px; top: 6px; width: 8px; height: 8px; border-radius: 50%; background: #34d399; box-shadow: 0 0 6px rgba(52, 211, 153, 0.8); }
+      .srv .trace { position: absolute; left: 16px; top: 14px; width: 168px; height: 46px; opacity: 0; }
+      .srv .trace svg { width: 168px; height: 46px; overflow: visible; }
+      .srv .beat { fill: none; stroke: #34d399; stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
+      .srv .flat { fill: none; stroke: #ef4444; stroke-width: 3.5; stroke-linecap: round; opacity: 0; }
+      .srv .divider { position: absolute; left: 16px; top: 72px; width: 168px; height: 1px; background: rgba(148, 163, 184, 0.3); }
+      .srv .pill {
+        position: absolute; left: 24px; width: 152px; height: 18px; border-radius: 9px;
+        background: linear-gradient(90deg, rgba(34, 211, 238, 0.85), rgba(14, 116, 144, 0.85));
+        border: 1px solid rgba(165, 243, 252, 0.6); opacity: 0;
+      }
+      .srv .hl {
+        position: absolute; inset: -2px; border-radius: 18px;
+        border: 3px solid rgba(165, 243, 252, 0.95);
+        box-shadow: 0 0 22px rgba(34, 211, 238, 0.7); opacity: 0;
+      }
+      .srv .dead {
+        position: absolute; inset: -2px; border-radius: 18px;
+        background: rgba(10, 8, 10, 0.55); border: 2px solid rgba(239, 68, 68, 0.8);
+        opacity: 0;
+      }
+      .srv .xmark {
+        position: absolute; left: 70px; top: 120px; width: 60px; height: 60px; opacity: 0;
+      }
+      .srv .xmark svg { width: 60px; height: 60px; }
+
+      /* ---------- the callback chip + the real simulation ---------- */
+      #ep32 {
+        position: absolute; left: 340px; top: 935px; width: 280px; height: 46px; border-radius: 12px;
+        background: rgba(6, 24, 18, 0.9); border: 2px solid rgba(52, 211, 153, 0.8);
+        color: #6ee7b7; font-size: 24px; line-height: 42px; font-weight: 800; letter-spacing: 2px;
+        text-align: center; white-space: nowrap; opacity: 0;
+      }
+      #sim {
+        position: absolute; left: 200px; top: 1020px; width: 560px; height: 220px; border-radius: 14px;
+        background: rgba(8, 12, 20, 0.92); border: 2px solid rgba(148, 163, 184, 0.4);
+        box-shadow: 0 6px 8px rgba(0, 0, 0, 0.5); overflow: hidden; opacity: 0;
+      }
+      #sim-head {
+        position: absolute; left: 0; top: 0; width: 556px; height: 34px; padding: 0 14px;
+        display: flex; align-items: center; gap: 10px;
+        background: rgba(30, 41, 59, 0.9); border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+      }
+      .sdot { width: 10px; height: 10px; border-radius: 50%; background: rgba(148, 163, 184, 0.5); }
+      #sim-url { font-size: 17px; color: #94a3b8; letter-spacing: 1px; }
+      #sim-tag {
+        margin-left: auto; padding: 2px 10px; border-radius: 8px; font-size: 16px; font-weight: 800;
+        letter-spacing: 2px; color: #1c1917; background: #fbbf24;
+      }
+      #sim img { position: absolute; left: 20px; top: 40px; width: 520px; height: 174px; border-radius: 6px; }
+
+      #flash { background: #ffffff; opacity: 0; pointer-events: none; }
+      #dither { opacity: 1; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="15.0" data-width="1080" data-height="1920">
+      <section id="main-clip" class="clip fill" data-start="0" data-duration="15.0" data-track-index="1">
+        <div id="content-all" class="fill">
+          <div id="bg-fill" class="fill">
+            <div id="glow-cyan"></div>
+            <div id="glow-green"></div>
+            <div id="vignette" class="fill"></div>
+          </div>
+
+          <div id="scene" class="fill">
+            <div id="head">LEAST CONNECTIONS</div>
+
+            <svg id="lanes" viewBox="0 0 1080 1920">
+              <path class="lane laneA" id="lnA1" d="M470,548 L220,588" />
+              <path class="lane laneA" id="lnA2" d="M480,552 L480,588" />
+              <path class="lane laneA" id="lnA3" d="M490,548 L740,588" />
+              <path class="lane laneB" id="lnB1" d="M470,548 L350,588" />
+              <path class="lane laneB" id="lnB3" d="M490,548 L610,588" />
+              <path class="lane" id="ln-in" d="M110,510 L428,510" />
+            </svg>
+
+            <div id="lb-ring"></div>
+            <div id="lb"><div class="diamond"></div><div class="stripe"></div></div>
+
+            <div id="servers"></div>
+            <div id="reqs"></div>
+
+            <div id="ep32">EP32 FAILOVER</div>
+            <div id="sim">
+              <div id="sim-head">
+                <div class="sdot"></div><div class="sdot"></div>
+                <div id="sim-url" class="mono">samwho.dev/load-balancing</div>
+                <div id="sim-tag">REAL SIM</div>
+              </div>
+              <img src="assets/samwho_least_conn_sim.png" alt="" />
+            </div>
+          </div>
+
+          <div id="flash" class="fill"></div>
+          <div id="dither" class="fill"></div>
+        </div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter" x="0%" y="0%" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.04 0" />
+      </filter>
+    </svg>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      document.getElementById("dither").style.filter = "url(#grain-filter)";
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      const D = 15.0, FADE_AT = 14.7;
+
+      // ---------- build the three servers ----------
+      const beatPath = "M0,23 L36,23 L46,8 L56,38 L66,23 L100,23 L110,12 L118,34 L126,23 L168,23";
+      const flatPath = "M0,23 L168,23";
+      const srvEl = document.getElementById("servers");
+      const startCounts = [3, 7, 1];
+      const MAXP = 8;
+      for (let s = 1; s <= 3; s++) {
+        const d = document.createElement("div");
+        d.className = "srv"; d.id = "srv" + s;
+        let pills = "";
+        for (let p = 0; p < MAXP; p++) pills += '<div class="pill" id="p' + s + '_' + p + '" style="top:' + (286 - p * 24) + 'px"></div>';
+        d.innerHTML =
+          '<div class="top"><div class="bay a"></div><div class="bay b"></div><div class="bay c"></div><div class="led"></div></div>' +
+          '<div class="trace" id="tr' + s + '"><svg viewBox="0 0 168 46"><path class="beat" id="beat' + s + '" d="' + beatPath + '"/><path class="flat" id="flat' + s + '" d="' + flatPath + '"/></svg></div>' +
+          '<div class="divider"></div>' + pills +
+          '<div class="hl" id="hl' + s + '"></div><div class="dead" id="dead' + s + '"></div>' +
+          '<div class="xmark" id="x' + s + '"><svg viewBox="0 0 60 60"><path d="M14 14 L46 46 M46 14 L14 46" stroke="#ef4444" stroke-width="7" stroke-linecap="round"/></svg></div>';
+        srvEl.appendChild(d);
+      }
+      // dash setup for the traces
+      const beatLen = {};
+      [1, 2, 3].forEach((s) => {
+        const b = document.getElementById("beat" + s), f = document.getElementById("flat" + s);
+        const L = b.getTotalLength(); beatLen[s] = L;
+        b.style.strokeDasharray = String(L); b.style.strokeDashoffset = String(L);
+        const FL = f.getTotalLength();
+        f.style.strokeDasharray = String(FL); f.style.strokeDashoffset = String(FL);
+      });
+      // requests
+      const reqEl = document.getElementById("reqs");
+      // [spawn time, target server, pill index it adds, target x centre]; column centres: 220/480/740, after the pull 350/610
+      const reqs = [
+        { t: 0.45, s: 3, hold: 2.55, cx: 740 },
+        { t: 3.9, s: 3, hold: null, cx: 740 },
+        { t: 5.1, s: 1, hold: null, cx: 220 },
+        { t: 11.0, s: 3, hold: null, cx: 610 },
+        { t: 12.0, s: 1, hold: null, cx: 350 },
+        { t: 13.6, s: 3, hold: null, cx: 610 },
+      ];
+      const pillNext = { 1: 3, 2: 7, 3: 1 };
+      reqs.forEach((r, i) => {
+        const d = document.createElement("div"); d.className = "req"; d.id = "rq" + i; reqEl.appendChild(d);
+      });
+
+      // ---------- push-in under everything ----------
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.04, duration: D, ease: "sine.inOut" }, 0);
+
+      // ---------- ACT 1 (cyan): the fleet with its live connection counts ----------
+      tl.fromTo("#lb", { opacity: 0.55, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.35, ease: "power3.out" }, 0);
+      [1, 2, 3].forEach((s, i) => {
+        tl.fromTo("#srv" + s, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 0.3 + i * 0.2);
+      });
+      ["#lnA1", "#lnA2", "#lnA3", "#ln-in"].forEach((s, i) => {
+        tl.fromTo(s, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out", immediateRender: false }, 0.8 + i * 0.12);
+      });
+      // the connection stacks fill: 3 / 7 / 1 (tokens, not numerals)
+      [1, 2, 3].forEach((s) => {
+        for (let p = 0; p < startCounts[s - 1]; p++) {
+          tl.fromTo("#p" + s + "_" + p, { opacity: 0, scaleX: 0.6 }, { opacity: 1, scaleX: 1, duration: 0.18, ease: "power3.out", immediateRender: false }, 1.3 + p * 0.11 + (s - 1) * 0.05);
+        }
+      });
+      // requests: ride the in-lane to the balancer, (hold,) then drop into the emptiest stack
+      reqs.forEach((r, i) => {
+        const sel = "#rq" + i;
+        const tLB = r.t + 0.5;
+        const tGo = r.hold !== null ? r.hold : tLB + 0.15;
+        tl.fromTo(sel, { x: 101, y: 501, opacity: 0 }, { x: 101, y: 501, opacity: 1, duration: 0.12, ease: "power2.out", immediateRender: false }, r.t);
+        tl.to(sel, { x: 471, y: 501, duration: 0.5, ease: "power2.inOut" }, r.t);
+        tl.to(sel, { x: r.cx - 9, y: 600, duration: 0.35, ease: "power2.in" }, tGo);
+        tl.to(sel, { opacity: 0, duration: 0.08, ease: "power2.out" }, tGo + 0.35);
+        // the balancer flicks, the chosen server lights, a new pill lands
+        tl.fromTo("#lb", { scale: 1 }, { scale: 1.08, duration: 0.1, ease: "power2.out", yoyo: true, repeat: 1, immediateRender: false }, tGo);
+        tl.fromTo("#hl" + r.s, { opacity: 0 }, { opacity: 1, duration: 0.14, ease: "power2.out", yoyo: true, repeat: 1, immediateRender: false }, tGo + 0.32);
+        const p = pillNext[r.s]++;
+        tl.fromTo("#p" + r.s + "_" + p, { opacity: 0, scaleX: 0.6 }, { opacity: 1, scaleX: 1, duration: 0.18, ease: "power3.out", immediateRender: false }, tGo + 0.36);
+      });
+      // while the first request waits ("send each request to whichever server has the fewest"), the balancer weighs the stacks
+      tl.fromTo("#lb-ring", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1.2, duration: 0.5, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 1.4); // ends 2.4
+      // headline lands ON "connections" (3.3)
+      tl.fromTo("#head", { opacity: 0, scale: 1.3 }, { opacity: 1, scale: 1, duration: 0.3, ease: "power4.out", immediateRender: false }, 3.3);
+      // the real thing ("pile up in one place" 4.9): the samwho simulation slides in below
+      tl.fromTo("#sim", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out", immediateRender: false }, 4.9);
+
+      // ---------- TURN @7.0 ("health checking"): green phase, heartbeats on every server ----------
+      const TURN = 7.0;
+      tl.fromTo("#flash", { opacity: 0 }, { opacity: 0.55, duration: 0.06, ease: "power3.out", immediateRender: false }, TURN);
+      tl.to("#flash", { opacity: 0, duration: 0.25, ease: "power3.out" }, TURN + 0.06);
+      tl.to("#glow-cyan", { opacity: 0.2, duration: 0.9, ease: "sine.inOut" }, TURN);
+      tl.to("#glow-green", { opacity: 1, duration: 0.9, ease: "sine.inOut" }, TURN);
+      tl.to("#head", { color: "#6ee7b7", duration: 0.6, ease: "sine.inOut" }, TURN);
+      [1, 2, 3].forEach((s, i) => {
+        tl.to("#srv" + s + " .bay", { opacity: 0.25, duration: 0.3, ease: "power2.out" }, TURN + i * 0.1);
+        tl.fromTo("#tr" + s, { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "power2.out", immediateRender: false }, TURN + i * 0.1);
+      });
+      // the beat draws over and over (constant velocity IS the point). Server 2 gets two sweeps then flatlines;
+      // 1 and 3 keep beating: 7.1 + 9*0.8 = 14.3 and 7.3 + 9*0.8 = 14.5, both before the fade at 14.7.
+      tl.fromTo("#beat1", { strokeDashoffset: beatLen[1] }, { strokeDashoffset: -beatLen[1], duration: 0.8, ease: "none", repeat: 8, immediateRender: false }, TURN + 0.1);
+      tl.fromTo("#beat2", { strokeDashoffset: beatLen[2] }, { strokeDashoffset: -beatLen[2], duration: 0.8, ease: "none", repeat: 1, immediateRender: false }, TURN + 0.2); // ends 8.8
+      tl.fromTo("#beat3", { strokeDashoffset: beatLen[3] }, { strokeDashoffset: -beatLen[3], duration: 0.8, ease: "none", repeat: 8, immediateRender: false }, TURN + 0.3);
+
+      // ---------- ACT 2 @8.6 ("stops answering"): server 2 flatlines, greys, gets pulled ----------
+      tl.to("#flat2", { opacity: 1, duration: 0.05, ease: "power2.out" }, 8.8);
+      tl.to("#flat2", { strokeDashoffset: 0, duration: 0.45, ease: "power2.out" }, 8.8);
+      tl.to("#srv2 .led", { backgroundColor: "#ef4444", boxShadow: "0 0 6px rgba(239,68,68,0.8)", duration: 0.2, ease: "power2.out" }, 8.8);
+      tl.fromTo("#dead2", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out", immediateRender: false }, 9.0);
+      tl.fromTo("#x2", { opacity: 0, scale: 1.8 }, { opacity: 1, scale: 1, duration: 0.25, ease: "power4.out", immediateRender: false }, 9.25);
+      // "pulled out" @9.75: it drops out of the lineup
+      tl.to("#srv2", { y: 90, scale: 0.86, opacity: 0, duration: 0.5, ease: "power2.in" }, 9.75);
+      tl.to("#lnA2", { opacity: 0, duration: 0.3, ease: "power2.out" }, 9.75);
+      // "rotation" @10.25: the remaining two close ranks, lanes re-draw
+      tl.to("#srv1", { x: 130, duration: 0.55, ease: "power3.inOut" }, 10.25);
+      tl.to("#srv3", { x: -130, duration: 0.55, ease: "power3.inOut" }, 10.25);
+      tl.to("#lnA1", { opacity: 0, duration: 0.25, ease: "power2.out" }, 10.25);
+      tl.to("#lnA3", { opacity: 0, duration: 0.25, ease: "power2.out" }, 10.25);
+      tl.fromTo("#lnB1", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out", immediateRender: false }, 10.6);
+      tl.fromTo("#lnB3", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out", immediateRender: false }, 10.6);
+      // "last episode's failover" @12.35: the callback chip
+      tl.fromTo("#ep32", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.35, ease: "power3.out", immediateRender: false }, 12.35);
+      // "invisible to users" 13.9-15.0: the balancer just keeps dealing (the last request is in the list)
+
+      // ---------- fade: finishes at EXACTLY 15.0 (14.7 + 0.3), zero buffer ----------
+      tl.fromTo("#content-all", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, FADE_AT);
+      const leaves = ["#scene", "#head", "#lb", "#lb-ring", "#srv1", "#srv2", "#srv3", "#sim", "#ep32", "#lanes"];
+      reqs.forEach((r, i) => leaves.push("#rq" + i));
+      leaves.forEach((s) => { tl.to(s, { opacity: 0, duration: 0.3, ease: "power2.out" }, FADE_AT); });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

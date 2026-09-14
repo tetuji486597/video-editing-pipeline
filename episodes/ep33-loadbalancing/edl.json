@@ -1,0 +1,172 @@
+{
+  "version": 1,
+  "sources": {
+    "ep33": "C:/Users/gordo/Downloads/drive-download-20260905T030037Z-1-001/Teleprompter-2026-04-09_21-28-50.mp4"
+  },
+  "ranges": [
+    {
+      "source": "ep33",
+      "start": 0.98,
+      "end": 3.46,
+      "beat": "INTRO",
+      "quote": "Explaining load balancers in 30 seconds.",
+      "reason": "Only intro take: 'Explaining load balancers in 30 seconds.' Acoustic onset 1.00 vs ASR 'Explaining' start 1.02 (delta +0.02); acoustic tail 3.34 vs ASR 'seconds.' box end 3.26. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    },
+    {
+      "source": "ep33",
+      "start": 8.66,
+      "end": 15.24,
+      "beat": "HOOK",
+      "quote": "A million people just opened the same app. No single computer handled that because a traffic cop split them up before they ever arrived",
+      "reason": "Only take. Acoustic onset 8.68 vs ASR 'A' start 8.72 (delta +0.04); acoustic tail 15.12 vs ASR 'arrived' box end 16.42. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    },
+    {
+      "source": "ep33",
+      "start": 20.54,
+      "end": 31.16,
+      "beat": "PROBLEM",
+      "quote": "One server melts under real traffic, so you run 50 identical copies. But there's a new problem: every incoming request has to pick a server and if you pick badly some servers get buried while others sit idle",
+      "reason": "Only take; ends on 'idle' before the sigh. Acoustic onset 20.56 vs ASR 'One' start 20.62 (delta +0.06); acoustic tail 31.04 vs ASR 'idle' box end 31.64. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    },
+    {
+      "source": "ep33",
+      "start": 48.18,
+      "end": 57.36,
+      "beat": "BUILD",
+      "quote": "load balancer stands in front of the whole fleet. Every request hits it first and it deals them out. The simplest version is round robin one for you, one for you, and back around",
+      "reason": "Restart after 'stands in f-- the front'; starts on the second 'A load balancer'. Acoustic onset 48.20 vs ASR 'load' start 48.38 (delta +0.18); acoustic tail 57.24 vs ASR 'around' box end 57.24. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    },
+    {
+      "source": "ep33",
+      "start": 74.82,
+      "end": 90.54,
+      "beat": "NEW_COMPONENT",
+      "quote": "versions send each request to whichever server has the fewest active connections, so slow requests don't pile up in one place It also keeps health checking the fleet If a server stops answering, it gets pulled out of rotation which is exactly how last episode's failover stayed invisible to users",
+      "reason": "Restart after 'So slow requests....'; starts on the second 'Smarter versions'. Acoustic onset 74.84 vs ASR 'versions' start 75.28 (delta +0.44); acoustic tail 90.42 vs ASR 'users' box end 90.36. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    },
+    {
+      "source": "ep33",
+      "start": 120.84,
+      "end": 128.7,
+      "beat": "PAYOFF",
+      "quote": "So scale usually looks like 50 ordinary servers and one smart doorman out front Next we'll look at how two strangers share a secret while the whole world listens",
+      "reason": "Third take; earlier ones break on strangers. Acoustic onset 120.86 vs ASR 'So' start 120.88 (delta +0.02); acoustic tail 128.58 vs ASR 'listens' box end 128.54. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    }
+  ],
+  "grade": "eq=contrast=1.15:saturation=1.05,colorbalance=rs=-0.04:gs=0.02:bs=0.05:rm=0.01:gm=0.0:bm=-0.01:rh=0.06:gh=0.02:bh=-0.06,vignette=angle=0.7,unsharp=5:5",
+  "overlays": [
+    {
+      "file": "animations/slot_tiktok_title/render.webm",
+      "start_in_output": 0.0,
+      "duration": 2.5
+    },
+    {
+      "file": "animations/slot_hook/render.webm",
+      "start_in_output": 3.05,
+      "duration": 6.3
+    },
+    {
+      "file": "animations/slot_problem/render.webm",
+      "start_in_output": 9.35,
+      "duration": 10.3
+    },
+    {
+      "file": "animations/slot_build/render.webm",
+      "start_in_output": 20.15,
+      "duration": 8.8
+    },
+    {
+      "file": "animations/slot_new_component/render.webm",
+      "start_in_output": 29.45,
+      "duration": 15.0
+    },
+    {
+      "file": "animations/slot_payoff/render.webm",
+      "start_in_output": 44.95,
+      "duration": 5.2
+    },
+    {
+      "file": "animations/slot_countdown/render.webm",
+      "start_in_output": 2.5,
+      "duration": 50.0417,
+      "x": 690,
+      "y": 205,
+      "_note": "Countdown gag: 30 -> 0 over the whole remaining video (make_countdown.py). Last in the list so it sits on top of takeovers; every content slot keeps x>=670,y<=330 clear."
+    }
+  ],
+  "subtitles": "master.ass",
+  "_variant": "Single variant. Intro is the recorded \"Explaining X in 30 seconds\" line; the episode number is only on the sticker.",
+  "_zoom_note": "Slow face-anchored zoom about (540,720), magnitude 1.08, alternating per range so the drift is continuous across cuts (render.py supersampled zoom chain).",
+  "_edge_note": "Every range START/END measured acoustically by edl_from_takes.py (20ms RMS, threshold = 20th-percentile floor + 8 dB): start = onset - 0.12s, end = first 120ms dead-air after the last word + 0.12s, capped at the ASR box end + 0.7s so sighs and throat-clears after a take are excluded.",
+  "_beat_windows_output_timeline": {
+    "INTRO": [
+      0.0,
+      2.5
+    ],
+    "HOOK": [
+      2.5,
+      9.0833
+    ],
+    "PROBLEM": [
+      9.0833,
+      19.7083
+    ],
+    "BUILD": [
+      19.7083,
+      28.9167
+    ],
+    "NEW_COMPONENT": [
+      28.9167,
+      44.6667
+    ],
+    "PAYOFF": [
+      44.6667,
+      52.5417
+    ]
+  },
+  "total_duration_s": 52.5417,
+  "_windows_note": "Output-timeline windows on render.py's real 24fps extract grid: each segment's rendered duration is ceil((end-start)*24)/24, not the raw source span. Verified against rendered clips where measurable. Overlay start_in_output values are derived from THESE numbers.",
+  "_overlay_note": "EP33 overlays (built 2026-09-04). Formats in beat order: sticker (INTRO), transparent crowd band (HOOK), TAKEOVER (PROBLEM), motion graphic (BUILD), TAKEOVER (NEW_COMPONENT), corner card (PAYOFF) = 4 distinct, 2 takeovers, no adjacent repeat. Every duration is on the 30fps grid and every fade lands on alpha 0 at the slot's own end. Junction audit: title 0.00-2.50 (= INTRO end) | gap 0.55 | hook 3.05-9.35 | ZERO-GAP junction | problem 9.35-19.65 | gap 0.50 | build 20.15-28.95 | gap 0.50 | new_component 29.45-44.45 | gap 0.50 | payoff 44.95-50.15 | bare tail 2.39s to 52.54 (spoken tease only, no chip). Leads: hook 0.55 into HOOK, problem 0.27 into PROBLEM, build 0.44 into BUILD, new_component 0.53 into NEW_COMPONENT, payoff 0.28 into PAYOFF. Landings (output s): hook counter 1,000,000 at 3.85, cop glyph on 'traffic cop' 6.60, five servers lit on 'before they ever arrived' 8.10-8.55; problem melt on 'melts' 9.72-10.5, 50-grid shutter slam on '50' 11.65, 'identical copies' headline 11.85, arrows seek on 'new problem' 13.70, dogpile on 'pick badly' 16.57, thud 17.41, 'buried' label 18.10, 'idle' 18.65; build fleet on 'whole fleet' 20.75-21.65, first request holds on 'hits it first' 22.30-23.90, deals on 'deals them out' 23.90-25.45, ROUND ROBIN on 'round robin' 25.85, 'one for you' deals 26.60 / 27.45, 'back around' 28.23; new_component stacks fill 30.75-31.9, first route on 'fewest' 32.00, LEAST CONNECTIONS on 'connections' 32.75, real samwho sim inset on 'pile up' 34.35, heartbeats on 'health checking' 36.45, flatline on 'stops answering' 38.25, pulled out 39.20, ranks close on 'rotation' 39.70, EP32 FAILOVER chip on 'last episode's failover' 41.80; payoff '50 ORDINARY SERVERS' grid 45.90-47.0, doorman on 'one smart doorman' 47.25, requests through the doorman on 'out front' 48.10-49.3. COUNTDOWN RESERVE: every slot except the sticker keeps x>=670,y<=330 empty (probed on decoded alpha / luma for takeovers). The coordinator adds slot_countdown itself; it is NOT listed here."
+}

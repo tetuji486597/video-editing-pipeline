@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP35 hook — MONOLITH vs MICROSERVICES card that becomes a balance</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* HALF-PANEL (VS card), upper band. Output 3.20-9.50 inside HOOK 2.8333-9.5417.
+         Face on the HOOK take (grid-measured at 1080x1920): hair top ~130, brow ~640
+         (zoom 1.08->1.0 about (540,720): brow worst ~634), face x 240-840.
+         COUNTDOWN RESERVE x>=670,y<=330 must stay empty: everything above y=345 is kept
+         left of x=660 (chip x 80-356, beam x 239-656); the two tiles start at y=350.
+         Tiles: L x 80-410, R x 485-815, y 350-590 (240 tall). Shadow 0 10px 12px ->
+         top reach 350+10-1.6*12 = 340.8 (>330 OK), bottom 590+10+19.2 = 619 (<634 brow).
+         Act-2 tilt of the whole #balance wrapper by 2deg about the pivot (447.5,285):
+         right-tile bottom-right (815,590) -> (804,603); left-tile top-left (80,350) ->
+         (78,337); beam right end (650,285) -> (650,292) -- all inside x70-870/y200-1280
+         and clear of the reserve. */
+      #balance {
+        position: absolute; left: 0; top: 0; width: 1080px; height: 1920px;
+        transform-origin: 447.5px 285px;
+      }
+      .card {
+        position: absolute;
+        top: 350px;
+        width: 330px;
+        height: 240px;
+        border-radius: 20px;
+        background: linear-gradient(165deg, rgba(13, 18, 28, 0.62), rgba(7, 10, 16, 0.68));
+        border: 2px solid rgba(148, 163, 184, 0.35);
+        box-shadow: 0 10px 12px rgba(0, 0, 0, 0.4);
+        overflow: hidden;
+      }
+      #card-l { left: 80px; }                 /* x 80-410 */
+      #card-r { left: 485px; opacity: 0; }    /* x 485-815, enters at 0.35 */
+      .kicker {
+        position: absolute; top: 16px; left: 24px;
+        font-size: 26px; font-weight: 800; letter-spacing: 3px; color: #e2e8f0;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85); white-space: nowrap;
+      }
+      #card-l .kicker { color: #7dd3fc; }
+      #card-r .kicker { color: #fdba74; }
+
+      /* L: one solid block (8x5 cell grid). local x 65-265, y 72-202 -> abs x 145-345, y 422-552 */
+      #block {
+        position: absolute; left: 65px; top: 72px; width: 200px; height: 130px;
+        border-radius: 12px; background: rgba(14, 116, 144, 0.35);
+        border: 2px solid rgba(34, 211, 238, 0.8);
+        box-shadow: 0 0 14px rgba(34, 211, 238, 0.35);
+        display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(5, 1fr);
+        gap: 3px; padding: 8px; opacity: 0.5;
+      }
+      #block i { display: block; background: rgba(34, 211, 238, 0.7); border-radius: 3px; }
+
+      /* R: a swarm of service dots inside local x 30-300, y 70-225 -> abs x 515-785, y 420-575 */
+      .dot {
+        position: absolute; width: 16px; height: 16px; border-radius: 50%;
+        background: #fdba74; box-shadow: 0 0 10px rgba(253, 186, 116, 0.75); opacity: 0;
+      }
+
+      /* VS badge in the 75px gap between tiles: 96px disc at x 399.5-495.5, y 430-526 */
+      #vs {
+        position: absolute; left: 399.5px; top: 430px; width: 96px; height: 96px;
+        border-radius: 50%; background: #0b0f16; border: 3px solid #fbbf24;
+        color: #fbbf24; font-size: 44px; font-weight: 900; font-style: italic;
+        display: flex; align-items: center; justify-content: center; letter-spacing: -1px;
+        box-shadow: 0 0 18px rgba(251, 191, 36, 0.5); opacity: 0;
+      }
+      /* VS flash: a radial burst confined to the band (x 327-567, y 358-598), NOT full-frame
+         (the countdown reserve must never see alpha) */
+      #burst {
+        position: absolute; left: 327.5px; top: 358px; width: 240px; height: 240px;
+        border-radius: 50%; opacity: 0;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(251, 191, 36, 0.55) 35%, rgba(251, 191, 36, 0) 70%);
+      }
+
+      /* TURN chip: "copying..." startup at x 80-300, y 225-300; red X at x 286-356, y 228-298
+         (overlaps only the chip's rounded end, never its text which ends by ~x 272). */
+      #chip {
+        position: absolute; left: 80px; top: 225px; height: 75px; padding: 0 26px 0 18px;
+        border-radius: 38px; background: rgba(13, 18, 28, 0.68);
+        border: 2px solid rgba(148, 163, 184, 0.4);
+        display: flex; align-items: center; gap: 12px; opacity: 0; white-space: nowrap;
+      }
+      #chip .av {
+        width: 34px; height: 34px; border-radius: 50%; background: #a78bfa;
+        box-shadow: 0 0 8px rgba(167, 139, 250, 0.6); flex-shrink: 0;
+      }
+      #chip .txt { font-size: 24px; color: #e2e8f0; letter-spacing: 1px; text-shadow: 0 2px 8px rgba(0,0,0,0.85); }
+      #xmark { position: absolute; left: 286px; top: 228px; width: 70px; height: 70px; opacity: 0; }
+
+      /* ACT 2 balance linework: beam (245..650, y 285), pivot post, strings down to tile tops */
+      #beam-svg { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: visible; }
+      .beam-line { fill: none; stroke: #fbbf24; stroke-width: 6; stroke-linecap: round; opacity: 0; }
+      .string { fill: none; stroke: rgba(251, 191, 36, 0.85); stroke-width: 3; stroke-linecap: round; opacity: 0; }
+      .pivot { fill: #fbbf24; opacity: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="6.3" data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="6.3" data-track-index="1">
+        <div id="balance">
+          <svg id="beam-svg" viewBox="0 0 1080 1920">
+            <path class="beam-line" id="beam" d="M245,285 L650,285" />
+            <path class="string" id="str-l" d="M245,285 L245,350" />
+            <path class="string" id="str-r" d="M650,285 L650,350" />
+            <circle class="pivot" id="pivot" cx="447.5" cy="285" r="10" />
+            <path class="beam-line" id="post" d="M447.5,285 L447.5,252" />
+            <circle class="pivot" id="cap-l" cx="245" cy="285" r="6" />
+            <circle class="pivot" id="cap-r" cx="650" cy="285" r="6" />
+          </svg>
+
+          <div id="card-l" class="card">
+            <div class="kicker" data-layout-allow-overlap="true">MONOLITH</div>
+            <div id="block">
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            </div>
+          </div>
+
+          <div id="card-r" class="card">
+            <div class="kicker" data-layout-allow-overlap="true">MICROSERVICES</div>
+            <div id="swarm"></div>
+          </div>
+
+          <div id="burst"></div>
+          <div id="vs" data-layout-allow-overlap="true">VS</div>
+        </div>
+
+        <div id="chip" class="mono"><div class="av"></div><div class="txt">copying&hellip;</div></div>
+        <div id="xmark" data-layout-allow-overlap="true">
+          <svg viewBox="0 0 70 70" fill="none">
+            <path d="M14 14 L56 56 M56 14 L14 56" stroke="#ef4444" stroke-width="10" stroke-linecap="round" />
+          </svg>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+
+      // deterministic swarm: 24 hard-coded dot positions inside the right tile (local px)
+      const dots = [
+        [30,70],[62,96],[96,72],[128,104],[160,76],[194,98],[226,70],[258,100],[288,78],
+        [48,132],[84,150],[118,130],[152,156],[186,128],[220,154],[254,132],[284,158],
+        [36,190],[70,212],[106,186],[142,214],[178,190],[214,214],[250,188]
+      ];
+      const swarm = document.getElementById("swarm");
+      dots.forEach((p, i) => {
+        const d = document.createElement("div");
+        d.className = "dot"; d.id = "d" + i;
+        d.style.left = p[0] + "px"; d.style.top = p[1] + "px";
+        swarm.appendChild(d);
+      });
+      // line-draw setup
+      ["beam", "str-l", "str-r", "post"].forEach((id) => {
+        const el = document.getElementById(id);
+        const len = el.getTotalLength();
+        el.style.strokeDasharray = String(len);
+        el.style.strokeDashoffset = String(len);
+      });
+
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ---------- ACT 1: the VS card lands (entrance at t=0; L visible from frame 0) ----------
+      tl.fromTo("#card-l", { opacity: 0.5, x: -40 }, { opacity: 1, x: 0, duration: 0.4, ease: "power3.out" }, 0);
+      tl.fromTo("#block", { opacity: 0.5, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.4, ease: "power3.out" }, 0.15);
+      tl.fromTo("#card-r", { opacity: 0, x: 40 }, { opacity: 1, x: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 0.35);
+      // VS badge slams with the burst flash (the "VS flash", band-confined)
+      tl.fromTo("#vs", { opacity: 0, scale: 2.2 }, { opacity: 1, scale: 1, duration: 0.3, ease: "power4.out", immediateRender: false }, 0.75);
+      tl.fromTo("#burst", { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.08, ease: "power3.out", immediateRender: false }, 0.75);
+      tl.to("#burst", { opacity: 0, scale: 1.25, duration: 0.35, ease: "power3.out" }, 0.83);
+      // "thousands of services" (local 1.19-2.24): the swarm multiplies, dot by dot
+      dots.forEach((p, i) => {
+        tl.fromTo("#d" + i, { opacity: 0, scale: 0.3 }, { opacity: 1, scale: 1, duration: 0.22, ease: "back.out(1.8)", immediateRender: false }, 1.2 + i * 0.042);
+      });
+      // ambient: the monolith block breathes (odd yoyo repeat; 1.0 + 6*0.45 = 3.7 end)
+      tl.fromTo("#block", { scale: 1 }, { scale: 1.03, duration: 0.45, ease: "sine.inOut", yoyo: true, repeat: 5, immediateRender: false }, 1.0);
+      // ambient: a few dots pulse (odd repeats; last ends 2.6 + 4*0.5 = 4.6)
+      [3, 11, 19].forEach((i, k) => {
+        tl.fromTo("#d" + i, { scale: 1 }, { scale: 1.5, duration: 0.5, ease: "sine.inOut", yoyo: true, repeat: 3, immediateRender: false }, 2.3 + k * 0.1);
+      });
+
+      // ---------- TURN @4.15 ("most startups who copy that move are making a mistake" 4.17-4.87) ----------
+      tl.fromTo("#chip", { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.35, ease: "power3.out", immediateRender: false }, 4.15);
+      // the red X slams on "mistake" (local 4.49-4.87)
+      tl.fromTo("#xmark", { opacity: 0, scale: 2.0 }, { opacity: 1, scale: 1, duration: 0.24, ease: "power4.out", immediateRender: false }, 4.55);
+      tl.to("#chip", { x: -4, duration: 0.05, ease: "power2.out" }, 4.6);
+      tl.to("#chip", { x: 0, duration: 0.12, ease: "power2.out" }, 4.65);
+      tl.to("#vs", { opacity: 0.55, duration: 0.4, ease: "power2.out" }, 4.6);
+
+      // ---------- ACT 2 @5.15 ("Here's the real trade-off" 5.13-6.19): the card becomes a balance ----------
+      tl.to("#chip", { opacity: 0, duration: 0.3, ease: "power2.out" }, 5.05);
+      tl.to("#xmark", { opacity: 0, duration: 0.3, ease: "power2.out" }, 5.05);
+      ["#pivot", "#cap-l", "#cap-r"].forEach((s) => {
+        tl.fromTo(s, { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "power2.out", immediateRender: false }, 5.15);
+      });
+      ["#post", "#beam"].forEach((s) => {
+        tl.fromTo(s, { opacity: 0 }, { opacity: 1, duration: 0.1, ease: "power2.out", immediateRender: false }, 5.15);
+        tl.to(s, { strokeDashoffset: 0, duration: 0.4, ease: "power3.out" }, 5.15);
+      });
+      ["#str-l", "#str-r"].forEach((s) => {
+        tl.fromTo(s, { opacity: 0 }, { opacity: 1, duration: 0.1, ease: "power2.out", immediateRender: false }, 5.45);
+        tl.to(s, { strokeDashoffset: 0, duration: 0.25, ease: "power3.out" }, 5.45);
+      });
+      // the whole assembly tips 2deg on "trade-off" (5.47) -- a real-bbox div, never SVG rotation
+      tl.fromTo("#balance", { rotation: 0 }, { rotation: 2, duration: 0.55, ease: "back.out(1.6)", immediateRender: false }, 5.5);
+
+      // ---------- fade: finishes at EXACTLY 6.3 (6.0 + 0.3), zero buffer ----------
+      // Per-leaf fades on every visible leaf (the transformed #balance wrapper is NOT faded --
+      // ancestor opacity is not applied uniformly to transformed descendants).
+      ["#card-l", "#card-r", "#vs", "#beam-svg"].forEach((s) => {
+        tl.fromTo(s, { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 6.0);
+      });
+      ["#block", "#chip", "#xmark", "#burst"].forEach((s) => {
+        tl.to(s, { opacity: 0, duration: 0.3, ease: "power2.out" }, 6.0);
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

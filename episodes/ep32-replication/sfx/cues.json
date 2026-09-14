@@ -1,0 +1,84 @@
+{
+ "video": "final_nosfx.mp4",
+ "out": "final.mp4",
+ "cues": [
+  {
+   "at": 0.25,
+   "sfx": "tt_click_trim",
+   "vol": 1.81,
+   "why": "INTRO: sticker pops"
+  },
+  {
+   "at": 2.93,
+   "sfx": "impact_trim",
+   "vol": 1.37,
+   "why": "HOOK: the server icon catches fire (on 'dies')"
+  },
+  {
+   "at": 4.28,
+   "sfx": "tt_correct_ding",
+   "vol": 0.5,
+   "why": "HOOK: nobody noticed chip (on 'don't notice')"
+  },
+  {
+   "at": 10.03,
+   "sfx": "tt_bass_drop",
+   "vol": 0.1,
+   "why": "PROBLEM: blackout glitch (on 'fails')"
+  },
+  {
+   "at": 11.95,
+   "sfx": "tt_wrong_buzzer",
+   "vol": 0.1,
+   "why": "PROBLEM: rows dissolve to ash (on 'lost data')"
+  },
+  {
+   "at": 16.05,
+   "sfx": "swoosh_elec",
+   "vol": 1.04,
+   "why": "BUILD: copies fan out to followers (on 'replicate')"
+  },
+  {
+   "at": 19.67,
+   "sfx": "tt_sparkle_trim",
+   "vol": 2.0,
+   "why": "BUILD: the crown pops (on 'leader')"
+  },
+  {
+   "at": 22.05,
+   "sfx": "pop_bubble",
+   "vol": 0.37,
+   "why": "BUILD: copies pulse (on 'copy every change')"
+  },
+  {
+   "at": 23.82,
+   "sfx": "tt_error_glitch",
+   "vol": 0.5,
+   "why": "NEW_COMPONENT: leader flames out, heartbeat flatlines (on 'dies')"
+  },
+  {
+   "at": 25.32,
+   "sfx": "ding",
+   "vol": 0.27,
+   "why": "NEW_COMPONENT: crown jumps to a follower (on 'promotes')"
+  },
+  {
+   "at": 28.64,
+   "sfx": "whoosh_trim",
+   "vol": 0.19,
+   "why": "NEW_COMPONENT: reroute arrows redraw (on 'reroutes')"
+  },
+  {
+   "at": 34.6,
+   "sfx": "stamp",
+   "vol": 0.67,
+   "why": "NEW_COMPONENT: spare badges (on 'redundancy')"
+  },
+  {
+   "at": 39.83,
+   "sfx": "notify",
+   "vol": 0.05,
+   "why": "PAYOFF: waste? -> saved you (on 'saves you')"
+  }
+ ]
+}

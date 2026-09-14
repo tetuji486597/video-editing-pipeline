@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP34 problem — the key on a tapped wire</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* MOTION GRAPHIC over live footage, upper band, x 78-660 / y 218-598 (the batch
+         plan's "keep x 70-660"; the countdown reserve x>=670,y<=330 stays empty).
+         PROBLEM take: brow ~640, zoom 1.0->1.08 about (540,720) -> 633.6 worst case.
+         Ambient drift 1 -> 1.015 about (370,400): left 78 -> 73.6, right 660 -> 664.4,
+         top 218 -> 215.3, bottom 598 -> 601.0 (32px above the worst-case brow). */
+      #wrap { position: absolute; inset: 0; transform-origin: 370px 400px; opacity: 0.5; }
+
+      /* laptops: screen 160x100 + base */
+      .screen {
+        position: absolute; top: 380px; width: 160px; height: 100px; border-radius: 10px 10px 4px 4px;
+        background: linear-gradient(180deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95));
+        border: 3px solid rgba(148, 163, 184, 0.7);
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45);
+      }
+      .screen .glow {
+        position: absolute; inset: 6px; border-radius: 6px;
+        background: radial-gradient(60% 60% at 50% 45%, rgba(125, 211, 252, 0.34), rgba(125, 211, 252, 0) 100%);
+        transform-origin: 50% 50%;
+      }
+      .base {
+        position: absolute; top: 480px; width: 184px; height: 16px; border-radius: 4px 4px 8px 8px;
+        background: rgba(148, 163, 184, 0.85);
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.45);
+      }
+      #scrL { left: 90px; } #baseL { left: 78px; }
+      #scrR { left: 490px; } #baseR { left: 478px; }
+
+      /* the wire between the bases, y 486-490, draws L->R */
+      #wire {
+        position: absolute; left: 262px; top: 486px; width: 216px; height: 4px; border-radius: 2px;
+        background: rgba(203, 213, 225, 0.85); transform-origin: 0% 50%;
+        box-shadow: 0 0 6px rgba(203, 213, 225, 0.35);
+        opacity: 0;
+      }
+
+      /* the KEY chip (96x44). CSS base = the left screen centre; GSAP x/y move it. */
+      .key {
+        position: absolute; left: 122px; top: 408px; width: 96px; height: 44px; border-radius: 10px;
+        background: rgba(245, 158, 11, 0.95); color: #1c1203;
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+        font-size: 24px; font-weight: 800; letter-spacing: 2px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45), 0 0 14px rgba(245, 158, 11, 0.45);
+        opacity: 0;
+      }
+      .key svg { width: 20px; height: 20px; }
+      #key2 { left: 322px; top: 466px; }
+      #key-ghost {
+        left: 522px; background: rgba(245, 158, 11, 0.12); color: #fbbf24;
+        border: 2px dashed rgba(251, 191, 36, 0.85); box-shadow: none;
+      }
+
+      /* the tapper: red terminal above the wire, cable down to a clamp */
+      #tapper {
+        position: absolute; left: 300px; top: 218px; width: 140px; height: 112px; border-radius: 16px;
+        background: linear-gradient(165deg, rgba(60, 12, 16, 0.55), rgba(30, 6, 8, 0.62));
+        border: 2px solid rgba(239, 68, 68, 0.75);
+        box-shadow: 0 0 12px rgba(239, 68, 68, 0.25);
+        display: flex; align-items: flex-end; justify-content: center; overflow: hidden;
+        opacity: 0;
+      }
+      #tapper svg { width: 60px; height: 90px; margin-bottom: -6px; }
+      #cable {
+        position: absolute; left: 367px; top: 330px; width: 6px; height: 132px; border-radius: 3px;
+        background: rgba(239, 68, 68, 0.9); transform-origin: 50% 0%; opacity: 0;
+      }
+      .jaw {
+        position: absolute; left: 346px; width: 48px; height: 22px; border-radius: 6px;
+        background: #ef4444; box-shadow: 0 0 10px rgba(239, 68, 68, 0.6); opacity: 0;
+      }
+      #jawT { top: 464px; }
+      #jawB { top: 490px; }
+
+      /* ACT 2 headline, its own row: y 548-596 (40px below the lower jaw at 512) */
+      #headline {
+        position: absolute; left: 80px; top: 548px; width: 570px; text-align: center;
+        font-size: 44px; line-height: 48px; font-weight: 800; letter-spacing: 1px; color: #fca5a5;
+        text-shadow: 0 3px 14px rgba(0, 0, 0, 0.9), 0 0 24px rgba(239, 68, 68, 0.45);
+        white-space: nowrap; opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="8.5" data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="8.5" data-track-index="1">
+        <div id="wrap">
+          <div class="screen" id="scrL"><div class="glow"></div></div>
+          <div class="base" id="baseL"></div>
+          <div class="screen" id="scrR"><div class="glow"></div></div>
+          <div class="base" id="baseR"></div>
+
+          <div id="wire"></div>
+
+          <div id="tapper">
+            <svg viewBox="0 0 60 90" data-layout-allow-overflow="true">
+              <circle cx="30" cy="22" r="18" fill="#ef4444" opacity="0.9" />
+              <path d="M4,90 C4,60 16,48 30,48 C44,48 56,60 56,90 Z" fill="#ef4444" opacity="0.8" />
+              <ellipse cx="30" cy="24" rx="9" ry="5" fill="#2a0508" />
+            </svg>
+          </div>
+          <div id="cable"></div>
+          <div class="jaw" id="jawT"></div>
+          <div class="jaw" id="jawB"></div>
+
+          <div class="key mono" id="key-ghost"><span>?</span></div>
+          <div class="key mono" id="key1">
+            <svg viewBox="0 0 20 20" fill="none"><circle cx="7" cy="10" r="4.5" stroke="#1c1203" stroke-width="2.4"/><path d="M11,10 H19 M16,10 V14 M13,10 V13" stroke="#1c1203" stroke-width="2.4" stroke-linecap="round"/></svg>
+            <span>KEY</span>
+          </div>
+          <div class="key mono" id="key2">
+            <svg viewBox="0 0 20 20" fill="none"><circle cx="7" cy="10" r="4.5" stroke="#1c1203" stroke-width="2.4"/><path d="M11,10 H19 M16,10 V14 M13,10 V13" stroke="#1c1203" stroke-width="2.4" stroke-linecap="round"/></svg>
+            <span>KEY</span>
+          </div>
+
+          <div id="headline">THE TAPPER HAS IT TOO</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ambient drift under everything
+      tl.fromTo("#wrap", { scale: 1 }, { scale: 1.015, duration: 8.5, ease: "sine.inOut" }, 0);
+      // entrance at t=0 (frame-0 at 0.5 from CSS)
+      tl.fromTo("#wrap", { opacity: 0.5 }, { opacity: 1, duration: 0.35, ease: "power3.out" }, 0);
+      tl.fromTo("#scrL", { y: 14 }, { y: 0, duration: 0.4, ease: "power3.out" }, 0);
+      tl.fromTo("#baseL", { y: 14 }, { y: 0, duration: 0.4, ease: "power3.out" }, 0);
+      tl.fromTo("#scrR", { y: 14 }, { y: 0, duration: 0.4, ease: "power3.out" }, 0.15);
+      tl.fromTo("#baseR", { y: 14 }, { y: 0, duration: 0.4, ease: "power3.out" }, 0.15);
+
+      // ---------- ACT 1: a key is needed, two computers just met ----------
+      // "key" (local 0.74): the KEY chip lands on the left screen
+      tl.fromTo("#key1", { opacity: 0, scale: 0.6, x: 0, y: 0 }, { opacity: 1, scale: 1, x: 0, y: 0, duration: 0.3, ease: "back.out(1.8)", immediateRender: false }, 0.74);
+      // "two computers that just met" (1.96): both screens wake with a glow pulse (odd repeat)
+      // (an outward box-shadow pulse here measured alpha 71px past the screen edge and reached
+      //  into the countdown reserve on the first render, so the pulse is the INNER glow only)
+      ["#scrL .glow", "#scrR .glow"].forEach((s, i) => {
+        tl.fromTo(s, { opacity: 1, scale: 1 },
+          { opacity: 1, scale: 1.35, duration: 0.4, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 2.0 + i * 0.2);
+      });
+      // "agree on one" (3.5): the right side needs the same key -- a dashed ghost
+      tl.fromTo("#key-ghost", { opacity: 0, scale: 0.7 }, { opacity: 0.85, scale: 1, duration: 0.3, ease: "back.out(1.6)", immediateRender: false }, 3.5);
+      // "over a line" (4.18): the wire draws between them
+      tl.fromTo("#wire", { opacity: 0, scaleX: 0 }, { opacity: 1, scaleX: 1, duration: 0.55, ease: "power3.out", immediateRender: false }, 4.2);
+
+      // ---------- TURN @5.85 ("tapping"): the tapper drops a cable and the clamp bites ----------
+      tl.fromTo("#tapper", { opacity: 0, y: -18 }, { opacity: 1, y: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 5.5);
+      tl.fromTo("#cable", { opacity: 0, scaleY: 0 }, { opacity: 1, scaleY: 1, duration: 0.3, ease: "power2.in", immediateRender: false }, 5.6);
+      tl.fromTo("#jawT", { opacity: 0, y: -26 }, { opacity: 1, y: 0, duration: 0.18, ease: "power4.in", immediateRender: false }, 5.85);
+      tl.fromTo("#jawB", { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.18, ease: "power4.in", immediateRender: false }, 5.85);
+      // the wire flinches under the bite
+      tl.to("#wire", { y: 3, duration: 0.06, ease: "power2.out" }, 6.03);
+      tl.to("#wire", { y: 0, duration: 0.16, ease: "power2.out" }, 6.09);
+
+      // ---------- ACT 2 @6.74 ("send the key"): the key travels, and is copied at the clamp ----------
+      // onto the wire (chip centre 262,488), along it to the clamp (370), on to the right end (478), into the screen
+      tl.to("#key1", { x: 92, y: 58, duration: 0.25, ease: "power2.inOut" }, 6.74);
+      tl.to("#key1", { x: 200, y: 58, duration: 0.3, ease: "none" }, 6.99);        // reaches the clamp @7.29
+      tl.to("#key1", { x: 308, y: 58, duration: 0.3, ease: "none" }, 7.29);
+      tl.to("#key1", { x: 400, y: 0, duration: 0.25, ease: "power2.inOut" }, 7.59); // into the right screen @7.84
+      tl.to("#key-ghost", { opacity: 0, duration: 0.2, ease: "power2.out" }, 7.7);
+      // the duplicate peels off at the clamp and climbs the cable into the tapper (turning red)
+      tl.fromTo("#key2", { opacity: 0, x: 0, y: 0, scale: 0.8 }, { opacity: 1, x: 0, y: 0, scale: 1, duration: 0.15, ease: "power2.out", immediateRender: false }, 7.29);
+      tl.to("#key2", { x: 0, y: -196, duration: 0.4, ease: "power2.inOut" }, 7.44);
+      tl.to("#key2", { backgroundColor: "#ef4444", boxShadow: "0 3px 10px rgba(0,0,0,0.45), 0 0 26px 6px rgba(239,68,68,0.8)", duration: 0.3, ease: "power2.out" }, 7.55);
+      // "the tapper has it too" (7.49-8.34): the copy glows and the headline lands
+      tl.fromTo("#headline", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 7.6);
+      tl.fromTo("#tapper", { boxShadow: "0 0 12px rgba(239,68,68,0.25)" }, { boxShadow: "0 0 28px 4px rgba(239,68,68,0.6)", duration: 0.3, ease: "power2.out", immediateRender: false }, 7.8);
+
+      // ---------- fade: finishes at EXACTLY 8.5 (8.2 + 0.3), zero buffer ----------
+      tl.fromTo("#wrap", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 8.2);
+      ["#scrL", "#scrR", "#baseL", "#baseR", "#wire", "#tapper", "#cable", "#jawT", "#jawB", "#key1", "#key2", "#key-ghost", "#headline"].forEach((s) => {
+        tl.to(s, { opacity: 0, duration: 0.3, ease: "power2.out" }, 8.2);
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

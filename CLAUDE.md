@@ -18,7 +18,7 @@ EDL + HyperFrames configs).
    into `~/.claude/skills/` if `setup_check.sh` reports it missing or out of date — git
    does not populate that directory, so a fresh clone never has it registered until this
    copy step runs.
-3. Read `LESSONS_EP20-26.md` and `LESSONS_EP27-29.md` — the hard-won rules from the EP20-26 batch (border
+3. Read `LESSONS_EP20-26.md`, `LESSONS_EP27-29.md` and `LESSONS_EP30-35.md` — the hard-won rules from the EP20-26 batch (border
    margins x70-870/y200-1280, graphics-never-block-text, centered title stickers,
    SFX variety expectations, the seek-renderer fromTo trap, the frozen-`iw` crop trap,
    the audio chain traps). These came from direct user feedback; re-breaking them

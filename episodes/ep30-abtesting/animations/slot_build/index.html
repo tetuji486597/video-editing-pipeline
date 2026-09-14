@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP30 build — the switch around the code</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* MOTION GRAPHIC over live footage, upper band. BUILD frame grid-measured:
+         hair top ~120, brow ~680. All content x 100-655, y 215-600 (no shadows on the
+         card so nothing reaches the countdown reserve x>=670,y<=330; the card's right
+         edge drifts 655 -> 660.6). Ambient drift 1 -> 1.02 about (375,405):
+         x 100 -> 94.5 (the white plate never enters check_safe_zone's 60-90 strip), y 215 -> 211.2, y 600 -> 603.9. Brow clearance 76px. */
+      #wrap { position: absolute; inset: 0; transform-origin: 375px 405px; opacity: 0.5; }
+
+      /* ---------- the code card: x 100-655, y 215-380 ---------- */
+      #card {
+        position: absolute; left: 100px; top: 215px; width: 555px; height: 165px;
+        border-radius: 16px; background: rgba(8, 12, 20, 0.86);
+        border: 2px solid rgba(148, 163, 184, 0.4); overflow: hidden;
+        filter: brightness(1);
+      }
+      #card-head {
+        position: absolute; left: 0; top: 0; width: 551px; height: 34px;
+        display: flex; align-items: center; gap: 8px; padding: 0 14px;
+        background: rgba(30, 41, 59, 0.9); border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+      }
+      .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(148, 163, 184, 0.5); }
+      #file { font-size: 17px; color: #94a3b8; letter-spacing: 1px; margin-left: 6px; }
+      .row {
+        position: absolute; left: 30px; height: 30px; line-height: 30px;
+        font-size: 24px; color: #e2e8f0; white-space: nowrap; overflow: hidden;
+      }
+      #row1 { top: 46px; width: 0; }
+      #row2 { top: 82px; }
+      #row3 { top: 118px; width: 0; }
+      .kw { color: #fbbf24; }
+      .tag { color: #7dd3fc; }
+      #cursor { display: inline-block; width: 12px; height: 26px; background: #e2e8f0; vertical-align: middle; margin-left: 4px; }
+      #bracket { position: absolute; left: 0; top: 0; width: 551px; height: 161px; overflow: visible; }
+      #bracket-rect { fill: none; stroke: #fbbf24; stroke-width: 3; }
+      #sweep {
+        position: absolute; left: -200px; top: 0; width: 160px; height: 165px;
+        background: linear-gradient(90deg, rgba(2,6,23,0) 0%, rgba(2,6,23,0.55) 50%, rgba(2,6,23,0) 100%);
+        opacity: 0;
+      }
+
+      /* ---------- the toggle: x 100-300, y 408-496 ---------- */
+      #toggle {
+        position: absolute; left: 100px; top: 408px; width: 200px; height: 88px;
+        border-radius: 44px; background: rgba(71, 85, 105, 0.92);
+        border: 3px solid rgba(148, 163, 184, 0.5); opacity: 0;
+      }
+      #knob {
+        position: absolute; left: 6px; top: 6px; width: 70px; height: 70px; border-radius: 50%;
+        background: #f8fafc; box-shadow: 0 3px 6px rgba(0, 0, 0, 0.45);
+      }
+      .tlab {
+        position: absolute; top: 0; height: 82px; line-height: 82px; font-size: 26px; font-weight: 700;
+        letter-spacing: 2px; color: #f8fafc;
+      }
+      #lab-off { right: 22px; }
+      #lab-on { left: 26px; opacity: 0; }
+
+      /* ---------- chips beside the toggle: x 330-630, y 412-492 ---------- */
+      .chip {
+        position: absolute; left: 330px; top: 412px; width: 300px; height: 80px;
+        border-radius: 14px; display: flex; align-items: center; justify-content: center;
+        font-size: 28px; letter-spacing: 1px; opacity: 0;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85);
+      }
+      #chip-nodeploy { background: rgba(6, 24, 30, 0.35); border: 2px solid rgba(34, 211, 238, 0.8); color: #a5f3fc; }
+      #chip-off { background: rgba(20, 16, 6, 0.35); border: 2px solid rgba(251, 191, 36, 0.8); color: #fde68a; }
+
+      /* ---------- the real flag row (LaunchDarkly capture), inset: x 100-655, y 530-600 ---------- */
+      #plate {
+        position: absolute; left: 100px; top: 530px; width: 555px; height: 70px;
+        border-radius: 12px; background: #ffffff; overflow: hidden;
+        border: 2px solid rgba(148, 163, 184, 0.6); opacity: 0;
+      }
+      #plate img { position: absolute; left: 4px; top: -2px; width: 1127px; height: 74px; }
+      #ld-on { opacity: 0; }
+      #real-tag {
+        position: absolute; left: 465px; top: 522px; padding: 2px 8px; border-radius: 6px;
+        background: rgba(15, 23, 42, 0.9); color: #cbd5e1; font-size: 15px; letter-spacing: 2px;
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="5.5" data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="5.5" data-track-index="1">
+        <div id="wrap">
+          <div id="card">
+            <div id="card-head"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div id="file" class="mono">checkout.tsx</div></div>
+            <div class="row mono" id="row1"><span class="kw">if</span> (flag) {</div>
+            <div class="row mono" id="row2">&nbsp;&nbsp;<span class="tag">&lt;NewCheckout /&gt;</span><span id="cursor"></span></div>
+            <div class="row mono" id="row3">}</div>
+            <svg id="bracket" viewBox="0 0 551 161"><rect id="bracket-rect" x="14" y="41" width="523" height="112" rx="8" /></svg>
+            <div id="sweep" data-layout-allow-overflow="true"></div>
+          </div>
+
+          <div id="toggle">
+            <div id="knob"></div>
+            <div class="tlab mono" id="lab-off">OFF</div>
+            <div class="tlab mono" id="lab-on">ON</div>
+          </div>
+          <div class="chip mono" id="chip-nodeploy">no redeploy</div>
+          <div class="chip mono" id="chip-off">OFF by default</div>
+
+          <div id="plate">
+            <img id="ld-off" src="assets/ld_flag_toggle_off.png" alt="" data-layout-allow-overflow="true" />
+            <img id="ld-on" src="assets/ld_flag_toggle_on.png" alt="" data-layout-allow-overflow="true" />
+          </div>
+          <div id="real-tag" class="mono" data-layout-allow-overlap="true">REAL FLAG UI</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // bracket draw setup (deterministic)
+      const br = document.getElementById("bracket-rect");
+      const brLen = br.getTotalLength();
+      br.style.strokeDasharray = String(brLen);
+      br.style.strokeDashoffset = String(brLen);
+
+      // ambient drift under everything
+      tl.fromTo("#wrap", { scale: 1 }, { scale: 1.02, duration: 5.5, ease: "sine.inOut" }, 0);
+
+      // ---------- ACT 1: the code, then the switch wraps around it ----------
+      tl.fromTo("#wrap", { opacity: 0.5 }, { opacity: 1, duration: 0.35, ease: "power3.out" }, 0);
+      tl.fromTo("#card", { y: 20 }, { y: 0, duration: 0.4, ease: "power3.out" }, 0);
+      // cursor blinks (odd repeat: 0.6 + 10*0.4 = 4.6, before the fade)
+      tl.fromTo("#cursor", { opacity: 1 }, { opacity: 0, duration: 0.4, ease: "sine.inOut", yoyo: true, repeat: 9, immediateRender: false }, 0.6);
+      // "wraps" (15.30 out -> 0.35): the if/flag lines type in around the component
+      tl.fromTo("#row1", { width: 0 }, { width: 320, duration: 0.3, ease: "power2.out", immediateRender: false }, 0.35);
+      tl.fromTo("#row3", { width: 0 }, { width: 60, duration: 0.15, ease: "power2.out", immediateRender: false }, 0.6);
+      tl.to("#bracket-rect", { strokeDashoffset: 0, duration: 0.55, ease: "power3.out" }, 0.5);
+      // "switch" (16.36 -> 1.41): the physical toggle appears
+      tl.fromTo("#toggle", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(1.6)", immediateRender: false }, 1.41);
+      // the real flag row follows (1.95): "Flag is Off serving ..."
+      tl.fromTo("#plate", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.35, ease: "power3.out", immediateRender: false }, 1.95);
+      tl.fromTo("#real-tag", { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power2.out", immediateRender: false }, 2.1);
+
+      // ---------- TURN 1 @2.01 ("flip" 16.96 out): ON... then OFF, no redeploy ----------
+      tl.fromTo("#knob", { x: 0 }, { x: 112, duration: 0.18, ease: "power3.out", immediateRender: false }, 2.01);
+      tl.to("#toggle", { backgroundColor: "rgba(21,128,61,0.95)", borderColor: "rgba(74,222,128,0.8)", duration: 0.18, ease: "power2.out" }, 2.01);
+      tl.to("#lab-off", { opacity: 0, duration: 0.1, ease: "power2.out" }, 2.01);
+      tl.fromTo("#lab-on", { opacity: 0 }, { opacity: 1, duration: 0.12, ease: "power2.out", immediateRender: false }, 2.08);
+      tl.fromTo("#ld-on", { opacity: 0 }, { opacity: 1, duration: 0.12, ease: "power2.out", immediateRender: false }, 2.05);
+      // back OFF
+      tl.fromTo("#knob", { x: 112 }, { x: 0, duration: 0.18, ease: "power3.out", immediateRender: false }, 2.55);
+      tl.to("#toggle", { backgroundColor: "rgba(71,85,105,0.92)", borderColor: "rgba(148,163,184,0.5)", duration: 0.18, ease: "power2.out" }, 2.55);
+      tl.to("#lab-on", { opacity: 0, duration: 0.1, ease: "power2.out" }, 2.55);
+      tl.fromTo("#lab-off", { opacity: 0 }, { opacity: 1, duration: 0.12, ease: "power2.out", immediateRender: false }, 2.62);
+      tl.to("#ld-on", { opacity: 0, duration: 0.12, ease: "power2.out" }, 2.6);
+      // "without redeploying" (17.26-18.12 -> 2.31-3.17): the chip
+      tl.fromTo("#chip-nodeploy", { opacity: 0, x: -16 }, { opacity: 1, x: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 2.63);
+
+      // ---------- TURN 2 / ACT 2 @3.69 ("ships dark" 18.64-19.24 out): the code goes dark ----------
+      tl.fromTo("#sweep", { x: 0, opacity: 0 }, { x: 0, opacity: 1, duration: 0.1, ease: "power2.out", immediateRender: false }, 3.66);
+      tl.fromTo("#sweep", { x: 0 }, { x: 800, duration: 0.55, ease: "power2.inOut", immediateRender: false }, 3.68);
+      tl.to("#sweep", { opacity: 0, duration: 0.1, ease: "power2.out" }, 4.15);
+      tl.fromTo("#card", { filter: "brightness(1)" }, { filter: "brightness(0.42)", duration: 0.5, ease: "power2.out", immediateRender: false }, 3.75);
+      tl.to("#bracket-rect", { stroke: "#78716c", duration: 0.5, ease: "power2.out" }, 3.75);
+      tl.to("#chip-nodeploy", { opacity: 0, x: 16, duration: 0.25, ease: "power2.in" }, 3.75);
+      // the OFF toggle takes a small nudge so the eye lands on it
+      tl.to("#toggle", { x: -6, duration: 0.08, ease: "power2.out" }, 3.85);
+      tl.to("#toggle", { x: 0, duration: 0.2, ease: "power2.out" }, 3.93);
+      // "OFF by default" chip lands as the phrase ends (4.3)
+      tl.fromTo("#chip-off", { opacity: 0, scale: 1.25 }, { opacity: 1, scale: 1, duration: 0.3, ease: "power4.out", immediateRender: false }, 4.3);
+
+      // ---------- fade: finishes at EXACTLY 5.5 (5.2 + 0.3), zero buffer ----------
+      tl.fromTo("#wrap", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 5.2);
+      ["#card", "#toggle", "#chip-off", "#chip-nodeploy", "#plate", "#real-tag", "#knob"].forEach((s) => {
+        tl.to(s, { opacity: 0, duration: 0.3, ease: "power2.out" }, 5.2);
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

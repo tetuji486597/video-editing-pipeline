@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP34 TikTok-style Title Box (Explaining Diffie-Hellman in 30 seconds)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: transparent;   /* never a takeover -- the presenter stays visible */
+      }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      /* TikTok's native text sticker: each WRAPPED LINE is its own white rounded box,
+         the stack centred on x=540 (left:0/right:0/margin:auto). Wording matches the
+         RECORDED intro ("Explaining Diffie-Hellman in 30 seconds", beats.md INTRO):
+         EPISODE 34 (small) / EXPLAINING / DIFFIE-HELLMAN / IN 30 SECONDS.
+         Sizing: 50px Inter 800 ~ 33px/char. "DIFFIE-HELLMAN" 14 chars -> ~462 + 52
+         padding = ~514px box (x 283-797, under the 660 cap); "IN 30 SECONDS" ~13 chars
+         -> ~480px; "EXPLAINING" ~382px. EPISODE 34 at 36px: ~240+44 = ~284px.
+         Vertical: 36+16+18 = 70 (ep box) + 3 x (50+20+22 = 92) + 3 x 12 gaps = 382px
+         -> y 210..592; x1.01 drift about the top-centre origin -> 596. INTRO frame
+         (src 5.0s): hair top ~120, brow ~640 (zoom 1.0->1.08 about (540,720) moves the
+         brow to ~634). Stack sits over hair/forehead only, clears the brow by ~38px.
+         The sticker is the ONE slot allowed inside the countdown reserve (the chip only
+         starts at the INTRO end). */
+      #stack {
+        position: absolute;
+        left: 0;
+        right: 0;
+        margin: 0 auto;
+        top: 210px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        /* Frame-0 state from CSS -- tl.set() at position 0 never fires. */
+        opacity: 0.6;
+        transform: scale(0.94);
+        transform-origin: 50% 0%;
+      }
+      .tt-line {
+        background: #ffffff;
+        color: #111111;
+        font-size: 50px;
+        line-height: 50px;
+        font-weight: 800;
+        letter-spacing: -1px;
+        padding: 20px 26px 22px 26px;
+        border-radius: 16px;
+        white-space: nowrap;
+        /* soft shadow only; reach 1.6*16 = ~26px, far inside every band */
+        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.22);
+      }
+      .tt-line.ep {
+        font-size: 36px;
+        line-height: 36px;
+        padding: 16px 22px 18px 22px;
+        letter-spacing: 1px;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="2.4"
+      data-width="1080"
+      data-height="1920"
+    >
+      <section
+        id="scene"
+        class="clip"
+        data-start="0"
+        data-duration="2.4"
+        data-track-index="1"
+      >
+        <div id="stack">
+          <div class="tt-line ep">EPISODE 34</div>
+          <div class="tt-line">EXPLAINING</div>
+          <div class="tt-line">DIFFIE-HELLMAN</div>
+          <div class="tt-line">IN 30 SECONDS</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // The four lines are ONE sticker -- they land together.
+      tl.fromTo(
+        "#stack",
+        { opacity: 0.6, scale: 0.94 },
+        { opacity: 1, scale: 1, duration: 0.28, ease: "power3.out" },
+        0
+      );
+
+      // Imperceptible drift so the motion linter's seek check advances. fromTo, not
+      // .to(), to avoid gsap_css_transform_conflict with the CSS transform.
+      tl.fromTo(
+        "#stack",
+        { scale: 1 },
+        { scale: 1.01, duration: 1.84, ease: "none", immediateRender: false },
+        0.28
+      );
+
+      // Fade FINISHES at exactly data-duration, zero buffer: 2.12 + 0.28 = 2.400.
+      // (INTRO window ends 2.4167 on the 24fps output grid; 2.4 is the nearest 30fps
+      // value that stays inside it, so the HOOK cut is clean.)
+      tl.fromTo(
+        "#stack",
+        { opacity: 1 },
+        { opacity: 0, duration: 0.28, ease: "power2.out", immediateRender: false },
+        2.12
+      );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

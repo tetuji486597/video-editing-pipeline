@@ -1,0 +1,96 @@
+{
+ "video": "final_nosfx.mp4",
+ "out": "final.mp4",
+ "cues": [
+  {
+   "at": 0.25,
+   "sfx": "tt_click_trim",
+   "vol": 1.35,
+   "why": "INTRO: sticker pops"
+  },
+  {
+   "at": 4.15,
+   "sfx": "impact_trim",
+   "vol": 1.93,
+   "why": "HOOK: the ALL OF FACEBOOK cylinder cracks (on 'Facebook')"
+  },
+  {
+   "at": 6.07,
+   "sfx": "swoosh_double",
+   "vol": 0.61,
+   "why": "HOOK: the cylinder splits into four (on 'pieces')"
+  },
+  {
+   "at": 9.0,
+   "sfx": "whoosh_trim",
+   "vol": 0.18,
+   "why": "PROBLEM: the VERTICAL arrow + box grows (on 'vertically')"
+  },
+  {
+   "at": 13.1,
+   "sfx": "bass_hit",
+   "vol": 0.14,
+   "why": "PROBLEM: the ceiling bar slams, box bonks (on 'hard ceiling')"
+  },
+  {
+   "at": 14.14,
+   "sfx": "tt_cash_register",
+   "vol": 2.0,
+   "why": "PROBLEM: $$$$ price tag stacks (on 'absurdly expensive')"
+  },
+  {
+   "at": 17.31,
+   "sfx": "tt_swoosh",
+   "vol": 0.35,
+   "why": "BUILD: HORIZONTAL arrow (on 'horizontally')"
+  },
+  {
+   "at": 19.31,
+   "sfx": "swoosh_elec",
+   "vol": 1.1,
+   "why": "BUILD: the table splits into four slices (on 'split')"
+  },
+  {
+   "at": 21.59,
+   "sfx": "pop_bubble",
+   "vol": 0.35,
+   "why": "BUILD: 1/4 chips land (on 'slice')"
+  },
+  {
+   "at": 23.36,
+   "sfx": "tt_notif_trim",
+   "vol": 0.5,
+   "why": "NEW_COMPONENT: shard-key chip lands (on 'user ID')"
+  },
+  {
+   "at": 27.08,
+   "sfx": "click_trim",
+   "vol": 3.22,
+   "why": "NEW_COMPONENT: router flicks to shard 1 (on 'A through M')"
+  },
+  {
+   "at": 29.02,
+   "sfx": "tt_mouse_click",
+   "vol": 1.55,
+   "why": "NEW_COMPONENT: router flicks to shard 2 (on 'N to Z')"
+  },
+  {
+   "at": 35.16,
+   "sfx": "ding",
+   "vol": 0.21,
+   "why": "NEW_COMPONENT: third machine slides in (on 'add more machines')"
+  },
+  {
+   "at": 41.42,
+   "sfx": "tt_error_glitch",
+   "vol": 0.36,
+   "why": "NEW_COMPONENT: query fans out with a ? (on 'several shards')"
+  },
+  {
+   "at": 44.65,
+   "sfx": "stamp",
+   "vol": 0.77,
+   "why": "PAYOFF: three boxes card (on 'more boxes')"
+  }
+ ]
+}

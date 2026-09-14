@@ -1,0 +1,196 @@
+{
+  "version": 1,
+  "sources": {
+    "ep30": "C:/Users/gordo/Downloads/drive-download-20260905T030037Z-1-001/Teleprompter-2026-04-09_21-05-50.mp4"
+  },
+  "ranges": [
+    {
+      "source": "ep30",
+      "start": 1.9,
+      "end": 3.88,
+      "beat": "INTRO",
+      "quote": "Explaining A/B testing in 30 seconds.",
+      "reason": "Only intro take: 'Explaining A/B testing in 30 seconds.' Acoustic onset 1.92 vs ASR 'Explaining' start 1.92 (delta -0.00); acoustic tail 3.76 vs ASR 'seconds.' box end 3.74. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    },
+    {
+      "source": "ep30",
+      "start": 8.82,
+      "end": 13.1,
+      "beat": "HOOK",
+      "quote": "Right now, different people are running slightly different versions of the same app and none of them can tell.",
+      "reason": "Only take. Acoustic onset 8.84 vs ASR 'Right' start 8.90 (delta +0.06); acoustic tail 12.98 vs ASR 'tell.' box end 12.96. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    },
+    {
+      "source": "ep30",
+      "start": 26.1,
+      "end": 34.24,
+      "beat": "PROBLEM",
+      "quote": "Here's the problem: Shipping a new feature to one hundred percent of users at once is risky. If it’s broken or people hate it, everyone gets hit at the same time, and rolling back is painful.",
+      "reason": "Second (complete) take; the first at 17.78 trails off. Acoustic onset 26.12 vs ASR 'Here's' start 26.16 (delta +0.04); acoustic tail 34.12 vs ASR 'painful.' box end 34.20. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    },
+    {
+      "source": "ep30",
+      "start": 39.66,
+      "end": 45.92,
+      "beat": "BUILD",
+      "quote": "A feature flag wraps the new code in a switch you can flip without redeploying. The code ships dark .",
+      "reason": "Only take. Acoustic onset 39.68 vs ASR 'A' start 39.72 (delta +0.04); acoustic tail 45.80 vs ASR '.' box end 45.82. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    },
+    {
+      "source": "ep30",
+      "start": 47.74,
+      "end": 62.56,
+      "beat": "NEW_COMPONENT",
+      "quote": "You turn it on for one percent of users and watch the metrics. If they look good, you ramp up, and if something breaks, you kill it instantly. Show version A to half your users and version B to the rest. Compare the numbers, and you’ve run an A/B test. That’s how product decisions get made from actual numbers.",
+      "reason": "Only take, two phrases read continuously. Acoustic onset 47.76 vs ASR 'You' start 47.78 (delta +0.02); acoustic tail 62.44 vs ASR 'numbers.' box end 62.50. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    },
+    {
+      "source": "ep30",
+      "start": 64.68,
+      "end": 71.52,
+      "beat": "AI_ANGLE",
+      "quote": "New AI models get rolled out the exact same way—they’re flagged on for a small slice of users and A/B tested before everyone gets them.",
+      "reason": "Only take. Acoustic onset 64.70 vs ASR 'New' start 64.76 (delta +0.06); acoustic tail 71.40 vs ASR 'them.' box end 71.92. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    },
+    {
+      "source": "ep30",
+      "start": 73.08,
+      "end": 79.42,
+      "beat": "PAYOFF",
+      "quote": "So ship it dark and let one percent of users decide whether the rest get it. Next we'll look at how a database outgrows one machine",
+      "reason": "Only take. Acoustic onset 73.10 vs ASR 'So' start 73.18 (delta +0.08); acoustic tail 79.30 vs ASR 'machine' box end 79.94. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    }
+  ],
+  "grade": "eq=contrast=1.15:saturation=1.05,colorbalance=rs=-0.04:gs=0.02:bs=0.05:rm=0.01:gm=0.0:bm=-0.01:rh=0.06:gh=0.02:bh=-0.06,vignette=angle=0.7,unsharp=5:5",
+  "overlays": [
+    {
+      "file": "animations/slot_tiktok_title/render.webm",
+      "start_in_output": 0.0,
+      "duration": 2.0
+    },
+    {
+      "file": "animations/slot_hook/render.webm",
+      "start_in_output": 2.3,
+      "duration": 4.1
+    },
+    {
+      "file": "animations/slot_problem/render.webm",
+      "start_in_output": 6.9,
+      "duration": 7.6
+    },
+    {
+      "file": "animations/slot_build/render.webm",
+      "start_in_output": 15.0,
+      "duration": 5.5
+    },
+    {
+      "file": "animations/slot_new_component/render.webm",
+      "start_in_output": 21.1,
+      "duration": 14.4
+    },
+    {
+      "file": "animations/slot_ai_angle/render.webm",
+      "start_in_output": 36.0,
+      "duration": 6.3
+    },
+    {
+      "file": "animations/slot_payoff/render.webm",
+      "start_in_output": 42.85,
+      "duration": 5.5
+    },
+    {
+      "file": "animations/slot_countdown/render.webm",
+      "start_in_output": 2.0,
+      "duration": 46.8333,
+      "x": 690,
+      "y": 205,
+      "_note": "Countdown gag: 30 -> 0 over the whole remaining video (make_countdown.py). Last in the list so it sits on top of takeovers; every content slot keeps x>=670,y<=330 clear."
+    }
+  ],
+  "subtitles": "master.ass",
+  "_variant": "Single variant. Intro is the recorded \"Explaining X in 30 seconds\" line; the episode number is only on the sticker.",
+  "_zoom_note": "Slow face-anchored zoom about (540,720), magnitude 1.08, alternating per range so the drift is continuous across cuts (render.py supersampled zoom chain).",
+  "_edge_note": "Every range START/END measured acoustically by edl_from_takes.py (20ms RMS, threshold = 20th-percentile floor + 8 dB): start = onset - 0.12s, end = first 120ms dead-air after the last word + 0.12s, capped at the ASR box end + 0.7s so sighs and throat-clears after a take are excluded.",
+  "_beat_windows_output_timeline": {
+    "INTRO": [
+      0.0,
+      2.0
+    ],
+    "HOOK": [
+      2.0,
+      6.2917
+    ],
+    "PROBLEM": [
+      6.2917,
+      14.4583
+    ],
+    "BUILD": [
+      14.4583,
+      20.75
+    ],
+    "NEW_COMPONENT": [
+      20.75,
+      35.5833
+    ],
+    "AI_ANGLE": [
+      35.5833,
+      42.4583
+    ],
+    "PAYOFF": [
+      42.4583,
+      48.8333
+    ]
+  },
+  "total_duration_s": 48.8333,
+  "_windows_note": "Output-timeline windows on render.py's real 24fps extract grid: each segment's rendered duration is ceil((end-start)*24)/24, not the raw source span. Verified against rendered clips where measurable. Overlay start_in_output values are derived from THESE numbers.",
+  "_overlay_note": "EP30 overlays (builder 2026-09-05). Formats: sticker / half-panel (two phones) / TAKEOVER (100% dial + user grid) / motion graphic (if(flag) card + toggle + real LaunchDarkly flag row) / TAKEOVER (1% ramp + KILL -> A|B split, phones, result table, DECISION) / transparent band (NEW MODEL chip + toggle + users pie + A/B bubbles) / photo card (real LD flag row, SHIPPED -> TURNED ON -> 1% pie). Landings (output s): hook diff rings 3.75 ('slightly different' 3.36-3.90), '?' 5.76 ('can tell' 5.76-6.14); problem 100% slam 8.10 ('hundred percent' 8.11-8.59), red cascade 10.29 ('broken' 10.19-10.49), EVERYONE GETS HIT 11.43 (11.33-12.19), ROLLBACK lever 13.32 ('rolling back' 13.15-13.69), sweat drop 13.90 ('painful' 13.95-14.39); build if/flag rows 15.35 ('wraps' 15.30-15.54), toggle 16.41 ('switch' 16.36), flip 17.01 ('flip' 16.96-17.22), 'no redeploy' 17.63 ('redeploying' 17.58-18.12), dark sweep 18.66 + 'OFF by default' 19.30 ('ships dark' 18.64-19.24); new_component ON+1% 21.55 ('one percent' 21.55-21.91), sparkline 22.60-24.10 ('watch the metrics' 22.59-23.35), ramp 5%/25% 24.60/24.98 ('ramp up' 24.59-25.05), KILL slam 26.20 ('kill' 26.21-26.31), phase shift 27.50 ('Show version A' 27.51), split wipe 28.37 ('half' 28.37-28.53), B wipe 29.27 ('version B' 29.27-29.77), table 30.45 ('Compare the numbers' 30.37-31.21), A/B TEST headline 31.97 ('A/B' 31.97), B lights 32.60, check 33.50 ('decisions' 33.51-33.97), DECISION stamp 34.67 ('actual numbers' 34.67-35.51); ai_angle toggle ON 38.32 ('flagged on' 38.32-38.80), slice lights 39.12 ('small slice' 39.12-39.66), bubbles 40.52/41.12 ('A/B tested' 40.52-41.06), pie fills 41.50-42.00 ('everyone gets them' 41.46-42.42); payoff SHIPPED (ghost) 43.10 ('ship it dark' 42.72-43.34), TURNED ON + real 'Flag is On' row 43.85 ('one percent' 43.76-44.12), 1% pie 44.50 ('users decide' 44.30-44.92), pie fills 45.55-46.15 ('the rest get it' 45.38-46.14). Gap audit (end -> next start): title 2.000 -> hook 2.300 (0.30; the title fades to alpha 0 exactly on the INTRO/HOOK footage cut per the batch plan, hook lead 0.30), hook 6.400 -> problem 6.900 (0.50), problem 14.500 -> build 15.000 (0.50; the takeover's last 0.04s of fade overlaps the BUILD cut at 14.458 at alpha < 5%), build 20.500 -> new_component 21.100 (0.60), new_component 35.500 -> ai_angle 36.000 (0.50), ai_angle 42.300 -> payoff 42.850 (0.55), payoff ends 48.350 (video ends 48.833). Every fade lands at alpha 0 exactly at data-duration (check_fade.py). Countdown reserve x>=670,y<=330 is empty on every frame of every slot except the sticker (probed on decoded alpha / composited luma, _f30/ep30/probe_reserve.py)."
+}

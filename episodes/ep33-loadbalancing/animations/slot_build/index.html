@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP33 build — the dealer (round robin)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* MOTION GRAPHIC over live footage, upper band y 218-600.
+         BUILD frame grid-measured (src 52.8s at 1080x1920): hair top ~80, brow ~645,
+         eyes ~720, face x 240-840. Zoom 1.08->1.0 about (540,720): brow worst ~640.
+         Ambient drift 1 -> 1.015 about (470,420): top 218 -> 215, right 840 -> 845.6,
+         bottom 600 -> 602.7 (+10px shadow) -> 613 < 640 brow.
+         COUNTDOWN RESERVE (x>=670, y<=330): the label row lives at x 90-540, and the
+         server column (x 620-840) starts at y 350 (drift-worst 349). Nothing else
+         reaches the corner. Requests enter at x>=92 (bright content stays right of x=90; glow reach ~76). */
+      #wrap { position: absolute; inset: 0; transform-origin: 470px 420px; }
+
+      /* ---------- the label row (lands on "round robin") ---------- */
+      #rr-glyph { position: absolute; left: 90px; top: 218px; width: 56px; height: 56px; opacity: 0; }
+      #rr-glyph svg { width: 56px; height: 56px; }
+      #rr-text {
+        position: absolute; left: 164px; top: 222px; font-size: 46px; line-height: 50px;
+        font-weight: 900; letter-spacing: 3px; color: #a5f3fc; white-space: nowrap; opacity: 0;
+        text-shadow: 0 3px 12px rgba(0, 0, 0, 0.9), 0 0 22px rgba(34, 211, 238, 0.4);
+      }
+
+      /* ---------- the dealer ---------- */
+      #lb { position: absolute; left: 150px; top: 390px; width: 140px; height: 140px; opacity: 0.5; }
+      #lb .diamond {
+        position: absolute; left: 22px; top: 22px; width: 96px; height: 96px; border-radius: 16px;
+        background: linear-gradient(160deg, rgba(34, 211, 238, 0.95), rgba(14, 116, 144, 0.95));
+        border: 3px solid #cffafe;
+        box-shadow: 0 0 22px rgba(34, 211, 238, 0.6), 0 6px 14px rgba(0, 0, 0, 0.5);
+        transform: rotate(45deg);
+      }
+      #lb .tag {
+        position: absolute; left: 0; top: 50px; width: 140px; text-align: center;
+        font-size: 36px; line-height: 40px; font-weight: 800; color: #ecfeff; letter-spacing: 2px;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+      }
+      #lb-pulse {
+        position: absolute; left: 150px; top: 390px; width: 140px; height: 140px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(165, 243, 252, 0.7) 0%, rgba(34, 211, 238, 0.25) 40%, rgba(34, 211, 238, 0) 65%);
+        opacity: 0;
+      }
+      #ring { position: absolute; left: 140px; top: 380px; width: 160px; height: 160px; opacity: 0; }
+      #ring svg { width: 160px; height: 160px; }
+
+      /* ---------- lanes ---------- */
+      #lines { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: visible; }
+      .lane { fill: none; stroke: rgba(226, 232, 240, 0.32); stroke-width: 2; stroke-linecap: round; stroke-dasharray: 6 8; }
+
+      /* ---------- the fleet ---------- */
+      .srv {
+        position: absolute; left: 620px; width: 220px; height: 70px; border-radius: 12px;
+        background: linear-gradient(160deg, rgba(14, 22, 36, 0.74), rgba(6, 10, 18, 0.84));
+        border: 2px solid rgba(148, 163, 184, 0.5);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        opacity: 0;
+      }
+      #srv1 { top: 350px; } #srv2 { top: 440px; } #srv3 { top: 530px; }
+      .srv .bay { position: absolute; right: 14px; width: 60px; height: 8px; border-radius: 3px; background: rgba(148, 163, 184, 0.25); }
+      .srv .b1 { top: 14px; } .srv .b2 { top: 31px; } .srv .b3 { top: 48px; }
+      .srv .led { position: absolute; right: 84px; top: 14px; width: 8px; height: 8px; border-radius: 50%; background: rgba(148, 163, 184, 0.5); }
+      .srv .flash {
+        position: absolute; inset: -2px; border-radius: 12px;
+        border: 2px solid rgba(34, 211, 238, 0.95);
+        box-shadow: 0 0 16px rgba(34, 211, 238, 0.6);
+        opacity: 0;
+      }
+
+      /* ---------- request cards (built in JS) ---------- */
+      .card {
+        position: absolute; left: 0; top: 0; width: 44px; height: 32px; border-radius: 6px;
+        background: linear-gradient(160deg, #a5f3fc, #22d3ee);
+        border: 2px solid #ecfeff;
+        box-shadow: 0 0 10px rgba(34, 211, 238, 0.55), 0 3px 6px rgba(0, 0, 0, 0.5);
+        opacity: 0;
+      }
+      .card i { position: absolute; left: 8px; width: 24px; height: 3px; border-radius: 2px; background: rgba(8, 47, 73, 0.7); }
+      .card i.l1 { top: 9px; } .card i.l2 { top: 17px; width: 16px; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="8.8" data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="8.8" data-track-index="1">
+        <div id="wrap">
+          <div id="rr-glyph">
+            <svg viewBox="0 0 56 56" fill="none">
+              <path d="M44 28 A16 16 0 1 1 36 14.2" stroke="#a5f3fc" stroke-width="4" stroke-linecap="round"/>
+              <path d="M30 8 L38 14.5 L30 21" stroke="#a5f3fc" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div id="rr-text">ROUND ROBIN</div>
+
+          <svg id="lines" viewBox="0 0 1080 1920">
+            <path class="lane" id="lane-in" d="M92,460 L150,460" />
+            <path class="lane" id="lane1" d="M292,452 L618,385" />
+            <path class="lane" id="lane2" d="M292,460 L618,475" />
+            <path class="lane" id="lane3" d="M292,468 L618,565" />
+          </svg>
+
+          <div id="lb-pulse"></div>
+          <div id="ring">
+            <svg viewBox="0 0 160 160" fill="none">
+              <circle cx="80" cy="80" r="74" stroke="rgba(34,211,238,0.25)" stroke-width="3"/>
+              <path d="M80 6 A74 74 0 0 1 154 80" stroke="#a5f3fc" stroke-width="5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div id="lb"><div class="diamond"></div><div class="tag mono">LB</div></div>
+
+          <div class="srv" id="srv1"><div class="bay b1"></div><div class="bay b2"></div><div class="bay b3"></div><div class="led"></div><div class="flash"></div></div>
+          <div class="srv" id="srv2"><div class="bay b1"></div><div class="bay b2"></div><div class="bay b3"></div><div class="led"></div><div class="flash"></div></div>
+          <div class="srv" id="srv3"><div class="bay b1"></div><div class="bay b2"></div><div class="bay b3"></div><div class="led"></div><div class="flash"></div></div>
+
+          <div id="cards"></div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      const D = 8.8, FADE_AT = 8.5;
+
+      // ---------- the deal list: [deal time, server index] -- each "one for you" ON its word ----------
+      // act 1 deals 3.75-5.3 ("deals them out" 3.73-4.44); act 2: 6.45 / 7.3 / 8.1 (one for you / one for you / back around)
+      const deals = [[3.75, 0], [4.05, 1], [4.35, 2], [4.7, 0], [5.0, 1], [5.3, 2], [6.45, 0], [7.3, 1], [8.08, 2]];
+      const srvSlotY = [369, 459, 549];      // card top inside each server tray (server top + 19)
+      const trayCount = [0, 0, 0];
+      const cardsEl = document.getElementById("cards");
+      deals.forEach((d, i) => {
+        const c = document.createElement("div");
+        c.className = "card"; c.id = "cd" + i;
+        c.innerHTML = '<i class="l1"></i><i class="l2"></i>';
+        cardsEl.appendChild(c);
+      });
+
+      // ambient drift under everything
+      tl.fromTo("#wrap", { scale: 1 }, { scale: 1.015, duration: D, ease: "sine.inOut" }, 0);
+
+      // ---------- entrance at t=0: the dealer (0.5 from CSS) ----------
+      tl.fromTo("#lb", { opacity: 0.5, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.35, ease: "power3.out" }, 0);
+
+      // ---------- ACT 1: "stands in front of the whole fleet" (0.52-1.82): the fleet lines up ----------
+      ["#srv1", "#srv2", "#srv3"].forEach((s, i) => {
+        tl.fromTo(s, { opacity: 0, x: 40 }, { opacity: 1, x: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 0.6 + i * 0.3);
+      });
+      ["#lane1", "#lane2", "#lane3", "#lane-in"].forEach((s, i) => {
+        tl.fromTo(s, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out", immediateRender: false }, 0.9 + i * 0.25);
+      });
+
+      // requests: spawn at the left edge, ride the in-lane to the dealer, hold, then get dealt
+      deals.forEach((d, i) => {
+        const [tDeal, si] = d;
+        const sel = "#cd" + i;
+        const tSpawn = (i === 0) ? 2.15 : tDeal - 0.55;   // the first one arrives on "hits it first" and waits
+        const tArrive = tSpawn + 0.4;
+        tl.fromTo(sel, { x: 92, y: 444, opacity: 0 }, { x: 92, y: 444, opacity: 1, duration: 0.12, ease: "power2.out", immediateRender: false }, tSpawn);
+        tl.to(sel, { x: 112, y: 444, duration: 0.4, ease: "power2.inOut" }, tSpawn);   // holds at the lane tip (x 112-156), left of the diamond tip (150) and clear of the LB label
+        // the deal: a snap from the dealer to the server's tray slot
+        const slot = trayCount[si]++;
+        const tx = 632 + slot * 44, ty = srvSlotY[si];
+        tl.to(sel, { x: tx, y: ty, duration: 0.3, ease: "power2.inOut" }, tDeal);
+        // dealer flick + server receipt
+        tl.fromTo("#lb", { scale: 1 }, { scale: 1.06, duration: 0.1, ease: "power2.out", yoyo: true, repeat: 1, immediateRender: false }, tDeal);
+        tl.fromTo("#srv" + (si + 1) + " .flash", { opacity: 0 }, { opacity: 1, duration: 0.1, ease: "power2.out", yoyo: true, repeat: 1, immediateRender: false }, tDeal + 0.2); // last: 8.28-8.48 < fade
+        tl.to("#srv" + (si + 1) + " .led", { backgroundColor: "#34d399", duration: 0.15, ease: "power2.out" }, tDeal + 0.28);
+      });
+      // "hits it first" (2.12-3.42): the first request sits on the dealer; the dealer glows while it waits
+      tl.fromTo("#lb-pulse", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1.15, duration: 0.45, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 2.55); // ends 3.45
+
+      // ---------- TURN @5.7 ("round robin"): the name lands, the ring starts turning ----------
+      const TURN = 5.7;
+      tl.fromTo("#rr-glyph", { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(1.8)", immediateRender: false }, TURN);
+      tl.fromTo("#rr-text", { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.35, ease: "power3.out", immediateRender: false }, TURN + 0.08);
+      tl.fromTo("#lb-pulse", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1.4, duration: 0.14, ease: "power3.out", immediateRender: false }, TURN);
+      tl.to("#lb-pulse", { opacity: 0, scale: 1.7, duration: 0.4, ease: "power2.out" }, TURN + 0.14);
+      tl.fromTo("#ring", { opacity: 0, rotation: 0 }, { opacity: 1, rotation: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, TURN);
+      // the ring turns (rotation on a DIV wrapper with a real bbox; constant velocity IS the point)
+      tl.fromTo("#ring", { rotation: 0 }, { rotation: 720, duration: 2.4, ease: "none", immediateRender: false }, TURN + 0.3); // ends 8.4 < fade
+      // the glyph spins once with it
+      tl.fromTo("#rr-glyph", { rotation: 0 }, { rotation: 360, duration: 1.2, ease: "power2.inOut", immediateRender: false }, TURN + 0.4);
+
+      // ---------- ACT 2: one for you (6.45) / one for you (7.3) / back around (8.1) ----------
+      // (the deals themselves are in the list above); "back around" also sweeps the fleet 3 -> 1
+      tl.fromTo("#rr-glyph", { scale: 1 }, { scale: 1.3, duration: 0.14, ease: "power2.out", yoyo: true, repeat: 1, immediateRender: false }, 8.1);
+
+      // ---------- fade: finishes at EXACTLY 8.8 (8.5 + 0.3), zero buffer ----------
+      tl.fromTo("#wrap", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, FADE_AT);
+      const leaves = ["#lb", "#lb-pulse", "#ring", "#rr-glyph", "#rr-text", "#srv1", "#srv2", "#srv3", "#lines"];
+      deals.forEach((d, i) => leaves.push("#cd" + i));
+      leaves.forEach((s) => { tl.to(s, { opacity: 0, duration: 0.3, ease: "power2.out" }, FADE_AT); });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

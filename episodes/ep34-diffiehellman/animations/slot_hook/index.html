@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP34 hook — two strangers, a room full of listeners</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* HALF-PANEL, upper band, over live footage (HOOK take: hair top ~120, brow ~640,
+         zoom 1.08->1.0 about (540,720) -> brow worst case 633.6).
+         Room panel x 90-850, y 350-590 (translucent, rule 11: it sits over hair).
+         Browser bar (act 2) x 90-650, y 225-299 -- left of the countdown reserve
+         (x>=670, y<=330 stays empty on every frame).
+         Ambient drift 1 -> 1.015 about (470,420): panel left 90 -> 84.3, right 850 ->
+         855.7, bar top 225 -> 222, bar right 650 -> 652.7 (<670), panel bottom 590 ->
+         592.6 (+ shadow reach 8+1.6*14 = 30 -> 622.6 < 633.6 brow). All inside
+         x 70-870 / y 200-1280. */
+      #wrap { position: absolute; inset: 0; transform-origin: 470px 420px; }
+
+      #panel {
+        position: absolute; left: 90px; top: 350px; width: 760px; height: 240px;
+        border-radius: 22px;
+        background: linear-gradient(165deg, rgba(12, 16, 26, 0.34), rgba(6, 9, 16, 0.42));
+        border: 2px solid rgba(148, 163, 184, 0.38);
+        box-shadow: 0 8px 14px rgba(0, 0, 0, 0.35);
+        overflow: hidden;
+        opacity: 0.5; /* frame-0 state from CSS; entrance tweens it up at t=0 */
+      }
+      #panel-flash { position: absolute; inset: 0; background: #fff; opacity: 0; }
+
+      /* all line-work in one frame-coordinate SVG. NOTE: GSAP x/y on an SVG <g> REPLACES its
+         transform attribute (a static translate is lost and the group collapses to 0,0 --
+         caught by check_margins on the first render), so every static translate lives on an
+         OUTER <g> and GSAP targets the inner one. */
+      #fig-svg { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: visible; }
+      .person { fill: #cbd5e1; }
+      .person.left { fill: #7dd3fc; }
+      .person.right { fill: #fbbf24; }
+      .listener { fill: #94a3b8; opacity: 0; }
+      .burst { fill: none; stroke-width: 4; stroke-linecap: round; opacity: 0.25; }
+      .burst.l { stroke: #7dd3fc; }
+      .burst.r { stroke: #fbbf24; }
+      .halo { fill: none; stroke: #f59e0b; stroke-width: 4; opacity: 0; }
+      #secret-line {
+        fill: none; stroke: #f59e0b; stroke-width: 4; stroke-linecap: round;
+        stroke-dasharray: 14 12; opacity: 0;
+      }
+
+      /* notepads (HTML so the ??? is real text) -- each sits beside its listener */
+      .pad {
+        position: absolute; top: 462px; width: 58px; height: 46px; border-radius: 6px;
+        background: rgba(245, 240, 225, 0.94); border: 1px solid rgba(60, 50, 30, 0.5);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+        opacity: 0;
+      }
+      .pad .ln {
+        position: absolute; left: 9px; height: 3px; width: 0px; border-radius: 2px;
+        background: #3b3020;
+      }
+      .pad .ln.a { top: 11px; }
+      .pad .ln.b { top: 21px; }
+      .pad .ln.c { top: 31px; }
+      .pad .q {
+        position: absolute; left: 0; top: 0; width: 56px; height: 44px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 26px; font-weight: 800; color: #b91c1c; letter-spacing: -1px;
+        opacity: 0;
+      }
+      #pad1 { left: 321px; } #pad2 { left: 426px; } #pad3 { left: 531px; } #pad4 { left: 636px; }
+
+      /* ACT 2: the browser bar with its padlock */
+      #bar {
+        position: absolute; left: 90px; top: 225px; width: 560px; height: 74px;
+        border-radius: 37px;
+        background: linear-gradient(180deg, rgba(10, 14, 22, 0.62), rgba(6, 9, 16, 0.7));
+        border: 2px solid rgba(148, 163, 184, 0.55);
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);
+        display: flex; align-items: center; gap: 16px; padding: 0 24px;
+        opacity: 0;
+      }
+      #lock { width: 30px; height: 36px; flex-shrink: 0; transform-origin: 50% 50%; }
+      #url { font-size: 30px; white-space: nowrap; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9); }
+      #url .s { color: #6ee7b7; font-weight: 700; }
+      #url .d { color: #cbd5e1; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="8.5" data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="8.5" data-track-index="1">
+        <div id="wrap">
+          <div id="panel"><div id="panel-flash"></div></div>
+
+          <svg id="fig-svg" viewBox="0 0 1080 1920">
+            <!-- the secret, agreed across the room (dashed amber, draws at "secret") -->
+            <path id="secret-line" d="M186,380 L744,380" />
+
+            <!-- stranger A (left): x 100-180, y 396-526, head centre (140,422) -->
+            <g transform="translate(100,396)"><g id="figA">
+              <circle class="person left" cx="40" cy="26" r="24" />
+              <path class="person left" d="M6,130 C6,90 20,72 40,72 C60,72 74,90 74,130 Z" />
+            </g></g>
+            <circle class="halo" id="haloA" cx="140" cy="422" r="32" />
+            <!-- stranger B (right): x 750-830 -->
+            <g transform="translate(750,396)"><g id="figB">
+              <circle class="person right" cx="40" cy="26" r="24" />
+              <path class="person right" d="M6,130 C6,90 20,72 40,72 C60,72 74,90 74,130 Z" />
+            </g></g>
+            <circle class="halo" id="haloB" cx="790" cy="422" r="32" />
+
+            <!-- speech bursts: arcs about (170,430) rightward and (760,430) leftward -->
+            <path class="burst l" id="bl1" d="M185.3,417.1 A20,20 0 0 1 185.3,442.9" />
+            <path class="burst l" id="bl2" d="M197.6,406.9 A36,36 0 0 1 197.6,453.1" />
+            <path class="burst l" id="bl3" d="M209.8,396.6 A52,52 0 0 1 209.8,463.4" />
+            <path class="burst r" id="br1" d="M744.7,417.1 A20,20 0 0 0 744.7,442.9" />
+            <path class="burst r" id="br2" d="M732.4,406.9 A36,36 0 0 0 732.4,453.1" />
+            <path class="burst r" id="br3" d="M720.2,396.6 A52,52 0 0 0 720.2,463.4" />
+
+            <!-- the room: four listeners at cx 305/410/515/620 (0.8 scale -> 64x104, y 402-506) -->
+            <g transform="translate(273,402) scale(0.8)"><g class="listener" id="ls1">
+              <circle cx="40" cy="26" r="24" /><path d="M6,130 C6,90 20,72 40,72 C60,72 74,90 74,130 Z" />
+            </g></g>
+            <g transform="translate(378,402) scale(0.8)"><g class="listener" id="ls2">
+              <circle cx="40" cy="26" r="24" /><path d="M6,130 C6,90 20,72 40,72 C60,72 74,90 74,130 Z" />
+            </g></g>
+            <g transform="translate(483,402) scale(0.8)"><g class="listener" id="ls3">
+              <circle cx="40" cy="26" r="24" /><path d="M6,130 C6,90 20,72 40,72 C60,72 74,90 74,130 Z" />
+            </g></g>
+            <g transform="translate(588,402) scale(0.8)"><g class="listener" id="ls4">
+              <circle cx="40" cy="26" r="24" /><path d="M6,130 C6,90 20,72 40,72 C60,72 74,90 74,130 Z" />
+            </g></g>
+          </svg>
+
+          <div class="pad" id="pad1"><div class="ln a"></div><div class="ln b"></div><div class="ln c"></div><div class="q mono">???</div></div>
+          <div class="pad" id="pad2"><div class="ln a"></div><div class="ln b"></div><div class="ln c"></div><div class="q mono">???</div></div>
+          <div class="pad" id="pad3"><div class="ln a"></div><div class="ln b"></div><div class="ln c"></div><div class="q mono">???</div></div>
+          <div class="pad" id="pad4"><div class="ln a"></div><div class="ln b"></div><div class="ln c"></div><div class="q mono">???</div></div>
+
+          <div id="bar">
+            <svg id="lock" viewBox="0 0 30 36" fill="none">
+              <path d="M7,16 V11 a8,8 0 0 1 16,0 V16" stroke="#6ee7b7" stroke-width="3.2" stroke-linecap="round" />
+              <rect x="3" y="16" width="24" height="18" rx="4" fill="#6ee7b7" />
+              <circle cx="15" cy="25" r="2.6" fill="#052e22" />
+            </svg>
+            <div id="url" class="mono"><span class="s">https://</span><span class="d">example.com</span></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // dashed secret line: draw setup
+      const sl = document.getElementById("secret-line");
+      const slLen = sl.getTotalLength();
+      sl.style.strokeDasharray = String(slLen);
+      sl.style.strokeDashoffset = String(slLen);
+
+      // ambient drift under everything (no CSS transform on #wrap -> fromTo is safe)
+      tl.fromTo("#wrap", { scale: 1 }, { scale: 1.015, duration: 8.5, ease: "sine.inOut" }, 0);
+
+      // ---------- entrance at t=0: panel up from 0.5, strangers slide in from the ends ----------
+      tl.fromTo("#panel", { opacity: 0.5 }, { opacity: 1, duration: 0.35, ease: "power3.out" }, 0);
+      tl.fromTo("#figA", { x: -60, y: 0, opacity: 0 }, { x: 0, y: 0, opacity: 1, duration: 0.45, ease: "power3.out" }, 0.05);
+      tl.fromTo("#figB", { x: 60, y: 0, opacity: 0 }, { x: 0, y: 0, opacity: 1, duration: 0.45, ease: "power3.out", immediateRender: false }, 0.35);
+
+      // ---------- ACT 1: they shout across the room ----------
+      // speech bursts pulse (odd repeats; A ends 0.55+16*0.3 = 5.35, B ends 0.75+14*0.3 = 4.95, both < 5.48 turn)
+      ["#bl1", "#bl2", "#bl3"].forEach((s, i) => {
+        tl.fromTo(s, { opacity: 0.25 }, { opacity: 0.95, duration: 0.3, ease: "sine.inOut", yoyo: true, repeat: 15, immediateRender: false }, 0.55 + i * 0.1);
+      });
+      ["#br1", "#br2", "#br3"].forEach((s, i) => {
+        tl.fromTo(s, { opacity: 0.25 }, { opacity: 0.95, duration: 0.3, ease: "sine.inOut", yoyo: true, repeat: 13, immediateRender: false }, 0.75 + i * 0.1);
+      });
+      // "secret" (local 1.12): both heads get an amber halo, then the agreement line draws
+      ["#haloA", "#haloB"].forEach((s) => {
+        tl.fromTo(s, { opacity: 0, scale: 0.7, transformOrigin: "50% 50%" }, { opacity: 0.9, scale: 1, transformOrigin: "50% 50%", duration: 0.35, ease: "back.out(1.6)", immediateRender: false }, 1.12);
+      });
+      tl.fromTo("#secret-line", { opacity: 0 }, { opacity: 0.85, duration: 0.2, ease: "power2.out", immediateRender: false }, 1.5);
+      tl.fromTo("#secret-line", { strokeDashoffset: slLen }, { strokeDashoffset: 0, duration: 0.6, ease: "power3.out", immediateRender: false }, 1.5);
+      // "everyone in the room" (1.72): the listeners fill the room, one group reveal
+      ["#ls1", "#ls2", "#ls3", "#ls4"].forEach((s, i) => {
+        tl.fromTo(s, { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 1.75 + i * 0.12);
+      });
+      ["#pad1", "#pad2", "#pad3", "#pad4"].forEach((s, i) => {
+        tl.fromTo(s, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 1.95 + i * 0.12);
+      });
+      // "listens to every word" (2.56-3.66): the pens scribble, line by line
+      ["#pad1", "#pad2", "#pad3", "#pad4"].forEach((p, i) => {
+        [".ln.a", ".ln.b", ".ln.c"].forEach((ln, j) => {
+          tl.fromTo(p + " " + ln, { width: 0 }, { width: 38 - j * 6, duration: 0.28, ease: "power2.out", immediateRender: false }, 2.6 + i * 0.15 + j * 0.3);
+        });
+      });
+      // "eavesdropper" (4.58): the pads catch the light -- one warm pulse
+      tl.fromTo(".pad", { boxShadow: "0 2px 6px rgba(0,0,0,0.35)" },
+        { boxShadow: "0 2px 6px rgba(0,0,0,0.35), 0 0 16px 3px rgba(251,191,36,0.55)", duration: 0.35, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 4.6);
+
+      // ---------- TURN @5.48 ("can't work it out"): panel flash, the notes turn to ??? ----------
+      tl.fromTo("#panel-flash", { opacity: 0 }, { opacity: 0.55, duration: 0.06, ease: "power3.out", immediateRender: false }, 5.45);
+      tl.to("#panel-flash", { opacity: 0, duration: 0.28, ease: "power3.out" }, 5.51);
+      ["#pad1", "#pad2", "#pad3", "#pad4"].forEach((p, i) => {
+        const t = 5.5 + i * 0.08;
+        tl.to(p + " .ln", { opacity: 0, duration: 0.12, ease: "power2.out" }, t);
+        tl.fromTo(p + " .q", { opacity: 0, scale: 1.6 }, { opacity: 1, scale: 1, duration: 0.24, ease: "power4.out", immediateRender: false }, t);
+        // a little frustrated shake, back to rest
+        tl.to(p, { x: -4, duration: 0.05, ease: "power2.out" }, t + 0.05);
+        tl.to(p, { x: 4, duration: 0.05, ease: "power2.out" }, t + 0.1);
+        tl.to(p, { x: 0, duration: 0.06, ease: "power2.out" }, t + 0.15);
+      });
+      // the secret line answers with one confident pulse (they still have it)
+      tl.to("#secret-line", { opacity: 1, duration: 0.3, ease: "sine.inOut", yoyo: true, repeat: 1 }, 5.9);
+
+      // ---------- ACT 2 @7.74 ("open a website", overlay starts at output 2.9): the browser bar slides in ----------
+      tl.fromTo("#bar", { opacity: 0, x: -40 }, { opacity: 1, x: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 7.76);
+      // "website" (8.10): the padlock pops
+      tl.fromTo("#lock", { scale: 0.5 }, { scale: 1, duration: 0.3, ease: "back.out(2)", immediateRender: false }, 8.0);
+
+      // ---------- fade: finishes at EXACTLY 8.5 (8.2 + 0.3), zero buffer ----------
+      tl.fromTo("#wrap", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 8.2);
+      // transformed leaves fade in the same window so none strands
+      ["#panel", "#bar", "#figA", "#figB", "#haloA", "#haloB", ".pad", ".listener", "#lock", ".burst", "#secret-line"].forEach((s) => {
+        tl.to(s, { opacity: 0, duration: 0.3, ease: "power2.out" }, 8.2);
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

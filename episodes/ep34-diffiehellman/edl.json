@@ -1,0 +1,196 @@
+{
+  "version": 1,
+  "sources": {
+    "ep34": "C:/Users/gordo/Downloads/drive-download-20260905T030037Z-1-002/Teleprompter-2026-04-09_21-38-44.mp4"
+  },
+  "ranges": [
+    {
+      "source": "ep34",
+      "start": 3.96,
+      "end": 6.34,
+      "beat": "INTRO",
+      "quote": "Explaining Diffie-Hellman in 30 seconds.",
+      "reason": "Only intro take: 'Explaining Diffie-Hellman in 30 seconds.' Acoustic onset 3.98 vs ASR 'Explaining' start 4.02 (delta +0.04); acoustic tail 6.22 vs ASR 'seconds.' box end 6.10. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    },
+    {
+      "source": "ep34",
+      "start": 11.5,
+      "end": 20.5,
+      "beat": "HOOK",
+      "quote": "So two strangers can agree on a secret while everyone in the room listens to every word, and the eavesdropper still can't work it out. It actually happens every time you open a website",
+      "reason": "Only take; ends on 'website' before the sigh. Acoustic onset 11.52 vs ASR 'So' start 11.56 (delta +0.04); acoustic tail 20.38 vs ASR 'website' box end 20.36. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    },
+    {
+      "source": "ep34",
+      "start": 34.36,
+      "end": 44.04,
+      "beat": "PROBLEM",
+      "quote": "Encrypting a conversation needs a shared key. The trouble is two computers that just met have to agree on one over a line anybody could be tapping, and if you send the key, the tapper has it too",
+      "reason": "Only take. Acoustic onset 34.38 vs ASR 'Encrypting' start 34.40 (delta +0.02); acoustic tail 43.92 vs ASR 'too' box end 43.88. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    },
+    {
+      "source": "ep34",
+      "start": 48.96,
+      "end": 59.12,
+      "beat": "BUILD",
+      "quote": "The classic picture is paint. Both sides agree on a public color that everyone can see. Then each secretly mixes in a private color of their own, and they swap the mixtures again in the open.",
+      "reason": "Only take. Acoustic onset 48.98 vs ASR 'The' start 48.96 (delta -0.02); acoustic tail 59.00 vs ASR 'open.' box end 58.98. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    },
+    {
+      "source": "ep34",
+      "start": 82.74,
+      "end": 100.24,
+      "beat": "NEW_COMPONENT",
+      "quote": "Now each side adds their own private color to the other's mixture. Both end up with the identical final color. The eavesdropper only ever saw the mixtures, and unmixing paint is basically impossible. The real version uses math with that same one-way property, and what comes out is a shared key that never once traveled the wire.",
+      "reason": "Third 'Now each side' start, the complete read. Acoustic onset 82.76 vs ASR 'Now' start 82.80 (delta +0.04); acoustic tail 100.12 vs ASR 'wire.' box end 100.09. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    },
+    {
+      "source": "ep34",
+      "start": 109.62,
+      "end": 115.58,
+      "beat": "DH_NAME",
+      "quote": "That's Diffie-Hellman. It runs inside the HTTPS padlock from the URL episode, and it's done in milliseconds",
+      "reason": "Second take of 'That's Diffie-Hellman'; ends on 'milliseconds' before the throat-clear. Acoustic onset 109.64 vs ASR 'That's' start 109.66 (delta +0.02); acoustic tail 115.46 vs ASR 'milliseconds' box end 115.20. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    },
+    {
+      "source": "ep34",
+      "start": 133.36,
+      "end": 140.46,
+      "beat": "PAYOFF",
+      "quote": "so the secret never crosses the wire because each side builds the same one on its own. Next, we'll look at the monolith versus microservice fight",
+      "reason": "Last take; the earlier one breaks on the monolith. Acoustic onset 133.38 vs ASR 'so' start 133.46 (delta +0.08); acoustic tail 140.34 vs ASR 'fight' box end 140.28. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    }
+  ],
+  "grade": "eq=contrast=1.15:saturation=1.05,colorbalance=rs=-0.04:gs=0.02:bs=0.05:rm=0.01:gm=0.0:bm=-0.01:rh=0.06:gh=0.02:bh=-0.06,vignette=angle=0.7,unsharp=5:5",
+  "overlays": [
+    {
+      "file": "animations/slot_tiktok_title/render.webm",
+      "start_in_output": 0.0,
+      "duration": 2.4
+    },
+    {
+      "file": "animations/slot_hook/render.webm",
+      "start_in_output": 2.9,
+      "duration": 8.5
+    },
+    {
+      "file": "animations/slot_problem/render.webm",
+      "start_in_output": 12.6,
+      "duration": 8.5
+    },
+    {
+      "file": "animations/slot_build/render.webm",
+      "start_in_output": 21.9,
+      "duration": 9.3
+    },
+    {
+      "file": "animations/slot_new_component/render.webm",
+      "start_in_output": 31.9,
+      "duration": 16.8
+    },
+    {
+      "file": "animations/slot_dh_name/render.webm",
+      "start_in_output": 49.2,
+      "duration": 5.5
+    },
+    {
+      "file": "animations/slot_payoff/render.webm",
+      "start_in_output": 55.2,
+      "duration": 5.0
+    },
+    {
+      "file": "animations/slot_countdown/render.webm",
+      "start_in_output": 2.4167,
+      "duration": 59.5,
+      "x": 690,
+      "y": 205,
+      "_note": "Countdown gag: 30 -> 0 over the whole remaining video (make_countdown.py). Last in the list so it sits on top of takeovers; every content slot keeps x>=670,y<=330 clear."
+    }
+  ],
+  "subtitles": "master.ass",
+  "_variant": "Single variant. Intro is the recorded \"Explaining X in 30 seconds\" line; the episode number is only on the sticker.",
+  "_zoom_note": "Slow face-anchored zoom about (540,720), magnitude 1.08, alternating per range so the drift is continuous across cuts (render.py supersampled zoom chain).",
+  "_edge_note": "Every range START/END measured acoustically by edl_from_takes.py (20ms RMS, threshold = 20th-percentile floor + 8 dB): start = onset - 0.12s, end = first 120ms dead-air after the last word + 0.12s, capped at the ASR box end + 0.7s so sighs and throat-clears after a take are excluded.",
+  "_beat_windows_output_timeline": {
+    "INTRO": [
+      0.0,
+      2.4167
+    ],
+    "HOOK": [
+      2.4167,
+      11.4167
+    ],
+    "PROBLEM": [
+      11.4167,
+      21.125
+    ],
+    "BUILD": [
+      21.125,
+      31.2917
+    ],
+    "NEW_COMPONENT": [
+      31.2917,
+      48.7917
+    ],
+    "DH_NAME": [
+      48.7917,
+      54.7917
+    ],
+    "PAYOFF": [
+      54.7917,
+      61.9167
+    ]
+  },
+  "total_duration_s": 61.9167,
+  "_windows_note": "Output-timeline windows on render.py's real 24fps extract grid: each segment's rendered duration is ceil((end-start)*24)/24, not the raw source span. Verified against rendered clips where measurable. Overlay start_in_output values are derived from THESE numbers.",
+  "_overlay_note": "Formats: sticker / half-panel (hook) / motion-gfx (problem, wire) / TAKEOVER (build, paint 1) / TAKEOVER (new_component, paint 2 + the real Wikipedia diagram) / corner (dh_name, real Edge padlock) / transparent band (payoff). Landings (output s): sticker 0-2.4 (INTRO ends 2.4167; fade ends 2.4). hook 2.9-11.4: halos on 'secret' 3.92, listeners on 'everyone in the room' 4.52, scribbles on 'listens to every word' 5.36, ??? turn on 'can't work it out' 8.28-8.35, browser bar on 'open a website' 10.64-10.9. problem 12.6-21.1: KEY chip on 'key' 13.34, screens wake on 'just met' 14.6, ghost key on 'agree on one' 16.1, wire on 'over a line' 16.8, clamp bites on 'tapping' 18.45, key travels on 'send the key' 19.34, copy climbs + headline on 'the tapper has it too' 20.1-20.9. build 21.9-31.2: yellow pours on 'paint' 22.38, PUBLIC on 'public color' 24.05, eye on 'everyone can see' 25.0, flash/hands/private pours on 'secretly mixes' 26.5-27.3, PRIVATE on 'private color' 27.6, cross-over on 'swap' 29.16, SWAP chip on 'in the open' 30.35. new_component 31.9-48.7: pours on 'adds their own private color' 32.4-33.0, match flash + '=' on 'final' 36.1, eye on 'eavesdropper' 37.0, swatches on 'saw the mixtures' 37.9-38.3, un-mix attempts on 'unmixing paint' 39.4-40.9, IMPOSSIBLE on 'impossible' 41.1-41.35, diagram card on 'real version uses math' 42.3, one-way glyph on 'one-way' 44.4, KEY chips on 'shared key' 46.3-46.5, empty wire on 'never once traveled the wire' 47.4-48.0. dh_name 49.2-54.7: name chip 49.2 ('Diffie-Hellman' 49.11-49.69), real URL bar on 'HTTPS' 50.67, ring on 'padlock' 51.49, lens 51.8-52.1 (padlock click SFX ~52.05), stopwatch on 'done in' 53.35, sweep + ms on 'milliseconds' 53.73. payoff 55.2-60.2: ghost key blocked on 'never crosses' 55.5-56.1, both cups fill on 'builds' 57.55, '=' on 'the same one' 58.1, rings + BUILT ON BOTH ENDS on 'on its own' 58.45-58.6; ends 1.7s before the tease. Gap audit (deliberate, all >= 0.5s, every fade ends at alpha 0 on its own last frame): title->hook 2.4->2.9 (0.5), hook->problem 11.4->12.6 (1.2), problem->build 21.1->21.9 (0.8), build->new_component 31.2->31.9 (0.7), new_component->dh_name 48.7->49.2 (0.5), dh_name->payoff 54.7->55.2 (0.5), payoff->end 60.2->61.92 (1.7). All inside their beat windows; leads 0.48/1.18/0.78/0.61/0.41/0.41. The countdown chip (coordinator) sits at x 690-870, y 205-305 from 2.4167; every slot except the sticker keeps x>=670,y<=335 empty (probed on decoded alpha / composited luma per render)."
+}

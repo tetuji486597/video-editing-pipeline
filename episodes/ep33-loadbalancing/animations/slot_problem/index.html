@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP33 problem — one melts, fifty copies, one buried</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; }
+      .fill { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* ---------- background (TAKEOVER) ---------- */
+      #bg-fill { background: radial-gradient(120% 90% at 45% 12%, #141018 0%, #0c0a10 45%, #06050a 80%, #030305 100%); }
+      #glow-red {
+        position: absolute; left: 35%; top: 45%; width: 1300px; height: 1300px;
+        transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(239, 68, 68, 0.16) 0%, rgba(239, 68, 68, 0) 62%);
+      }
+      #glow-amber {
+        position: absolute; left: 45%; top: 72%; width: 1400px; height: 1300px;
+        transform: translate(-50%, -50%); opacity: 0;
+        background: radial-gradient(circle, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0) 60%);
+      }
+      #vignette {
+        background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 13%, rgba(0,0,0,0) 80%, rgba(0,0,0,0.6) 100%);
+      }
+
+      /* ---------- scene: push-in 1 -> 1.05 about (480,800).
+         Design band x 128-832, y 380-1040 resolves to x 110.4-849.6, y 359-1052.
+         COUNTDOWN RESERVE (x>=670, y<=330): nothing but the dark background there --
+         rain only spawns at y>=380 (-> 359 worst) and the headline sits at y 400-470. ---------- */
+      #scene { transform-origin: 480px 800px; }
+
+      /* ---------- ACT 1: one server under a torrent ---------- */
+      #act1 { position: absolute; inset: 0; }
+      #heat {
+        position: absolute; left: 480px; top: 790px; width: 520px; height: 520px;
+        transform: translate(-50%, -50%); border-radius: 50%; opacity: 0;
+        background: radial-gradient(circle, rgba(249, 115, 22, 0.42) 0%, rgba(239, 68, 68, 0.18) 40%, rgba(239, 68, 68, 0) 65%);
+      }
+      #srv-big {
+        position: absolute; left: 370px; top: 620px; width: 220px; height: 300px;
+        border-radius: 22px; transform-origin: 50% 100%;
+        background: linear-gradient(170deg, #1b2230 0%, #0e131c 100%);
+        border: 3px solid rgba(148, 163, 184, 0.55);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+        opacity: 0.55;
+      }
+      #srv-big .bay {
+        position: absolute; left: 22px; width: 176px; height: 30px; border-radius: 6px;
+        background: rgba(148, 163, 184, 0.14); border: 1px solid rgba(148, 163, 184, 0.28);
+      }
+      #srv-big .bay .led { position: absolute; right: 10px; top: 10px; width: 9px; height: 9px; border-radius: 50%; background: #34d399; box-shadow: 0 0 6px rgba(52, 211, 153, 0.8); }
+      #srv-big #hot {
+        position: absolute; inset: -3px; border-radius: 22px; opacity: 0;
+        border: 3px solid rgba(249, 115, 22, 0.95);
+        box-shadow: 0 0 34px rgba(249, 115, 22, 0.7), inset 0 0 40px rgba(239, 68, 68, 0.45);
+      }
+      .drip {
+        position: absolute; top: 916px; height: 0px; border-radius: 0 0 12px 12px;
+        background: linear-gradient(180deg, rgba(249, 115, 22, 0.95), rgba(239, 68, 68, 0.9) 70%, rgba(239, 68, 68, 0.5));
+        box-shadow: 0 0 10px rgba(249, 115, 22, 0.5);
+      }
+      #drip1 { left: 396px; width: 22px; } #drip2 { left: 452px; width: 16px; }
+      #drip3 { left: 506px; width: 26px; } #drip4 { left: 556px; width: 18px; }
+      .rain {
+        position: absolute; left: 0; top: 0; width: 8px; height: 22px; border-radius: 4px;
+        background: linear-gradient(180deg, rgba(254, 202, 202, 0.2), rgba(254, 202, 202, 0.95));
+        opacity: 0;
+      }
+
+      /* ---------- TURN: the flash + the fifty ---------- */
+      #flash { background: #ffffff; opacity: 0; pointer-events: none; }
+      #head {
+        position: absolute; left: 100px; top: 400px; width: 760px; text-align: center;
+        font-size: 64px; line-height: 70px; font-weight: 900; letter-spacing: 2px; color: #fecaca;
+        text-shadow: 0 4px 18px rgba(0, 0, 0, 0.85), 0 0 26px rgba(239, 68, 68, 0.45);
+        white-space: nowrap; opacity: 0;
+      }
+      #grid { position: absolute; left: 128px; top: 560px; width: 704px; height: 354px; }
+      .cell {
+        position: absolute; width: 56px; height: 42px; border-radius: 8px;
+        background: linear-gradient(170deg, #1b2230, #0e131c);
+        border: 2px solid rgba(148, 163, 184, 0.5);
+        opacity: 0;
+      }
+      .cell i { position: absolute; left: 8px; width: 40px; height: 5px; border-radius: 2px; background: rgba(148, 163, 184, 0.28); }
+      .cell i.a { top: 8px; } .cell i.b { top: 18px; } .cell i.c { top: 28px; }
+      .cell b { position: absolute; right: 6px; top: 7px; width: 6px; height: 6px; border-radius: 50%; background: #34d399; }
+      #buried-cell { border-color: rgba(245, 158, 11, 0.95); }
+
+      /* ---------- ACT 2: requests seek, then dogpile ---------- */
+      .req {
+        position: absolute; left: 0; top: 0; width: 34px; height: 34px; opacity: 0;
+      }
+      .req svg { width: 34px; height: 34px; }
+      .slab {
+        position: absolute; left: 344px; width: 56px; height: 9px; border-radius: 3px;
+        background: linear-gradient(180deg, #fbbf24, #d97706);
+        border: 1px solid rgba(255, 237, 213, 0.6);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5); opacity: 0;
+      }
+      #lbl-buried {
+        position: absolute; left: 300px; top: 466px; width: 144px; text-align: center;
+        font-size: 30px; line-height: 34px; font-weight: 800; letter-spacing: 3px; color: #fbbf24;
+        text-shadow: 0 3px 12px rgba(0, 0, 0, 0.85); opacity: 0;
+      }
+      #lbl-idle {
+        position: absolute; left: 720px; top: 460px; width: 112px; text-align: center;
+        font-size: 30px; line-height: 34px; font-weight: 800; letter-spacing: 3px; color: #94a3b8;
+        text-shadow: 0 3px 12px rgba(0, 0, 0, 0.85); opacity: 0;
+      }
+      .zz {
+        position: absolute; left: 0; top: 0; font-size: 22px; line-height: 22px; font-weight: 800;
+        color: #cbd5e1; opacity: 0; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+      }
+      #dither { opacity: 1; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="10.3" data-width="1080" data-height="1920">
+      <section id="main-clip" class="clip fill" data-start="0" data-duration="10.3" data-track-index="1">
+        <div id="content-all" class="fill">
+          <div id="bg-fill" class="fill">
+            <div id="glow-red"></div>
+            <div id="glow-amber"></div>
+            <div id="vignette" class="fill"></div>
+          </div>
+
+          <div id="scene" class="fill">
+            <!-- ACT 1 -->
+            <div id="act1">
+              <div id="heat"></div>
+              <div id="rain"></div>
+              <div id="srv-big">
+                <div class="bay" style="top: 26px;"><div class="led"></div></div>
+                <div class="bay" style="top: 70px;"><div class="led"></div></div>
+                <div class="bay" style="top: 114px;"><div class="led"></div></div>
+                <div class="bay" style="top: 158px;"><div class="led"></div></div>
+                <div class="bay" style="top: 202px;"><div class="led"></div></div>
+                <div class="bay" style="top: 246px;"><div class="led"></div></div>
+                <div id="hot"></div>
+              </div>
+              <div class="drip" id="drip1"></div>
+              <div class="drip" id="drip2"></div>
+              <div class="drip" id="drip3"></div>
+              <div class="drip" id="drip4"></div>
+            </div>
+
+            <!-- TURN + ACT 2 -->
+            <div id="head">50 IDENTICAL COPIES</div>
+            <div id="grid"></div>
+            <div id="reqs"></div>
+            <div id="slabs"></div>
+            <div id="lbl-buried">buried</div>
+            <div id="lbl-idle">idle</div>
+            <div id="zzs"></div>
+          </div>
+
+          <div id="flash" class="fill"></div>
+          <div id="dither" class="fill"></div>
+        </div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter" x="0%" y="0%" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.04 0" />
+      </filter>
+    </svg>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      document.getElementById("dither").style.filter = "url(#grain-filter)";
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      const D = 10.3, FADE_AT = 10.0;
+
+      // ---------- deterministic build (seeded LCG) ----------
+      let seed = 4242;
+      function rnd() { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }
+
+      // rain: 80 drops over the single server, x 330-630, y 380 -> 604
+      const rainEl = document.getElementById("rain");
+      const drops = [];
+      for (let i = 0; i < 80; i++) {
+        const d = document.createElement("div");
+        d.className = "rain"; d.id = "rn" + i; rainEl.appendChild(d);
+        drops.push({ sx: 330 + rnd() * 300, t0: rnd() * 0.3, dur: 0.42 + rnd() * 0.12 });
+      }
+      // grid: 10 x 5, cell 56x42, pitch 72 x 78 -> x 128-832, y 560-914. Buried = row 1, col 3.
+      const gridEl = document.getElementById("grid");
+      const cells = [];
+      for (let r = 0; r < 5; r++) for (let c = 0; c < 10; c++) {
+        const d = document.createElement("div");
+        d.className = "cell"; d.id = "cell" + (r * 10 + c);
+        if (r === 1 && c === 3) d.id = "buried-cell";
+        d.style.left = (c * 72) + "px"; d.style.top = (r * 78) + "px";
+        d.innerHTML = '<i class="a"></i><i class="b"></i><i class="c"></i><b></b>';
+        gridEl.appendChild(d); cells.push(d);
+      }
+      // requests: 12 downward chevrons at y 430, x 180 + 56i
+      const reqEl = document.getElementById("reqs");
+      const NREQ = 12;
+      for (let i = 0; i < NREQ; i++) {
+        const d = document.createElement("div");
+        d.className = "req"; d.id = "rq" + i;
+        d.innerHTML = '<svg viewBox="0 0 34 34"><path d="M17 4 L17 24 M8 17 L17 26 L26 17" fill="none" stroke="#fbbf24" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        reqEl.appendChild(d);
+      }
+      // slabs: the pile on top of the buried server (cell top = 560+78 = 638)
+      const slabEl = document.getElementById("slabs");
+      for (let i = 0; i < NREQ; i++) {
+        const d = document.createElement("div");
+        d.className = "slab"; d.id = "sl" + i;
+        d.style.top = (636 - (i + 1) * 10) + "px";   // 626 ... 516
+        slabEl.appendChild(d);
+      }
+      // z glyphs over sleeping servers (cell centres), float up 38px
+      const zzEl = document.getElementById("zzs");
+      const zCells = [[0, 6], [0, 8], [1, 7], [2, 9], [3, 6], [4, 8], [2, 0], [4, 1], [0, 1]];
+      zCells.forEach((rc, i) => {
+        const d = document.createElement("div");
+        d.className = "zz mono"; d.id = "zz" + i; d.textContent = "z";
+        zzEl.appendChild(d);
+      });
+
+      // ---------- push-in under everything ----------
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.05, duration: D, ease: "sine.inOut" }, 0);
+
+      // ---------- ACT 1 (red): the torrent and the melt ----------
+      // entrance at t=0 (server at 0.55 from CSS)
+      tl.fromTo("#srv-big", { opacity: 0.55, y: 20 }, { opacity: 1, y: 0, duration: 0.35, ease: "power3.out" }, 0);
+      drops.forEach((p, i) => {
+        // 4 iterations of ~0.5s: ends by t0 + 4*dur <= 0.3 + 2.16 = 2.46 -> hidden at 2.3 below anyway
+        tl.fromTo("#rn" + i, { x: p.sx, y: 380, opacity: 0.9 },
+          { x: p.sx, y: 604, opacity: 0.9, duration: p.dur, ease: "power1.in", repeat: 3, immediateRender: false }, p.t0);
+      });
+      // "melts" @0.37: wobble (rotation on a DIV wrapper, real bbox), heat, hot ring, sag, drips
+      tl.fromTo("#srv-big", { rotation: 0 }, { rotation: 1.6, duration: 0.11, ease: "sine.inOut", yoyo: true, repeat: 15, immediateRender: false }, 0.4); // ends 2.16
+      tl.fromTo("#heat", { opacity: 0 }, { opacity: 1, duration: 0.8, ease: "power2.out", immediateRender: false }, 0.5);
+      tl.fromTo("#hot", { opacity: 0 }, { opacity: 1, duration: 0.6, ease: "power2.out", immediateRender: false }, 0.6);
+      tl.to("#srv-big .led", { backgroundColor: "#ef4444", duration: 0.3, ease: "power2.out", stagger: 0.06 }, 0.7);
+      tl.fromTo("#srv-big", { scaleY: 1, scaleX: 1 }, { scaleY: 0.84, scaleX: 1.07, duration: 1.1, ease: "power2.in", immediateRender: false }, 1.2);
+      [["#drip1", 1.15, 96], ["#drip2", 1.35, 70], ["#drip3", 1.25, 112], ["#drip4", 1.5, 82]].forEach(([s, t, h]) => {
+        tl.fromTo(s, { height: 0 }, { height: h, duration: 1.0, ease: "power2.in", immediateRender: false }, t);
+      });
+
+      // ---------- TURN @2.3 ("50"): shutter flash, the fifty slam in ----------
+      const TURN = 2.3;
+      tl.fromTo("#flash", { opacity: 0 }, { opacity: 0.9, duration: 0.06, ease: "power3.out", immediateRender: false }, TURN);
+      tl.to("#flash", { opacity: 0, duration: 0.26, ease: "power3.out" }, TURN + 0.06);
+      drops.forEach((p, i) => { tl.to("#rn" + i, { opacity: 0, duration: 0.1, ease: "power2.out" }, TURN); });
+      tl.to("#act1", { opacity: 0, duration: 0.35, ease: "power2.in" }, TURN + 0.05);
+      tl.to("#srv-big", { scale: 0.6, duration: 0.4, ease: "power2.in" }, TURN + 0.05);
+      cells.forEach((c, i) => {
+        const r = Math.floor(i / 10), col = i % 10;
+        tl.fromTo("#" + c.id, { opacity: 0, scale: 1.7 }, { opacity: 1, scale: 1, duration: 0.28, ease: "power4.out", immediateRender: false }, TURN + 0.05 + r * 0.06 + col * 0.012);
+      });
+      // headline lands ON "identical" (2.49)
+      tl.fromTo("#head", { opacity: 0, scale: 1.3 }, { opacity: 1, scale: 1, duration: 0.3, ease: "power4.out", immediateRender: false }, 2.5);
+
+      // ---------- ACT 2 (amber) @4.0 ("new problem"): requests seek, then dogpile ----------
+      tl.to("#head", { opacity: 0, duration: 0.3, ease: "power2.out" }, 4.0);
+      tl.to("#glow-red", { opacity: 0.15, duration: 1.0, ease: "sine.inOut" }, 4.0);
+      tl.to("#glow-amber", { opacity: 1, duration: 1.0, ease: "sine.inOut" }, 4.0);
+      for (let i = 0; i < NREQ; i++) {
+        const x0 = 180 + i * 56, sel = "#rq" + i, t = 4.35 + i * 0.05;
+        tl.fromTo(sel, { x: x0, y: 408, opacity: 0 }, { x: x0, y: 430, opacity: 1, duration: 0.3, ease: "power3.out", immediateRender: false }, t);
+        // "has to pick a server" 4.57-6.45: seeking wobble, odd repeat: 5.0 + 6*0.35 = 7.1 end
+        tl.fromTo(sel, { x: x0 }, { x: x0 + (i % 2 ? 10 : -10), duration: 0.35, ease: "sine.inOut", yoyo: true, repeat: 5, immediateRender: false }, 5.0);
+      }
+      // "pick badly" @7.21: every request dives onto ONE server; the pile grows
+      for (let i = 0; i < NREQ; i++) {
+        const t = 7.22 + i * 0.045, arrive = t + 0.35;
+        tl.to("#rq" + i, { x: 355, y: 596 - i * 8, duration: 0.35, ease: "power2.in" }, t);
+        tl.to("#rq" + i, { opacity: 0, duration: 0.06, ease: "power2.out" }, arrive);
+        tl.fromTo("#sl" + i, { opacity: 0, scaleX: 1.4 }, { opacity: 1, scaleX: 1, duration: 0.12, ease: "power3.out", immediateRender: false }, arrive);
+      }
+      // pile-up thud @8.06: the grid jolts, the buried server flashes
+      tl.to("#grid", { keyframes: [{ x: -6, duration: 0.05 }, { x: 5, duration: 0.05 }, { x: -3, duration: 0.05 }, { x: 0, duration: 0.06 }], ease: "power2.out" }, 8.06);
+      tl.to("#buried-cell", { backgroundColor: "#7f1d1d", boxShadow: "0 0 18px rgba(239,68,68,0.8)", duration: 0.15, ease: "power2.out" }, 8.06);
+      tl.to("#buried-cell b", { backgroundColor: "#ef4444", duration: 0.15, ease: "power2.out" }, 8.06);
+      // "buried" @8.75
+      tl.fromTo("#lbl-buried", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 8.75);
+      // "others sit idle" @9.2-9.45: the rest dim and snore
+      cells.forEach((c) => {
+        if (c.id === "buried-cell") return;
+        tl.to("#" + c.id, { opacity: 0.45, duration: 0.5, ease: "power2.out" }, 9.15);
+        tl.to("#" + c.id + " b", { backgroundColor: "#64748b", duration: 0.5, ease: "power2.out" }, 9.15);
+      });
+      tl.fromTo("#lbl-idle", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 9.3);
+      zCells.forEach((rc, i) => {
+        const cx = 128 + rc[1] * 72 + 22, cy = 560 + rc[0] * 78 - 4, t = 9.25 + i * 0.07;
+        tl.fromTo("#zz" + i, { x: cx, y: cy, opacity: 0 }, { x: cx + 8, y: cy - 38, opacity: 0.9, duration: 0.6, ease: "power2.out", immediateRender: false }, t);
+      });
+
+      // ---------- fade: finishes at EXACTLY 10.3 (10.0 + 0.3), zero buffer ----------
+      tl.fromTo("#content-all", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, FADE_AT);
+      const leaves = ["#scene", "#grid", "#lbl-buried", "#lbl-idle", "#head", "#srv-big", "#act1"];
+      for (let i = 0; i < NREQ; i++) leaves.push("#rq" + i, "#sl" + i);
+      zCells.forEach((rc, i) => leaves.push("#zz" + i));
+      cells.forEach((c) => leaves.push("#" + c.id));
+      leaves.forEach((s) => { tl.to(s, { opacity: 0, duration: 0.3, ease: "power2.out" }, FADE_AT); });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

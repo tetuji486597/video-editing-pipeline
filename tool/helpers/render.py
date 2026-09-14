@@ -840,8 +840,11 @@ def build_final_composite(
         dur = float(ov["duration"])
         end = t + dur
         next_label = f"[v{idx}]"
+        # Optional "x"/"y": place a small overlay (e.g. the EP30-35 countdown chip,
+        # rendered at its own size by make_countdown.py) instead of a full-frame webm.
+        pos = f"{int(ov.get('x', 0))}:{int(ov.get('y', 0))}:" if ("x" in ov or "y" in ov) else ""
         filter_parts.append(
-            f"{current}[a{idx}]overlay=enable='between(t,{t:.3f},{end:.3f})'{next_label}"
+            f"{current}[a{idx}]overlay={pos}enable='between(t,{t:.3f},{end:.3f})'{next_label}"
         )
         current = next_label
 

@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP30 ai angle — the same switch, a small slice</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* TRANSPARENT BAND over live footage -- linework, translucent fills (<= 0.32), no
+         opaque panel. AI_ANGLE frame grid-measured: hair top ~120, brow ~680.
+         Content x 90-840, y 218-590; the countdown reserve (x>=670, y<=330) is empty:
+         nothing right of x=560 sits above y=465. Drift 1 -> 1.02 about (380,400):
+         x 90 -> 84.2, x 840 -> 849.2, y 218 -> 214.4, y 590 -> 593.8. */
+      #band { position: absolute; inset: 0; transform-origin: 380px 400px; opacity: 0.5; }
+
+      /* the model chip: x 90-330, y 225-300 */
+      #chip {
+        position: absolute; left: 90px; top: 225px; width: 240px; height: 75px;
+        border-radius: 14px; background: rgba(30, 20, 50, 0.3);
+        border: 2px solid rgba(167, 139, 250, 0.8);
+        display: flex; align-items: center; gap: 12px; padding: 0 16px;
+        box-shadow: 0 0 10px rgba(167, 139, 250, 0.3);
+      }
+      #chip svg { width: 34px; height: 34px; flex-shrink: 0; }
+      #chip span { font-size: 25px; color: #ddd6fe; letter-spacing: 2px; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9); }
+
+      /* the same toggle: x 360-560, y 218-306 */
+      #toggle {
+        position: absolute; left: 360px; top: 218px; width: 200px; height: 88px;
+        border-radius: 44px; background: rgba(71, 85, 105, 0.6);
+        border: 3px solid rgba(148, 163, 184, 0.6); opacity: 0;
+      }
+      #knob {
+        position: absolute; left: 6px; top: 6px; width: 70px; height: 70px; border-radius: 50%;
+        background: #f8fafc; box-shadow: 0 3px 6px rgba(0, 0, 0, 0.45);
+      }
+      .tlab {
+        position: absolute; top: 0; height: 82px; line-height: 82px; font-size: 26px; font-weight: 700;
+        letter-spacing: 2px; color: #f8fafc; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+      }
+      #lab-off { right: 22px; }
+      #lab-on { left: 26px; opacity: 0; }
+
+      /* the users pie: SVG 240x240 at x 210-450, y 350-590 */
+      #pie { position: absolute; left: 210px; top: 350px; width: 240px; height: 240px; opacity: 0; }
+      #pie-ring { fill: rgba(148, 163, 184, 0.10); stroke: rgba(203, 213, 225, 0.75); stroke-width: 3; }
+      #wedge { fill: rgba(251, 191, 36, 0.32); stroke: #fbbf24; stroke-width: 4; stroke-linejoin: round; opacity: 0; }
+
+      /* slice label: x 470-660, y 400-440 */
+      .lbl {
+        position: absolute; left: 470px; top: 402px; font-size: 26px; line-height: 36px; letter-spacing: 3px;
+        color: #fde68a; opacity: 0; white-space: nowrap;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
+      }
+
+      /* two tiny chat bubbles: x 480-840, y 465-515 and y 530-580 */
+      .bub {
+        position: absolute; left: 480px; width: 360px; height: 50px; border-radius: 14px;
+        display: flex; align-items: center; gap: 14px; padding: 0 16px; opacity: 0;
+      }
+      #bub-a { top: 465px; background: rgba(30, 58, 138, 0.28); border: 2px solid rgba(96, 165, 250, 0.8); }
+      #bub-b { top: 530px; background: rgba(124, 45, 18, 0.26); border: 2px solid rgba(251, 146, 60, 0.8); }
+      .bub b { font-size: 24px; font-weight: 900; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9); }
+      #bub-a b { color: #bfdbfe; }
+      #bub-b b { color: #fed7aa; }
+      .bub .ln { height: 6px; border-radius: 3px; background: rgba(226, 232, 240, 0.7); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="6.3" data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="6.3" data-track-index="1">
+        <div id="band">
+          <div id="chip">
+            <svg id="node" viewBox="0 0 34 34" fill="none"><path d="M17 2 L30 9.5 V24.5 L17 32 L4 24.5 V9.5 Z" stroke="#c4b5fd" stroke-width="2.5" stroke-linejoin="round"/><circle cx="17" cy="17" r="5" fill="#c4b5fd"/></svg>
+            <span class="mono">NEW MODEL</span>
+          </div>
+
+          <div id="toggle">
+            <div id="knob"></div>
+            <div class="tlab mono" id="lab-off">OFF</div>
+            <div class="tlab mono" id="lab-on">ON</div>
+          </div>
+
+          <div id="pie">
+            <svg viewBox="0 0 240 240">
+              <circle id="pie-ring" cx="120" cy="120" r="100" />
+              <path id="wedge" d="M120,120 L120,20 A100,100 0 0 1 144.2,23 Z" />
+            </svg>
+          </div>
+
+          <div class="lbl mono" id="lbl-slice">SMALL SLICE</div>
+          <div class="lbl mono" id="lbl-all">EVERYONE</div>
+
+          <div class="bub" id="bub-a"><b>A</b><div class="ln" style="width: 150px"></div><div class="ln" style="width: 90px"></div></div>
+          <div class="bub" id="bub-b"><b>B</b><div class="ln" style="width: 110px"></div><div class="ln" style="width: 140px"></div></div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // wedge geometry: plain trig written into the path (no SVG rotation, rule 13)
+      const wedge = document.getElementById("wedge");
+      const sw = { a: 14 };
+      function setWedge(a) {
+        if (a >= 359.9) {
+          wedge.setAttribute("d", "M120,20 A100,100 0 1 1 119.9,20 Z");
+          return;
+        }
+        const r = ((a - 90) * Math.PI) / 180;
+        const x = 120 + 100 * Math.cos(r), y = 120 + 100 * Math.sin(r);
+        wedge.setAttribute("d", "M120,120 L120,20 A100,100 0 " + (a > 180 ? 1 : 0) + " 1 " + x.toFixed(1) + "," + y.toFixed(1) + " Z");
+      }
+      setWedge(14);
+
+      // ambient drift under everything
+      tl.fromTo("#band", { scale: 1 }, { scale: 1.02, duration: 6.3, ease: "sine.inOut" }, 0);
+
+      // ---------- ACT 1: the model behind the same switch (entrance at t=0) ----------
+      tl.fromTo("#band", { opacity: 0.5 }, { opacity: 1, duration: 0.35, ease: "power3.out" }, 0);
+      tl.fromTo("#chip", { x: -20 }, { x: 0, duration: 0.4, ease: "power3.out" }, 0);
+      // node icon breathes (odd repeat: 0.5 + 8*0.5 = 4.5, before the fade)
+      tl.fromTo("#node", { scale: 1, transformOrigin: "50% 50%" }, { scale: 1.12, transformOrigin: "50% 50%", duration: 0.5, ease: "sine.inOut", yoyo: true, repeat: 7, immediateRender: false }, 0.5);
+      tl.fromTo("#toggle", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(1.6)", immediateRender: false }, 0.6);
+      // "rolled out the exact same way" (36.72-38.28 -> 0.72-2.28): the users pie
+      tl.fromTo("#pie", { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.4, ease: "power3.out", immediateRender: false }, 1.2);
+      // "flagged on" (38.32 -> 2.32): the switch goes ON
+      tl.fromTo("#knob", { x: 0 }, { x: 112, duration: 0.18, ease: "power3.out", immediateRender: false }, 2.32);
+      tl.to("#toggle", { backgroundColor: "rgba(21,128,61,0.7)", borderColor: "rgba(74,222,128,0.85)", duration: 0.18, ease: "power2.out" }, 2.32);
+      tl.to("#lab-off", { opacity: 0, duration: 0.1, ease: "power2.out" }, 2.32);
+      tl.fromTo("#lab-on", { opacity: 0 }, { opacity: 1, duration: 0.12, ease: "power2.out", immediateRender: false }, 2.39);
+
+      // ---------- TURN @3.12 ("small slice" 39.12 out): the wedge lights up ----------
+      tl.fromTo("#wedge", { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power2.out", immediateRender: false }, 3.12);
+      tl.fromTo("#wedge", { stroke: "#fbbf24" }, { stroke: "#fff7ed", duration: 0.25, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 3.15);
+      tl.fromTo("#lbl-slice", { opacity: 0, x: -12 }, { opacity: 1, x: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 3.25);
+
+      // ---------- ACT 2 @4.52 ("A/B tested" 40.52 out): two tiny conversations ----------
+      tl.fromTo("#bub-a", { opacity: 0, x: 20 }, { opacity: 1, x: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 4.52);
+      tl.fromTo("#bub-b", { opacity: 0, x: 20 }, { opacity: 1, x: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 5.12);
+      // "before everyone gets them" (41.46 -> 5.46): the slice grows to the whole pie
+      tl.to(sw, { a: 360, duration: 0.5, ease: "power2.inOut", onUpdate: () => setWedge(sw.a) }, 5.5);
+      tl.to("#lbl-slice", { opacity: 0, duration: 0.15, ease: "power2.in" }, 5.5);
+      tl.fromTo("#lbl-all", { opacity: 0, x: -12 }, { opacity: 1, x: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 5.65);
+
+      // ---------- fade: finishes at EXACTLY 6.3 (6.0 + 0.3), zero buffer ----------
+      tl.fromTo("#band", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 6.0);
+      ["#chip", "#toggle", "#pie", "#bub-a", "#bub-b", "#lbl-all", "#lbl-slice", "#knob"].forEach((s) => {
+        tl.to(s, { opacity: 0, duration: 0.3, ease: "power2.out" }, 6.0);
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

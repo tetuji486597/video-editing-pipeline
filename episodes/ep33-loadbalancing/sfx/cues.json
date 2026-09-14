@@ -1,0 +1,90 @@
+{
+ "video": "final_nosfx.mp4",
+ "out": "final.mp4",
+ "cues": [
+  {
+   "at": 0.25,
+   "sfx": "tt_click_trim",
+   "vol": 1.88,
+   "why": "INTRO: sticker pops"
+  },
+  {
+   "at": 2.67,
+   "sfx": "riser",
+   "vol": 1.52,
+   "why": "HOOK: the 1,000,000 counter lands (on 'million')"
+  },
+  {
+   "at": 6.57,
+   "sfx": "tt_notif_trim",
+   "vol": 0.5,
+   "why": "HOOK: the cop glyph appears in the funnel neck (on 'traffic cop')"
+  },
+  {
+   "at": 9.69,
+   "sfx": "tt_error_glitch",
+   "vol": 0.5,
+   "why": "PROBLEM: the one server melts (on 'melts')"
+  },
+  {
+   "at": 11.61,
+   "sfx": "shutter",
+   "vol": 1.25,
+   "why": "PROBLEM: the 5x10 grid slams in (on '50 identical')"
+  },
+  {
+   "at": 18.07,
+   "sfx": "bass_hit",
+   "vol": 0.18,
+   "why": "PROBLEM: the dogpile thud (on 'buried')"
+  },
+  {
+   "at": 23.85,
+   "sfx": "click_trim",
+   "vol": 4.38,
+   "why": "BUILD: first card dealt (on 'deals them out')"
+  },
+  {
+   "at": 26.54,
+   "sfx": "tt_mouse_click",
+   "vol": 2.0,
+   "why": "BUILD: card snap (on 'one for you')"
+  },
+  {
+   "at": 28.2,
+   "sfx": "swoosh_double",
+   "vol": 0.41,
+   "why": "BUILD: the round-robin loop (on 'back around')"
+  },
+  {
+   "at": 31.99,
+   "sfx": "ding",
+   "vol": 0.29,
+   "why": "NEW_COMPONENT: request routes to the lowest meter (on 'fewest active')"
+  },
+  {
+   "at": 36.39,
+   "sfx": "notify",
+   "vol": 0.1,
+   "why": "NEW_COMPONENT: heartbeat blips (on 'health checking')"
+  },
+  {
+   "at": 38.01,
+   "sfx": "tt_wrong_buzzer",
+   "vol": 0.28,
+   "why": "NEW_COMPONENT: flatline (on 'stops answering')"
+  },
+  {
+   "at": 39.13,
+   "sfx": "pop_balloon",
+   "vol": 0.25,
+   "why": "NEW_COMPONENT: server pops out of the lineup (on 'pulled out')"
+  },
+  {
+   "at": 47.66,
+   "sfx": "stamp",
+   "vol": 0.69,
+   "why": "PAYOFF: ONE SMART DOORMAN lands (on 'doorman')"
+  }
+ ]
+}

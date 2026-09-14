@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP31 payoff — more boxes</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      /* CORNER CARD, upper-left: x 70-500, y 210-580 (430x370), translucent. PAYOFF
+         frames grid-measured: hair top ~130, brow ~640 (zoom-worst 633), face x 250-820.
+         Card bottom 580 + shadow reach (6 + 1.6*10 = 22) = 602 < 633. Every pixel of
+         this slot is left of x=500, so the countdown reserve (x>=670) is untouched.
+         Card-local -> canvas: add (70, 210).
+           photo strip   local (20,20) 390x145  -> x 90-480, y 230-375   (act 2 only)
+           ceiling line  local (30,30) 370x3    -> y 240                 (act 1 only)
+           big box       local (155,40) 120x110 -> x 225-345, y 250-360  (act 1 only)
+           MAX tag       local (290,64) 70x30   -> x 360-430, y 274-304  (act 1 only)
+           three boxes   local y 185-275, x 40-140 / 165-265 / 290-390 -> canvas y 395-485
+           line 1        local 292-322 -> y 502-532 ; line 2 local 330-360 -> y 540-570 */
+      #card {
+        position: absolute; left: 70px; top: 210px; width: 430px; height: 370px;
+        border-radius: 22px;
+        background: linear-gradient(165deg, rgba(13, 18, 28, 0.66), rgba(7, 10, 16, 0.72));
+        border: 2px solid rgba(148, 163, 184, 0.4);
+        box-shadow: 0 6px 10px rgba(0, 0, 0, 0.45);
+        opacity: 0.5;
+      }
+
+      /* ---------- ACT 1: one box, and it cannot get any bigger ---------- */
+      #ceiling {
+        position: absolute; left: 30px; top: 30px; width: 370px; height: 3px;
+        background: rgba(239, 68, 68, 0.85); border-radius: 2px;
+        box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+      }
+      .box {
+        position: absolute; border-radius: 10px;
+        background: linear-gradient(180deg, rgba(20, 28, 40, 0.95), rgba(10, 14, 22, 0.98));
+        border: 2px solid rgba(103, 232, 249, 0.85);
+        transform-origin: 50% 100%;
+      }
+      .box i {
+        position: absolute; left: 12px; right: 12px; height: 4px; border-radius: 2px;
+        background: rgba(103, 232, 249, 0.35);
+      }
+      .box b {
+        position: absolute; right: 12px; bottom: 10px; width: 10px; height: 10px; border-radius: 50%;
+        background: #34d399; box-shadow: 0 0 6px rgba(52, 211, 153, 0.8);
+      }
+      #big { left: 155px; top: 40px; width: 120px; height: 110px; }
+      #max {
+        position: absolute; left: 290px; top: 64px; width: 70px; height: 30px; border-radius: 7px;
+        background: rgba(69, 10, 10, 0.9); border: 2px solid #ef4444; color: #fecaca;
+        font-size: 18px; line-height: 26px; text-align: center; font-weight: 800; letter-spacing: 2px;
+        opacity: 0; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+      }
+
+      /* ---------- ACT 2: more boxes (real rack row + three boxes + the line) ---------- */
+      #photo-wrap {
+        position: absolute; left: 20px; top: 20px; width: 390px; height: 145px; border-radius: 12px;
+        overflow: hidden; border: 1px solid rgba(148, 163, 184, 0.35); opacity: 0;
+      }
+      #photo-wrap img {
+        width: 100%; height: 100%; object-fit: cover; object-position: 50% 40%;
+        filter: brightness(0.8) saturate(0.9); transform-origin: 50% 50%;
+      }
+      #photo-scrim {
+        position: absolute; inset: 0;
+        background: linear-gradient(to bottom, rgba(0,0,0,0) 55%, rgba(5,8,14,0.7) 100%);
+      }
+      .small { top: 185px; width: 100px; height: 90px; opacity: 0; }
+      #k1 { left: 40px; }
+      #k2 { left: 165px; }
+      #k3 { left: 290px; }
+      .line {
+        position: absolute; left: 0; width: 430px; text-align: center;
+        font-size: 28px; line-height: 30px; font-weight: 800; letter-spacing: 3px;
+        color: #fde68a; white-space: nowrap; opacity: 0;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
+      }
+      #l1 { top: 292px; }
+      #l2 { top: 330px; color: #a5f3fc; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="5.4" data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="5.4" data-track-index="1">
+        <div id="card">
+          <div id="ceiling"></div>
+          <div class="box" id="big"><i style="top:14px"></i><i style="top:30px"></i><i style="top:46px"></i><b></b></div>
+          <div id="max">MAX</div>
+
+          <div id="photo-wrap"><img src="assets/rack_row.jpg" alt="" /><div id="photo-scrim"></div></div>
+          <div class="box small" id="k1"><i style="top:14px"></i><i style="top:30px"></i><i style="top:46px"></i><b></b></div>
+          <div class="box small" id="k2"><i style="top:14px"></i><i style="top:30px"></i><i style="top:46px"></i><b></b></div>
+          <div class="box small" id="k3"><i style="top:14px"></i><i style="top:30px"></i><i style="top:46px"></i><b></b></div>
+          <div class="line" id="l1">SPLIT THE DATA</div>
+          <div class="line" id="l2">ADD MORE BOXES</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ---------- ACT 1 (entrance at t=0): the box tries to grow, hits the ceiling ----------
+      tl.fromTo("#card", { opacity: 0.5, y: 18 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 0);
+      // "box any bigger" @0.38-1.18: two attempts, each bonks the line (top 250 -> 239 at 1.1)
+      tl.fromTo("#big", { scaleY: 1 }, { scaleY: 1.1, duration: 0.22, ease: "power2.in", immediateRender: false }, 0.45);
+      tl.fromTo("#big", { scaleY: 1.1 }, { scaleY: 0.96, duration: 0.12, ease: "power2.out", immediateRender: false }, 0.67);
+      tl.fromTo("#big", { scaleY: 0.96 }, { scaleY: 1.1, duration: 0.22, ease: "power2.in", immediateRender: false }, 0.86);
+      tl.fromTo("#big", { scaleY: 1.1 }, { scaleY: 1, duration: 0.2, ease: "power2.out", immediateRender: false }, 1.08);
+      tl.to("#ceiling", { backgroundColor: "rgba(254,202,202,1)", duration: 0.08, ease: "power2.out" }, 0.67);
+      tl.to("#ceiling", { backgroundColor: "rgba(239,68,68,0.85)", duration: 0.25, ease: "power2.out" }, 0.75);
+      tl.to("#ceiling", { backgroundColor: "rgba(254,202,202,1)", duration: 0.08, ease: "power2.out" }, 1.08);
+      tl.to("#ceiling", { backgroundColor: "rgba(239,68,68,0.85)", duration: 0.25, ease: "power2.out" }, 1.16);
+      tl.fromTo("#max", { opacity: 0, scale: 1.6 }, { opacity: 1, scale: 1, duration: 0.25, ease: "power4.out", immediateRender: false }, 1.1);
+
+      // ---------- TURN @1.68 ("more boxes"): the single box multiplies ----------
+      tl.to("#big", { opacity: 0, scale: 0.8, duration: 0.3, ease: "power2.in" }, 1.65);
+      tl.to("#max", { opacity: 0, duration: 0.25, ease: "power2.in" }, 1.65);
+      tl.to("#ceiling", { opacity: 0, duration: 0.3, ease: "power2.in" }, 1.65);
+      // three boxes pop from where the big one stood (centre local (215,150) -> row centres y 230)
+      [["#k1", 125, 1.78], ["#k2", 0, 1.9], ["#k3", -125, 2.02]].forEach(([s, dx, t]) => {
+        tl.fromTo(s, { opacity: 0, x: dx, y: -80, scale: 0.5 }, { opacity: 1, x: 0, y: 0, scale: 1, duration: 0.45, ease: "back.out(1.4)", immediateRender: false }, t);
+      });
+      // the real rack row reveals in the strip
+      tl.fromTo("#photo-wrap", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.out", immediateRender: false }, 2.0);
+      tl.fromTo("#photo-wrap img", { scale: 1.0 }, { scale: 1.05, duration: 3.0, ease: "sine.inOut", immediateRender: false }, 2.0);
+
+      // ---------- ACT 2: the line, on "boxes" / the settle ----------
+      tl.fromTo("#l1", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.35, ease: "power3.out", immediateRender: false }, 2.45);
+      tl.fromTo("#l2", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.35, ease: "power3.out", immediateRender: false }, 3.05);
+      // LEDs blink on the three boxes (odd repeat: 3.2 + 6*0.3 = 5.0 < fade)
+      tl.fromTo(".small b", { opacity: 1 }, { opacity: 0.3, duration: 0.3, ease: "sine.inOut", yoyo: true, repeat: 5, stagger: 0.0, immediateRender: false }, 3.2);
+
+      // ---------- fade: finishes at EXACTLY 5.4 (5.1 + 0.3), zero buffer ----------
+      tl.fromTo("#card", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 5.1);
+      ["#k1", "#k2", "#k3", "#photo-wrap", "#l1", "#l2"].forEach((s) => {
+        tl.to(s, { opacity: 0, duration: 0.3, ease: "power2.out" }, 5.1);
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

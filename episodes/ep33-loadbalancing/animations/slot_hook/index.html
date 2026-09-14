@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP33 hook — a million people, one traffic cop</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* TRANSPARENT BAND over live footage, upper band y 222-600.
+         HOOK frame grid-measured (src 12.0s at 1080x1920): hair top ~70, brow ~650,
+         eyes ~720, face x 240-840. Zoom 1.08->1.0 about (540,720): brow worst ~644.
+         Everything ends by y=600 (+ small glows), 40px above the brow.
+         COUNTDOWN RESERVE (x>=670, y<=330) stays empty: the only content above
+         y=344 is the counter (x 96-551, pulse grows rightward to ~606) and its
+         PEOPLE label (22px, x 556-~642, shadow measured to x 655 on the render).
+         No push-in on this band (a scale would drag the counter toward the reserve). */
+      #wrap { position: absolute; inset: 0; }
+
+      /* ---------- the number (stacked digit spans, swapped by tl.set) ---------- */
+      #counter {
+        position: absolute; left: 96px; top: 222px; height: 84px; width: 470px; transform-origin: 0% 50%;
+        font-size: 84px; line-height: 84px; font-weight: 800; letter-spacing: -1px;
+        color: #f8fafc; opacity: 0.55;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9), 0 0 24px rgba(34, 211, 238, 0.45);
+      }
+      #counter span { position: absolute; left: 0; top: 0; white-space: nowrap; opacity: 0; }
+      #counter #c0 { opacity: 1; }
+      #people {
+        position: absolute; left: 556px; top: 276px; font-size: 22px; line-height: 22px;
+        font-weight: 700; letter-spacing: 2px; color: #a5f3fc; opacity: 0;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+      }
+
+      /* ---------- funnel walls + lanes (SVG, drawn on) ---------- */
+      #lines { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: visible; }
+      .wall { fill: none; stroke: rgba(226, 232, 240, 0.35); stroke-width: 2; stroke-linecap: round; }
+      .lane { fill: none; stroke: rgba(34, 211, 238, 0.75); stroke-width: 3; stroke-linecap: round; opacity: 0; }
+
+      /* ---------- request dots (built in JS, deterministic LCG positions) ---------- */
+      .dot {
+        position: absolute; left: 0; top: 0; width: 9px; height: 9px; border-radius: 50%;
+        background: rgba(186, 230, 253, 0.95);
+        box-shadow: 0 0 6px rgba(34, 211, 238, 0.7);
+        opacity: 0;
+      }
+
+      /* ---------- ACT 1: the one app everyone opened ---------- */
+      #app {
+        position: absolute; left: 422px; top: 508px; width: 96px; height: 92px;
+        border-radius: 22px;
+        background: linear-gradient(160deg, rgba(14, 22, 36, 0.78), rgba(6, 10, 18, 0.85));
+        border: 2px solid rgba(148, 163, 184, 0.55);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        display: flex; align-items: center; justify-content: center; opacity: 0;
+      }
+      #app svg { width: 52px; height: 52px; }
+      #app-ring {
+        position: absolute; left: 414px; top: 500px; width: 112px; height: 108px;
+        border-radius: 26px; border: 3px solid rgba(239, 68, 68, 0.9);
+        box-shadow: 0 0 14px rgba(239, 68, 68, 0.6), inset 0 0 12px rgba(239, 68, 68, 0.35);
+        opacity: 0;
+      }
+
+      /* ---------- TURN: the traffic cop in the funnel neck ---------- */
+      #burst {
+        position: absolute; left: 360px; top: 368px; width: 220px; height: 220px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(165, 243, 252, 0.85) 0%, rgba(34, 211, 238, 0.35) 30%, rgba(34, 211, 238, 0) 60%);
+        opacity: 0;
+      }
+      #cop { position: absolute; left: 438px; top: 446px; width: 64px; height: 64px; opacity: 0; }
+      #cop .diamond {
+        position: absolute; left: 10px; top: 10px; width: 44px; height: 44px; border-radius: 8px;
+        background: linear-gradient(160deg, #22d3ee, #0e7490);
+        border: 2px solid #cffafe;
+        box-shadow: 0 0 16px rgba(34, 211, 238, 0.85);
+        transform: rotate(45deg);
+      }
+      #cop .stripe {
+        position: absolute; left: 20px; top: 30px; width: 24px; height: 4px; border-radius: 2px;
+        background: #ecfeff;
+      }
+
+      /* ---------- ACT 2: five servers, lanes reach them ---------- */
+      .srv {
+        position: absolute; top: 530px; width: 100px; height: 70px; border-radius: 12px;
+        background: linear-gradient(160deg, rgba(14, 22, 36, 0.72), rgba(6, 10, 18, 0.82));
+        border: 2px solid rgba(148, 163, 184, 0.5);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        opacity: 0;
+      }
+      .srv .slot { position: absolute; left: 12px; width: 76px; height: 10px; border-radius: 3px; background: rgba(148, 163, 184, 0.25); }
+      .srv .s1 { top: 12px; } .srv .s2 { top: 30px; } .srv .s3 { top: 48px; }
+      .srv .led { position: absolute; right: 10px; top: 12px; width: 8px; height: 8px; border-radius: 50%; background: rgba(148, 163, 184, 0.5); }
+      .srv .lit {
+        position: absolute; inset: -2px; border-radius: 12px;
+        border: 2px solid rgba(52, 211, 153, 0.95);
+        box-shadow: 0 0 14px rgba(52, 211, 153, 0.6);
+        opacity: 0;
+      }
+      #srv1 { left: 110px; } #srv2 { left: 270px; } #srv3 { left: 430px; } #srv4 { left: 590px; } #srv5 { left: 750px; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="6.3" data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="6.3" data-track-index="1">
+        <div id="wrap">
+          <div id="counter" class="mono">
+            <span id="c0">10</span>
+            <span id="c1">1,000</span>
+            <span id="c2">80,000</span>
+            <span id="c3">400,000</span>
+            <span id="c4">1,000,000</span>
+          </div>
+          <div id="people">PEOPLE</div>
+
+          <svg id="lines" viewBox="0 0 1080 1920">
+            <path class="wall" id="wall-l" d="M150,350 L440,468" />
+            <path class="wall" id="wall-r" d="M790,350 L500,468" />
+            <path class="lane" id="lane1" d="M470,500 L160,530" />
+            <path class="lane" id="lane2" d="M470,500 L320,530" />
+            <path class="lane" id="lane3" d="M470,500 L480,530" />
+            <path class="lane" id="lane4" d="M470,500 L640,530" />
+            <path class="lane" id="lane5" d="M470,500 L800,530" />
+          </svg>
+
+          <div id="dots"></div>
+
+          <div id="app-ring"></div>
+          <div id="app">
+            <svg viewBox="0 0 52 52" fill="none">
+              <rect x="10" y="4" width="32" height="44" rx="6" stroke="#cbd5e1" stroke-width="3"/>
+              <rect x="16" y="11" width="20" height="24" rx="2" fill="rgba(34,211,238,0.55)"/>
+              <circle cx="26" cy="41" r="2.5" fill="#cbd5e1"/>
+            </svg>
+          </div>
+
+          <div id="burst"></div>
+          <div id="cop"><div class="diamond"></div><div class="stripe"></div></div>
+
+          <div class="srv" id="srv1"><div class="slot s1"></div><div class="slot s2"></div><div class="slot s3"></div><div class="led"></div><div class="lit"></div></div>
+          <div class="srv" id="srv2"><div class="slot s1"></div><div class="slot s2"></div><div class="slot s3"></div><div class="led"></div><div class="lit"></div></div>
+          <div class="srv" id="srv3"><div class="slot s1"></div><div class="slot s2"></div><div class="slot s3"></div><div class="led"></div><div class="lit"></div></div>
+          <div class="srv" id="srv4"><div class="slot s1"></div><div class="slot s2"></div><div class="slot s3"></div><div class="led"></div><div class="lit"></div></div>
+          <div class="srv" id="srv5"><div class="slot s1"></div><div class="slot s2"></div><div class="slot s3"></div><div class="led"></div><div class="lit"></div></div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      const D = 6.3, FADE_AT = 6.0;
+
+      // ---------- deterministic crowd (seeded LCG, no Math.random) ----------
+      let seed = 1337;
+      function rnd() { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }
+      const N = 300;
+      const dotsEl = document.getElementById("dots");
+      const serverX = [160, 320, 480, 640, 800];
+      const dots = [];
+      for (let i = 0; i < N; i++) {
+        const d = document.createElement("div");
+        d.className = "dot";
+        d.id = "d" + i;
+        dotsEl.appendChild(d);
+        dots.push({
+          sx: 90 + rnd() * 760,           // x 90-850 (+9px dot)
+          sy: 354 + rnd() * 72,           // y 354-426 (+9px dot, 10px glow reach -> 344) never inside the reserve
+          jx: (rnd() - 0.5) * 22,
+          t0: (i / N) * 5.0,              // spawn window 0-5.0s, ~60/s
+          srv: i % 5,
+        });
+      }
+      // wall draw-on setup
+      ["wall-l", "wall-r", "lane1", "lane2", "lane3", "lane4", "lane5"].forEach((id) => {
+        const el = document.getElementById(id);
+        const len = el.getTotalLength();
+        el.style.strokeDasharray = String(len);
+        el.style.strokeDashoffset = String(len);
+      });
+
+      // ---------- entrance at t=0 (counter at 0.55 from CSS) ----------
+      tl.fromTo("#counter", { opacity: 0.55 }, { opacity: 1, duration: 0.3, ease: "power3.out" }, 0);
+      // counter climbs: only the OUTGOING span is touched at each swap (trap 2)
+      [["#c0", "#c1", 0.2], ["#c1", "#c2", 0.4], ["#c2", "#c3", 0.6], ["#c3", "#c4", 0.8]].forEach(([out, inn, t]) => {
+        tl.set(out, { opacity: 0 }, t);
+        tl.set(inn, { opacity: 1 }, t);
+      });
+      tl.fromTo("#counter", { scale: 1.06 }, { scale: 1, duration: 0.3, ease: "power3.out", immediateRender: false }, 0.8);
+      tl.fromTo("#people", { opacity: 0, x: -12 }, { opacity: 1, x: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 0.9);
+      tl.to("#wall-l", { strokeDashoffset: 0, duration: 0.6, ease: "power3.out" }, 0.2);
+      tl.to("#wall-r", { strokeDashoffset: 0, duration: 0.6, ease: "power3.out" }, 0.3);
+
+      // ---------- ACT 1: the app (0.97 "same app") and the strain (1.85 "no single computer") ----------
+      tl.fromTo("#app", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(1.5)", immediateRender: false }, 0.95);
+      // red strain ring breathes: odd repeat -> 1.85 + 4*0.35 = 3.25 end, before the turn
+      tl.fromTo("#app-ring", { opacity: 0 }, { opacity: 1, duration: 0.35, ease: "sine.inOut", yoyo: true, repeat: 3, immediateRender: false }, 1.85);
+      tl.fromTo("#app", { x: 0 }, { x: 3, duration: 0.08, ease: "sine.inOut", yoyo: true, repeat: 15, immediateRender: false }, 1.9); // ends 3.18
+
+      // ---------- the crowd: every dot funnels to the neck; act-1 dots dive into the app,
+      //            act-2 dots (arriving at the neck after the cop lands) get dealt down a lane ----------
+      const TURN = 3.55;
+      dots.forEach((p, i) => {
+        const sel = "#d" + i;
+        const arrive = p.t0 + 0.9;
+        tl.fromTo(sel, { x: p.sx, y: p.sy, opacity: 0 }, { x: p.sx, y: p.sy, opacity: 0.9, duration: 0.15, ease: "power2.out", immediateRender: false }, p.t0);
+        tl.to(sel, { x: 470 + p.jx, y: 478, duration: 0.9, ease: "power1.in" }, p.t0);
+        if (arrive < TURN + 0.5) {
+          tl.to(sel, { x: 470, y: 552, opacity: 0, duration: 0.35, ease: "power2.in" }, arrive);
+        } else {
+          tl.to(sel, { x: serverX[p.srv], y: 540, duration: 0.5, ease: "power1.out" }, arrive);
+          tl.to(sel, { opacity: 0, duration: 0.15, ease: "power2.out" }, arrive + 0.42);
+        }
+      });
+
+      // ---------- TURN @3.55 ("traffic cop"): the cop lands in the neck ----------
+      tl.fromTo("#burst", { opacity: 0, scale: 0.2 }, { opacity: 0.9, scale: 1, duration: 0.12, ease: "power3.out", immediateRender: false }, TURN);
+      tl.to("#burst", { opacity: 0, scale: 1.3, duration: 0.4, ease: "power2.out" }, TURN + 0.12);
+      tl.fromTo("#cop", { opacity: 0, scale: 0.3 }, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(1.8)", immediateRender: false }, TURN);
+      // the strained app retires
+      tl.to("#app-ring", { opacity: 0, duration: 0.2, ease: "power2.out" }, TURN + 0.3);
+      tl.to("#app", { opacity: 0, scale: 0.7, duration: 0.35, ease: "power2.in" }, 4.0);
+
+      // ---------- ACT 2 @4.25 ("split them up"): lanes fan out, five servers ----------
+      [1, 2, 3, 4, 5].forEach((k, i) => {
+        const t = 4.25 + i * 0.09;
+        tl.to("#lane" + k, { opacity: 1, duration: 0.1, ease: "power2.out" }, t);
+        tl.to("#lane" + k, { strokeDashoffset: 0, duration: 0.4, ease: "power3.out" }, t);
+        tl.fromTo("#srv" + k, { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, t + 0.15);
+      });
+      // ("before they ever arrived" 4.85-6.03) each server lights as its first dots land
+      [1, 2, 3, 4, 5].forEach((k, i) => {
+        tl.fromTo("#srv" + k + " .lit", { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power2.out", immediateRender: false }, 5.05 + i * 0.1);
+        tl.to("#srv" + k + " .led", { backgroundColor: "#34d399", duration: 0.2, ease: "power2.out" }, 5.05 + i * 0.1);
+      });
+      // cop keeps working: a soft breathe (odd repeat: 4.6 + 2*0.45 = 5.5 end)
+      tl.fromTo("#cop", { scale: 1 }, { scale: 1.08, duration: 0.45, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 4.6);
+
+      // ---------- fade: finishes at EXACTLY 6.3 (6.0 + 0.3), zero buffer ----------
+      tl.fromTo("#wrap", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, FADE_AT);
+      // per-leaf fades on every transform carrier
+      ["#counter", "#people", "#app", "#app-ring", "#cop", "#burst", "#srv1", "#srv2", "#srv3", "#srv4", "#srv5", "#lines"].forEach((s) => {
+        tl.to(s, { opacity: 0, duration: 0.3, ease: "power2.out" }, FADE_AT);
+      });
+      dots.forEach((p, i) => { tl.to("#d" + i, { opacity: 0, duration: 0.3, ease: "power2.out" }, FADE_AT); });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

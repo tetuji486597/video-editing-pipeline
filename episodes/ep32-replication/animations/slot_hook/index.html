@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP32 hook: a server burns, the status page stays green</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* CORNER ACCENT (upper-left), translucent chrome over hair/background only.
+         Output 2.600-8.000 (HOOK 2.333-8.083). HOOK frame grid-measured (src 17.0s at
+         1080x1920): hair top ~120, brow ~650 (zoom 1.08 about (540,720) -> ~644),
+         eyes ~740, face x 240-840. Every element ends by y=566 (chips 508-556 + 10px
+         shadow) -> ~78px above the brow. Countdown reserve (x>=670, y<=330): nothing
+         here is right of x=641 above y=508; the only element past x=641 is the FAILOVER
+         chip at y 508-556 (x 512-~690), well below the reserve's y<=330.
+         Margins: min x 78 (flame tips), min y 222 (tile top / flame tips), max x ~690,
+         max y ~566 -- inside x 70-870 / y 200-1280. */
+
+      /* ---- the dying server: x 90-220, y 290-476 ---- */
+      #server {
+        position: absolute; left: 90px; top: 290px; width: 130px; height: 186px;
+        border-radius: 14px;
+        background: linear-gradient(180deg, rgba(30, 36, 48, 0.78), rgba(14, 18, 26, 0.84));
+        border: 2px solid rgba(148, 163, 184, 0.45);
+        box-shadow: 0 10px 12px rgba(0, 0, 0, 0.35);
+        opacity: 0.5;
+        /* identity filter declared so the "dies" desaturate never tweens from none */
+        filter: grayscale(0) brightness(1);
+      }
+      .bay {
+        position: absolute; left: 12px; width: 106px; height: 32px; border-radius: 6px;
+        background: rgba(8, 10, 14, 0.7); border: 1px solid rgba(148, 163, 184, 0.28);
+      }
+      .bay .vents { position: absolute; left: 10px; top: 9px; width: 62px; height: 14px;
+        background: repeating-linear-gradient(90deg, rgba(148,163,184,0.35) 0 3px, transparent 3px 7px); }
+      .led {
+        position: absolute; right: 10px; top: 10px; width: 12px; height: 12px; border-radius: 50%;
+        background: #34d399; box-shadow: 0 0 6px rgba(52, 211, 153, 0.8);
+      }
+      #bay1 { top: 14px; } #bay2 { top: 56px; } #bay3 { top: 98px; } #bay4 { top: 140px; }
+
+      /* ---- flames: three licking tongues in div wrappers (CSS transforms, never SVG
+              rotation). Wrappers sit x 78-232, tips at y>=222; hidden at rest. ---- */
+      .flame { position: absolute; transform-origin: 50% 100%; opacity: 0; }
+      #fl1 { left: 96px;  top: 222px; width: 74px; height: 96px; }
+      #fl2 { left: 150px; top: 238px; width: 70px; height: 82px; }
+      #fl3 { left: 78px;  top: 250px; width: 60px; height: 70px; }
+      .flame svg { width: 100%; height: 100%; display: block; }
+
+      /* ---- the calm users' screen: browser tile x 250-640, y 222-476 ---- */
+      #tile {
+        position: absolute; left: 250px; top: 222px; width: 390px; height: 254px;
+        border-radius: 18px; overflow: hidden;
+        background: rgba(10, 14, 22, 0.66);
+        border: 2px solid rgba(148, 163, 184, 0.4);
+        box-shadow: 0 10px 12px rgba(0, 0, 0, 0.4);
+        opacity: 0;
+      }
+      #tile-head {
+        position: absolute; left: 0; top: 0; width: 100%; height: 30px;
+        background: rgba(255, 255, 255, 0.07);
+        border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+      }
+      .dot { position: absolute; top: 9px; width: 11px; height: 11px; border-radius: 50%; }
+      #d1 { left: 12px; background: #f87171; } #d2 { left: 30px; background: #fbbf24; } #d3 { left: 48px; background: #34d399; }
+      #url {
+        position: absolute; left: 78px; top: 6px; font-size: 15px; color: #cbd5e1; letter-spacing: 0.5px;
+      }
+      #live-dot {
+        position: absolute; right: 12px; top: 9px; width: 12px; height: 12px; border-radius: 50%;
+        background: #34d399; box-shadow: 0 0 8px rgba(52, 211, 153, 0.9);
+      }
+      /* real capture: the green "All Systems Operational" bar (1208x160 -> 366x48.5) */
+      #banner { position: absolute; left: 12px; top: 42px; width: 366px; height: 49px; border-radius: 6px; display: block; }
+      /* real capture: the uptime card row (1208x410 -> 366x124) inside a 100px viewport
+         that drifts upward -- "keeps scrolling calmly" */
+      #cards-view { position: absolute; left: 12px; top: 103px; width: 366px; height: 100px; overflow: hidden; border-radius: 6px; }
+      #cards { position: absolute; left: 0; top: 0; width: 366px; height: 124px; display: block; }
+      #tile-foot {
+        position: absolute; left: 12px; top: 214px; font-size: 16px; color: #86efac; letter-spacing: 1px;
+      }
+
+      /* ---- chips row: y 508-556 ---- */
+      .chip {
+        position: absolute; top: 508px; height: 48px; padding: 0 18px;
+        display: flex; align-items: center; white-space: nowrap;
+        border-radius: 12px; font-weight: 800; letter-spacing: 2px; font-size: 24px;
+        box-shadow: 0 6px 10px rgba(0, 0, 0, 0.35);
+        opacity: 0;
+      }
+      #noticed {
+        left: 250px; font-weight: 700; letter-spacing: 0.5px; font-size: 26px;
+        color: #f8fafc; background: rgba(15, 20, 30, 0.72); border: 2px solid rgba(226, 232, 240, 0.55);
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+      }
+      #chip-rep {
+        left: 250px; color: #67e8f9; background: rgba(8, 30, 38, 0.78); border: 2px solid rgba(34, 211, 238, 0.7);
+      }
+      #chip-fo {
+        left: 512px; color: #fbbf24; background: rgba(38, 26, 6, 0.78); border: 2px solid rgba(251, 191, 36, 0.7);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="5.4" data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="5.4" data-track-index="1">
+        <div id="server">
+          <div class="bay" id="bay1"><div class="vents"></div><div class="led"></div></div>
+          <div class="bay" id="bay2"><div class="vents"></div><div class="led"></div></div>
+          <div class="bay" id="bay3"><div class="vents"></div><div class="led"></div></div>
+          <div class="bay" id="bay4"><div class="vents"></div><div class="led"></div></div>
+        </div>
+
+        <div class="flame" id="fl1">
+          <svg viewBox="0 0 74 96">
+            <path d="M37,2 C46,22 60,30 60,54 C60,74 50,92 37,94 C24,92 14,74 14,54 C14,40 22,34 26,26 C28,38 34,42 36,40 C34,28 30,16 37,2 Z" fill="#f97316" opacity="0.92"/>
+            <path d="M37,38 C43,50 50,54 50,68 C50,80 44,90 37,92 C30,90 24,80 24,68 C24,58 30,54 32,48 C33,56 36,58 37,56 C36,50 34,44 37,38 Z" fill="#fde047" opacity="0.95"/>
+          </svg>
+        </div>
+        <div class="flame" id="fl2">
+          <svg viewBox="0 0 70 82">
+            <path d="M35,2 C42,20 56,26 56,48 C56,66 47,78 35,80 C23,78 14,66 14,48 C14,36 22,30 25,22 C26,32 32,36 34,34 C32,24 29,14 35,2 Z" fill="#ef4444" opacity="0.9"/>
+            <path d="M35,34 C40,44 46,48 46,60 C46,70 41,78 35,79 C29,78 24,70 24,60 C24,52 29,48 31,42 C32,50 34,52 35,50 C34,44 32,40 35,34 Z" fill="#fbbf24" opacity="0.95"/>
+          </svg>
+        </div>
+        <div class="flame" id="fl3">
+          <svg viewBox="0 0 60 70">
+            <path d="M30,2 C36,16 48,22 48,40 C48,56 40,67 30,69 C20,67 12,56 12,40 C12,30 19,26 22,18 C23,27 28,30 29,28 C28,20 25,12 30,2 Z" fill="#f97316" opacity="0.9"/>
+            <path d="M30,30 C34,38 40,42 40,52 C40,60 35,67 30,68 C25,67 20,60 20,52 C20,45 24,42 26,37 C27,43 29,45 30,43 C29,38 27,35 30,30 Z" fill="#fde68a" opacity="0.95"/>
+          </svg>
+        </div>
+
+        <div id="tile">
+          <div id="tile-head">
+            <div class="dot" id="d1"></div><div class="dot" id="d2"></div><div class="dot" id="d3"></div>
+            <div id="url" class="mono">status.page</div>
+            <div id="live-dot"></div>
+          </div>
+          <img id="banner" src="assets/gh_status_banner.png" alt="" />
+          <div id="cards-view"><img id="cards" src="assets/gh_status_cards.png" alt="" data-layout-allow-overflow="true" /></div>
+          <div id="tile-foot" class="mono">users: fine</div>
+        </div>
+
+        <div class="chip" id="noticed">nobody noticed</div>
+        <div class="chip" id="chip-rep">REPLICATION</div>
+        <div class="chip" id="chip-fo">FAILOVER</div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // Word landings (output - 2.600): server 0.01, dies 0.36-0.89, users 1.35,
+      // don't 1.71, notice 1.89-2.19, thing 2.39-2.81, That's 2.85, replication 3.09-3.75,
+      // failover 3.97-4.55, job 5.01-5.35.
+
+      // ---------- ACT 1: the server (t=0, visible on frame 0 from CSS) then the calm screen ----------
+      tl.fromTo("#server", { opacity: 0.5, y: 16 }, { opacity: 1, y: 0, duration: 0.35, ease: "power3.out" }, 0);
+      tl.fromTo("#tile", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 0.15);
+
+      // fire ignites on "dies" (0.36): three tongues, staggered, then lick (odd yoyo
+      // repeats so each lands on its base; all complete before the 5.1 fade)
+      const flames = [
+        { sel: "#fl1", t: 0.40, dur: 0.23, rep: 17, lick: 0.70 }, // 0.70 + 18*0.23 = 4.84
+        { sel: "#fl2", t: 0.50, dur: 0.27, rep: 15, lick: 0.75 }, // 0.75 + 16*0.27 = 5.07
+        { sel: "#fl3", t: 0.58, dur: 0.31, rep: 13, lick: 0.72 }, // 0.72 + 14*0.31 = 5.06
+      ];
+      flames.forEach((f) => {
+        tl.fromTo(f.sel, { opacity: 0, scaleY: 0.2, scaleX: 0.6, y: 0 },
+          { opacity: 0.92, scaleY: 1, scaleX: 1, y: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, f.t);
+        tl.fromTo(f.sel, { scaleY: 1, scaleX: 1, y: 0 },
+          { scaleY: 1.14, scaleX: 0.92, y: -4, duration: f.dur, ease: "sine.inOut", yoyo: true, repeat: f.rep, immediateRender: false }, f.lick);
+      });
+      // LEDs go red, then the box greys out (identity filter in CSS + from-vars)
+      tl.to(".led", { backgroundColor: "#ef4444", boxShadow: "0 0 6px rgba(239,68,68,0.9)", duration: 0.12, ease: "power2.out", stagger: 0.06 }, 0.55);
+      tl.fromTo("#server", { filter: "grayscale(0) brightness(1)" },
+        { filter: "grayscale(0.85) brightness(0.62)", duration: 0.5, ease: "power2.out", immediateRender: false }, 0.95);
+      tl.to(".led", { opacity: 0.25, duration: 0.3, ease: "power2.out" }, 1.1);
+
+      // the users' screen stays calm: the live dot breathes (0.6 + 8*0.5 = 4.6 end),
+      // the uptime cards drift upward at constant speed (calm scrolling IS the point)
+      tl.fromTo("#live-dot", { scale: 1 }, { scale: 1.35, duration: 0.5, ease: "sine.inOut", yoyo: true, repeat: 7, immediateRender: false }, 0.6);
+      tl.fromTo("#cards", { y: 0 }, { y: -24, duration: 4.5, ease: "none", immediateRender: false }, 0.5);
+
+      // ---------- TURN @1.85 ("don't notice"): nobody noticed ----------
+      tl.fromTo("#noticed", { opacity: 0, scale: 0.7, y: 0 }, { opacity: 1, scale: 1, y: 0, duration: 0.3, ease: "back.out(1.6)", immediateRender: false }, 1.85);
+
+      // ---------- ACT 2 @2.95 ("That's"): the reason, chip by chip on the words ----------
+      tl.to("#noticed", { opacity: 0, duration: 0.2, ease: "power2.out" }, 2.9);
+      tl.fromTo("#chip-rep", { opacity: 0, scale: 0.7, y: 0 }, { opacity: 1, scale: 1, y: 0, duration: 0.3, ease: "back.out(1.6)", immediateRender: false }, 3.1);
+      tl.fromTo("#chip-fo", { opacity: 0, scale: 0.7, y: 0 }, { opacity: 1, scale: 1, y: 0, duration: 0.3, ease: "back.out(1.6)", immediateRender: false }, 3.98);
+
+      // ---------- fade: finishes at EXACTLY 5.4 (5.1 + 0.3), zero buffer ----------
+      // per-leaf fades on every transform carrier (ancestor opacity is not applied
+      // uniformly to transformed descendants in this renderer)
+      ["#server", "#tile", "#chip-rep", "#chip-fo", "#fl1", "#fl2", "#fl3"].forEach((s) => {
+        tl.fromTo(s, { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 5.1);
+      });
+      tl.to("#live-dot", { opacity: 0, duration: 0.3, ease: "power2.out" }, 5.1);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

@@ -1,0 +1,108 @@
+{
+ "video": "final_nosfx.mp4",
+ "out": "final.mp4",
+ "cues": [
+  {
+   "at": 0.25,
+   "sfx": "tt_click_trim",
+   "vol": 1.72,
+   "why": "INTRO: sticker pops"
+  },
+  {
+   "at": 3.89,
+   "sfx": "tt_sparkle_trim",
+   "vol": 1.4,
+   "why": "HOOK: the two figures + secret (on 'secret')"
+  },
+  {
+   "at": 5.33,
+   "sfx": "tt_keyboard_trim",
+   "vol": 2.0,
+   "why": "HOOK: eavesdroppers scribble (on 'listens')"
+  },
+  {
+   "at": 10.61,
+   "sfx": "click_trim",
+   "vol": 2.75,
+   "why": "HOOK: browser bar + padlock slides in (on 'open a website')"
+  },
+  {
+   "at": 12.97,
+   "sfx": "tt_notif_trim",
+   "vol": 0.5,
+   "why": "PROBLEM: KEY chip travels the wire (on 'shared key')"
+  },
+  {
+   "at": 18.39,
+   "sfx": "impact_trim",
+   "vol": 2.0,
+   "why": "PROBLEM: the tap clamp bites (on 'tapping')"
+  },
+  {
+   "at": 20.42,
+   "sfx": "tt_error_glitch",
+   "vol": 0.4,
+   "why": "PROBLEM: copied key glows red (on 'has it too')"
+  },
+  {
+   "at": 22.35,
+   "sfx": "pop_bubble",
+   "vol": 0.5,
+   "why": "BUILD: the two cups land (on 'paint')"
+  },
+  {
+   "at": 26.49,
+   "sfx": "drip",
+   "vol": 0.19,
+   "why": "BUILD: private colours pour + swirl (on 'secretly mixes')"
+  },
+  {
+   "at": 29.13,
+   "sfx": "swoosh_double",
+   "vol": 0.5,
+   "why": "BUILD: mixtures cross in the open (on 'swap')"
+  },
+  {
+   "at": 35.54,
+   "sfx": "tt_correct_ding",
+   "vol": 0.43,
+   "why": "NEW_COMPONENT: both cups snap to the same colour (on 'identical final')"
+  },
+  {
+   "at": 41.04,
+   "sfx": "bass_hit",
+   "vol": 0.13,
+   "why": "NEW_COMPONENT: un-pour fails, red X (on 'impossible')"
+  },
+  {
+   "at": 42.04,
+   "sfx": "tt_swoosh",
+   "vol": 0.5,
+   "why": "NEW_COMPONENT: the Wikipedia diagram slides in (on 'real version')"
+  },
+  {
+   "at": 47.42,
+   "sfx": "ding",
+   "vol": 0.33,
+   "why": "NEW_COMPONENT: key chips appear at both ends (on 'never once')"
+  },
+  {
+   "at": 49.08,
+   "sfx": "stamp",
+   "vol": 0.8,
+   "why": "DH_NAME: name chip (on 'Diffie-Hellman')"
+  },
+  {
+   "at": 51.46,
+   "sfx": "tt_mouse_click",
+   "vol": 1.28,
+   "why": "DH_NAME: padlock click (on 'padlock')"
+  },
+  {
+   "at": 58.38,
+   "sfx": "notify",
+   "vol": 0.06,
+   "why": "PAYOFF: both cups grow the same colour (on 'on its own')"
+  }
+ ]
+}

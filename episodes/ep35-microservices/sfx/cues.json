@@ -1,0 +1,96 @@
+{
+ "video": "final_nosfx.mp4",
+ "out": "final.mp4",
+ "cues": [
+  {
+   "at": 0.25,
+   "sfx": "tt_click_trim",
+   "vol": 1.37,
+   "why": "INTRO: sticker pops"
+  },
+  {
+   "at": 3.02,
+   "sfx": "tt_bass_drop",
+   "vol": 0.11,
+   "why": "HOOK: VS card flash (on 'Amazon')"
+  },
+  {
+   "at": 7.34,
+   "sfx": "tt_wrong_buzzer",
+   "vol": 0.25,
+   "why": "HOOK: copying startup chip, red X (on 'making a mistake')"
+  },
+  {
+   "at": 8.9,
+   "sfx": "swoosh_elec",
+   "vol": 0.61,
+   "why": "HOOK: balance scale (on 'trade-off')"
+  },
+  {
+   "at": 11.95,
+   "sfx": "click_trim",
+   "vol": 2.92,
+   "why": "PROBLEM: DEPLOY button (on 'single unit')"
+  },
+  {
+   "at": 15.71,
+   "sfx": "tt_error_glitch",
+   "vol": 0.44,
+   "why": "PROBLEM: the block lights red in a wave (on 'break everything')"
+  },
+  {
+   "at": 17.87,
+   "sfx": "swoosh_deep",
+   "vol": 0.2,
+   "why": "PROBLEM: heavy re-deploy bar (on 'whole thing')"
+  },
+  {
+   "at": 19.9,
+   "sfx": "impact_trim",
+   "vol": 1.54,
+   "why": "BUILD: the block shatters (on 'split the app')"
+  },
+  {
+   "at": 24.57,
+   "sfx": "pop_bubble",
+   "vol": 0.38,
+   "why": "BUILD: deploy buttons press (on 'own schedule')"
+  },
+  {
+   "at": 28.02,
+   "sfx": "riser",
+   "vol": 1.37,
+   "why": "NEW_COMPONENT: gauge climbs into red (on 'real complexity')"
+  },
+  {
+   "at": 31.14,
+   "sfx": "bass_hit",
+   "vol": 0.14,
+   "why": "NEW_COMPONENT: a call fails with a red X (on 'fail in new')"
+  },
+  {
+   "at": 35.88,
+   "sfx": "stamp",
+   "vol": 0.83,
+   "why": "NEW_COMPONENT: PEOPLE PROBLEM stamp (on 'organizational')"
+  },
+  {
+   "at": 41.0,
+   "sfx": "tt_correct_ding",
+   "vol": 0.36,
+   "why": "NEW_COMPONENT: tiles regroup into one calm block (on 'smarter choice')"
+  },
+  {
+   "at": 43.33,
+   "sfx": "ding",
+   "vol": 0.3,
+   "why": "PAYOFF: card lands (on 'people problem')"
+  },
+  {
+   "at": 44.42,
+   "sfx": "tt_mouse_click",
+   "vol": 2.5,
+   "why": "PAYOFF: checklist tick (on 'check')"
+  }
+ ]
+}

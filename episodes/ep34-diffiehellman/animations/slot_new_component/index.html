@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP34 new component — paint, part 2: identical colour, the famous picture, the key that never travelled</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; }
+      .fill { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* ---------- TAKEOVER background ---------- */
+      #bg-fill { background: radial-gradient(120% 90% at 50% 12%, #14110a 0%, #0c0a07 45%, #060504 80%, #030302 100%); }
+      /* glows sit low/centre so nothing coloured reaches the countdown reserve (x>=670,y<=330) */
+      #glow-warm {
+        position: absolute; left: 480px; top: 760px; width: 1300px; height: 1100px;
+        transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(255, 140, 42, 0.12) 0%, rgba(76, 175, 80, 0.07) 38%, rgba(0, 0, 0, 0) 60%);
+      }
+      #glow-red {
+        position: absolute; left: 480px; top: 1000px; width: 1300px; height: 1100px;
+        transform: translate(-50%, -50%); opacity: 0;
+        background: radial-gradient(circle, rgba(239, 68, 68, 0.14) 0%, rgba(239, 68, 68, 0) 58%);
+      }
+      #glow-cool {
+        position: absolute; left: 480px; top: 1060px; width: 1400px; height: 1200px;
+        transform: translate(-50%, -50%); opacity: 0;
+        background: radial-gradient(circle, rgba(34, 211, 238, 0.11) 0%, rgba(34, 211, 238, 0) 60%);
+      }
+      #vignette { background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 14%, rgba(0,0,0,0) 80%, rgba(0,0,0,0.62) 100%); }
+
+      /* ---------- scene: push-in 1 -> 1.04 about (480,800).
+         Design band x 150-810 / y 380-1240 resolves to x 137-823, y 363-1258
+         (inside x 70-870 / y 340-1280; the reserve x>=670,y<=335 holds only the bg:
+         the only elements above y 470 are the two pots at x 300-390 / 570-660, which
+         push to x 293-667 -- still left of 670). ---------- */
+      #scene { transform-origin: 480px 800px; }
+
+      /* cups: L x 150-370, R x 590-810, y 430-690 (received mixtures: L green, R orange) */
+      .cup {
+        position: absolute; top: 430px; width: 220px; height: 260px;
+        border: 6px solid rgba(255, 255, 255, 0.55); border-radius: 14px 14px 64px 64px;
+        background: rgba(255, 255, 255, 0.05); overflow: hidden; transform-origin: 50% 100%;
+        box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
+      }
+      #cupL { left: 150px; } #cupR { left: 590px; }
+      .liq { position: absolute; left: 0; right: 0; bottom: 0; height: 180px; }
+      #liqL { background: #4caf50; } #liqR { background: #ff8c2a; }
+      .liq .surf { position: absolute; left: 0; right: 0; top: 0; height: 12px; background: rgba(255, 255, 255, 0.28); }
+      .swirl { position: absolute; left: 14px; top: 10px; width: 180px; height: 180px; opacity: 0; transform-origin: 50% 50%; }
+      .swirl .b { position: absolute; width: 64px; height: 64px; border-radius: 50%; filter: blur(4px); }
+      .swirl .b1 { left: 8px; top: 34px; }
+      .swirl .b2 { left: 108px; top: 100px; width: 50px; height: 50px; }
+      #cupL .swirl .b { background: #ff5a1f; }
+      #cupR .swirl .b { background: #3b82f6; }
+      .ring { position: absolute; top: 424px; width: 232px; height: 272px; border-radius: 18px 18px 70px 70px;
+              border: 4px solid #fde68a; opacity: 0; transform-origin: 50% 50%; }
+      #ringL { left: 144px; } #ringR { left: 584px; }
+
+      /* private pots on the INNER sides (x < 670 keeps them out of the reserve): y 380-450 */
+      .pot { position: absolute; top: 380px; width: 90px; height: 70px; opacity: 0; transform-origin: 50% 50%; }
+      .pot svg { width: 90px; height: 70px; }
+      #potL { left: 300px; } #potR { left: 570px; }
+      .stream { position: absolute; top: 442px; width: 12px; height: 80px; border-radius: 6px; transform-origin: 50% 0%; opacity: 0; }
+      #streamL { left: 298px; background: #ff5a1f; }
+      #streamR { left: 650px; background: #3b82f6; }
+      .pop { position: absolute; width: 20px; height: 20px; border-radius: 50%; opacity: 0; transform-origin: 50% 50%; }
+
+      /* the match: "=" between the cups at (480,560) */
+      #eq {
+        position: absolute; left: 430px; top: 510px; width: 100px; height: 100px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 96px; font-weight: 900; color: #fde68a; line-height: 100px;
+        text-shadow: 0 0 24px rgba(253, 230, 138, 0.6); opacity: 0; transform-origin: 50% 50%;
+      }
+
+      /* TURN group: the eavesdropper and the un-mix attempt (y 800-1016), gone before the card */
+      #eye { position: absolute; left: 420px; top: 800px; width: 120px; height: 75px; opacity: 0; transform-origin: 50% 50%; }
+      #eye svg { width: 120px; height: 75px; }
+      .saw { position: absolute; top: 895px; width: 44px; height: 44px; border-radius: 50%; opacity: 0; transform-origin: 50% 50%; }
+      #sawL { left: 410px; background: #ff8c2a; } #sawR { left: 506px; background: #4caf50; }
+      .half { position: absolute; top: 895px; width: 22px; height: 44px; opacity: 0; }
+      #halfY { left: 410px; background: #f7e600; border-radius: 22px 0 0 22px; }
+      #halfR { left: 432px; background: #ff5a1f; border-radius: 0 22px 22px 0; }
+      #nope {
+        position: absolute; left: 440px; top: 872px; width: 80px; height: 80px;
+        font-size: 74px; font-weight: 900; color: #ef4444; line-height: 80px; text-align: center;
+        text-shadow: 0 0 18px rgba(239, 68, 68, 0.6); opacity: 0; transform-origin: 50% 50%;
+      }
+      #imposs {
+        position: absolute; left: 372px; top: 960px; width: 216px; height: 56px; border-radius: 12px;
+        background: rgba(40, 8, 10, 0.75); border: 2px solid #ef4444; color: #fecaca;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 26px; font-weight: 800; letter-spacing: 3px; opacity: 0; transform-origin: 50% 50%;
+      }
+
+      /* ACT 2: the real diagram on a paper card, y 800-1240 (light panel ends above 1240; captions start 1306) */
+      #card {
+        position: absolute; left: 240px; top: 800px; width: 480px; height: 440px; border-radius: 18px;
+        background: #f7f3ea; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55), 0 0 0 2px rgba(255, 255, 255, 0.25);
+        overflow: hidden; opacity: 0;
+      }
+      #card-head {
+        position: absolute; left: 0; top: 0; width: 480px; height: 40px;
+        background: #e9e2d2; border-bottom: 1px solid rgba(60, 50, 30, 0.2);
+        display: flex; align-items: center; padding: 0 16px; gap: 10px;
+        font-size: 19px; color: #3b3020; letter-spacing: 1px; white-space: nowrap;
+      }
+      #card-head .dot { width: 10px; height: 10px; border-radius: 50%; background: #c9bfa8; }
+      #card img { position: absolute; left: 112px; top: 48px; width: 256px; height: 385px; }
+      /* one-way glyph beside the picture, inside the card (card-local x 380-464, y 190-262) */
+      #oneway { position: absolute; left: 380px; top: 190px; width: 84px; height: 72px; opacity: 0; transform-origin: 50% 50%; }
+      #oneway svg { width: 84px; height: 72px; }
+
+      /* the KEY chips under each cup (y 712-756) and the empty wire between them (y 732-736) */
+      .key {
+        position: absolute; top: 712px; width: 96px; height: 44px; border-radius: 10px;
+        background: rgba(245, 158, 11, 0.95); color: #1c1203;
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+        font-size: 24px; font-weight: 800; letter-spacing: 2px; opacity: 0; transform-origin: 50% 50%;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45), 0 0 14px rgba(245, 158, 11, 0.45);
+      }
+      .key svg { width: 20px; height: 20px; }
+      #keyL { left: 212px; } #keyR { left: 652px; }
+      #wire-svg { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: visible; }
+      #wire { fill: none; stroke: #94a3b8; stroke-width: 4; stroke-dasharray: 12 12; stroke-linecap: round; opacity: 0; }
+
+      #flash { background: #ffffff; opacity: 0; pointer-events: none; }
+      #dither { opacity: 1; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="16.8" data-width="1080" data-height="1920">
+      <section id="main-clip" class="clip fill" data-start="0" data-duration="16.8" data-track-index="1">
+        <div id="content-all" class="fill">
+          <div id="bg-fill" class="fill">
+            <div id="glow-warm"></div>
+            <div id="glow-red"></div>
+            <div id="glow-cool"></div>
+            <div id="vignette" class="fill"></div>
+          </div>
+
+          <div id="scene" class="fill">
+            <!-- ACT 1: the received mixtures, each side's private colour goes in -->
+            <div class="ring" id="ringL"></div>
+            <div class="ring" id="ringR"></div>
+            <div class="cup" id="cupL">
+              <div class="liq" id="liqL"><div class="surf"></div>
+                <div class="swirl" id="swL"><div class="b b1"></div><div class="b b2"></div></div>
+              </div>
+            </div>
+            <div class="cup" id="cupR">
+              <div class="liq" id="liqR"><div class="surf"></div>
+                <div class="swirl" id="swR"><div class="b b1"></div><div class="b b2"></div></div>
+              </div>
+            </div>
+            <div class="pot" id="potL">
+              <svg viewBox="0 0 90 70"><path d="M8,8 H82 L72,62 H18 Z" fill="#ff5a1f" stroke="#ffd0bd" stroke-width="3" /><ellipse cx="45" cy="9" rx="37" ry="7" fill="#ff8a5c" stroke="#ffd0bd" stroke-width="3" /></svg>
+            </div>
+            <div class="pot" id="potR">
+              <svg viewBox="0 0 90 70"><path d="M8,8 H82 L72,62 H18 Z" fill="#3b82f6" stroke="#bfdbfe" stroke-width="3" /><ellipse cx="45" cy="9" rx="37" ry="7" fill="#60a5fa" stroke="#bfdbfe" stroke-width="3" /></svg>
+            </div>
+            <div class="stream" id="streamL"></div>
+            <div class="stream" id="streamR"></div>
+            <div class="pop" id="pL1" style="left:190px; top:500px; background:#ff5a1f"></div>
+            <div class="pop" id="pL2" style="left:290px; top:486px; background:#7a5310"></div>
+            <div class="pop" id="pL3" style="left:240px; top:530px; background:#ff5a1f"></div>
+            <div class="pop" id="pR1" style="left:630px; top:500px; background:#3b82f6"></div>
+            <div class="pop" id="pR2" style="left:730px; top:486px; background:#7a5310"></div>
+            <div class="pop" id="pR3" style="left:680px; top:530px; background:#3b82f6"></div>
+            <div id="eq">=</div>
+
+            <!-- TURN: the eavesdropper tries to un-mix -->
+            <div id="eye">
+              <svg viewBox="0 0 160 100">
+                <path d="M10,50 Q80,-2 150,50 Q80,102 10,50 Z" fill="rgba(226,232,240,0.08)" stroke="#e2e8f0" stroke-width="4" />
+                <circle cx="80" cy="50" r="24" fill="#fbbf24" />
+                <circle cx="80" cy="50" r="11" fill="#050607" />
+                <circle cx="88" cy="42" r="4" fill="#fff" opacity="0.8" />
+              </svg>
+            </div>
+            <div class="saw" id="sawL"></div>
+            <div class="saw" id="sawR"></div>
+            <div class="half" id="halfY"></div>
+            <div class="half" id="halfR"></div>
+            <div id="nope">&#10007;</div>
+            <div id="imposs">IMPOSSIBLE</div>
+
+            <!-- ACT 2: the famous picture, the one-way glyph, the key on both ends -->
+            <div id="card">
+              <div id="card-head" class="mono"><span class="dot"></span><span class="dot"></span>the famous picture &middot; wikipedia</div>
+              <img src="assets/dh_paint_wikipedia.png" alt="" />
+              <div id="oneway">
+                <svg viewBox="0 0 84 72" fill="none">
+                  <path d="M6,20 H62" stroke="#1f2937" stroke-width="6" stroke-linecap="round" />
+                  <path d="M50,8 L66,20 L50,32" stroke="#1f2937" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M78,54 H22" stroke="#9ca3af" stroke-width="5" stroke-linecap="round" stroke-dasharray="8 7" />
+                  <path d="M34,44 L18,54 L34,64" stroke="#9ca3af" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M40,40 L60,68 M60,40 L40,68" stroke="#ef4444" stroke-width="6" stroke-linecap="round" />
+                </svg>
+              </div>
+            </div>
+            <svg id="wire-svg" viewBox="0 0 1080 1920"><path id="wire" d="M312,734 L648,734" /></svg>
+            <div class="key mono" id="keyL">
+              <svg viewBox="0 0 20 20" fill="none"><circle cx="7" cy="10" r="4.5" stroke="#1c1203" stroke-width="2.4"/><path d="M11,10 H19 M16,10 V14 M13,10 V13" stroke="#1c1203" stroke-width="2.4" stroke-linecap="round"/></svg>
+              <span>KEY</span>
+            </div>
+            <div class="key mono" id="keyR">
+              <svg viewBox="0 0 20 20" fill="none"><circle cx="7" cy="10" r="4.5" stroke="#1c1203" stroke-width="2.4"/><path d="M11,10 H19 M16,10 V14 M13,10 V13" stroke="#1c1203" stroke-width="2.4" stroke-linecap="round"/></svg>
+              <span>KEY</span>
+            </div>
+          </div>
+
+          <div id="flash" class="fill"></div>
+          <div id="dither" class="fill"></div>
+        </div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter" x="0%" y="0%" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.04 0" />
+      </filter>
+    </svg>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      document.getElementById("dither").style.filter = "url(#grain-filter)";
+
+      const wire = document.getElementById("wire");
+      const wireLen = wire.getTotalLength();
+      wire.style.strokeDasharray = String(wireLen);
+      wire.style.strokeDashoffset = String(wireLen);
+
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // slow push-in under everything
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.04, duration: 16.8, ease: "sine.inOut" }, 0);
+
+      // ---------- ACT 1: each side pours its own private colour into what it received ----------
+      // entrance at t=0: the swapped cups settle in from 0.5 opacity
+      tl.fromTo("#cupL", { opacity: 0.5, y: 24 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 0);
+      tl.fromTo("#cupR", { opacity: 0.5, y: 24 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 0.12);
+      // "adds their own private color" (0.19-1.5): pots tip in, streams pour
+      tl.fromTo("#potL", { opacity: 0, rotation: 0, y: -20 }, { opacity: 1, rotation: -38, y: 0, duration: 0.4, ease: "power2.out", immediateRender: false }, 0.5);
+      tl.fromTo("#potR", { opacity: 0, rotation: 0, y: -20 }, { opacity: 1, rotation: 38, y: 0, duration: 0.4, ease: "power2.out", immediateRender: false }, 0.65);
+      tl.fromTo("#streamL", { opacity: 0, scaleY: 0 }, { opacity: 1, scaleY: 1, duration: 0.3, ease: "power2.in", immediateRender: false }, 0.9);
+      tl.fromTo("#streamR", { opacity: 0, scaleY: 0 }, { opacity: 1, scaleY: 1, duration: 0.3, ease: "power2.in", immediateRender: false }, 1.05);
+      tl.to("#streamL", { opacity: 0, duration: 0.3, ease: "power2.out" }, 2.5);
+      tl.to("#streamR", { opacity: 0, duration: 0.3, ease: "power2.out" }, 2.65);
+      tl.to("#potL", { opacity: 0, rotation: -10, duration: 0.35, ease: "power2.out" }, 2.8);
+      tl.to("#potR", { opacity: 0, rotation: 10, duration: 0.35, ease: "power2.out" }, 2.95);
+      // "to the other's mixture" (1.53-2.75): swirl and colour pops as they mix
+      tl.fromTo("#swL", { opacity: 0, rotation: 0 }, { opacity: 0.85, rotation: 320, duration: 1.6, ease: "power1.inOut", immediateRender: false }, 1.1);
+      tl.to("#swL", { opacity: 0, duration: 0.5, ease: "power2.out" }, 2.7);
+      tl.fromTo("#swR", { opacity: 0, rotation: 0 }, { opacity: 0.85, rotation: -320, duration: 1.6, ease: "power1.inOut", immediateRender: false }, 1.25);
+      tl.to("#swR", { opacity: 0, duration: 0.5, ease: "power2.out" }, 2.85);
+      [["#pL1", 1.3], ["#pL2", 1.55], ["#pL3", 1.8], ["#pR1", 1.45], ["#pR2", 1.7], ["#pR3", 1.95]].forEach(([s, t]) => {
+        tl.fromTo(s, { opacity: 0, scale: 0.2 }, { opacity: 1, scale: 1.4, duration: 0.25, ease: "power2.out", immediateRender: false }, t);
+        tl.to(s, { opacity: 0, scale: 1.8, duration: 0.3, ease: "power2.out" }, t + 0.25);
+      });
+      // "Both end up with the identical final color" (2.83-5.04): both settle to the same brown...
+      tl.to("#liqL", { backgroundColor: "#7a5310", duration: 1.6, ease: "power1.inOut" }, 2.4);
+      tl.to("#liqR", { backgroundColor: "#7a5310", duration: 1.6, ease: "power1.inOut" }, 2.5);
+      // ...and SNAP identical on "final" (4.17): match-cut flash, rings, "="
+      tl.fromTo("#flash", { opacity: 0 }, { opacity: 0.85, duration: 0.06, ease: "power3.out", immediateRender: false }, 4.2);
+      tl.to("#flash", { opacity: 0, duration: 0.25, ease: "power3.out" }, 4.26);
+      ["#ringL", "#ringR"].forEach((s) => {
+        tl.fromTo(s, { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.2, ease: "power3.out", immediateRender: false }, 4.2);
+        tl.to(s, { opacity: 0, scale: 1.12, duration: 0.6, ease: "power2.out" }, 4.45);
+      });
+      tl.fromTo("#eq", { opacity: 0, scale: 1.8 }, { opacity: 1, scale: 1, duration: 0.3, ease: "power4.out", immediateRender: false }, 4.3);
+      tl.fromTo("#cupL", { scale: 1 }, { scale: 1.03, duration: 0.12, ease: "power2.out", immediateRender: false }, 4.2);
+      tl.to("#cupL", { scale: 1, duration: 0.25, ease: "power2.out" }, 4.32);
+      tl.fromTo("#cupR", { scale: 1 }, { scale: 1.03, duration: 0.12, ease: "power2.out", immediateRender: false }, 4.2);
+      tl.to("#cupR", { scale: 1, duration: 0.25, ease: "power2.out" }, 4.32);
+      // "The eavesdropper only ever saw the mixtures" (5.07-7.22): the eye and its two swatches
+      tl.fromTo("#eye", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(1.5)", immediateRender: false }, 5.1);
+      tl.fromTo("#sawL", { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.6)", immediateRender: false }, 6.0);
+      tl.fromTo("#sawR", { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.6)", immediateRender: false }, 6.35);
+
+      // ---------- TURN @7.43 ("unmixing paint"): the un-mix attempt fails, red phase ----------
+      tl.to("#glow-red", { opacity: 1, duration: 0.8, ease: "sine.inOut" }, 7.4);
+      tl.to("#glow-warm", { opacity: 0.4, duration: 0.8, ease: "sine.inOut" }, 7.4);
+      tl.to("#eq", { opacity: 0.35, duration: 0.4, ease: "power2.out" }, 7.4);
+      // the orange swatch tries to come apart into yellow + red... and snaps back
+      tl.to("#sawL", { opacity: 0, duration: 0.15, ease: "power2.out" }, 7.5);
+      tl.fromTo("#halfY", { opacity: 0, x: 0 }, { opacity: 1, x: 0, duration: 0.15, ease: "power2.out", immediateRender: false }, 7.5);
+      tl.fromTo("#halfR", { opacity: 0, x: 0 }, { opacity: 1, x: 0, duration: 0.15, ease: "power2.out", immediateRender: false }, 7.5);
+      tl.to("#halfY", { x: -16, duration: 0.35, ease: "power2.out" }, 7.7);
+      tl.to("#halfR", { x: 16, duration: 0.35, ease: "power2.out" }, 7.7);
+      tl.to("#halfY", { x: 0, duration: 0.2, ease: "power4.in" }, 8.25);
+      tl.to("#halfR", { x: 0, duration: 0.2, ease: "power4.in" }, 8.25);
+      // second try, harder ("basically" 8.49), snaps back again
+      tl.to("#halfY", { x: -22, duration: 0.35, ease: "power2.out" }, 8.55);
+      tl.to("#halfR", { x: 22, duration: 0.35, ease: "power2.out" }, 8.55);
+      tl.to("#halfY", { x: 0, duration: 0.18, ease: "power4.in" }, 8.95);
+      tl.to("#halfR", { x: 0, duration: 0.18, ease: "power4.in" }, 8.95);
+      // "impossible" (9.17): red X slams over the swatches, chip lands
+      tl.fromTo("#nope", { opacity: 0, scale: 1.8 }, { opacity: 1, scale: 1, duration: 0.24, ease: "power4.out", immediateRender: false }, 9.2);
+      tl.fromTo("#imposs", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 9.45);
+      tl.fromTo("#eye", { scale: 1 }, { scale: 1.1, duration: 0.2, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 9.2);
+
+      // ---------- ACT 2 @10.17 ("the real version uses math"): the famous picture, cool phase ----------
+      ["#eye", "#sawR", "#halfY", "#halfR", "#nope", "#imposs"].forEach((s) => {
+        tl.to(s, { opacity: 0, duration: 0.3, ease: "power2.out" }, 10.0);
+      });
+      tl.to("#glow-red", { opacity: 0, duration: 1.0, ease: "sine.inOut" }, 10.2);
+      tl.to("#glow-cool", { opacity: 1, duration: 1.0, ease: "sine.inOut" }, 10.2);
+      tl.to("#eq", { opacity: 1, duration: 0.5, ease: "power2.out" }, 10.4);
+      tl.fromTo("#card", { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 0.55, ease: "power3.out", immediateRender: false }, 10.4);
+      // "one-way property" (12.49): the one-way glyph pops beside the picture
+      tl.fromTo("#oneway", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.6)", immediateRender: false }, 12.5);
+      // "a shared key" (14.37): a KEY chip on BOTH ends
+      tl.fromTo("#keyL", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.8)", immediateRender: false }, 14.4);
+      tl.fromTo("#keyR", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.8)", immediateRender: false }, 14.6);
+      // "never once traveled the wire" (15.55-16.74): the wire draws between them -- and stays EMPTY
+      tl.fromTo("#wire", { opacity: 0 }, { opacity: 0.7, duration: 0.2, ease: "power2.out", immediateRender: false }, 15.5);
+      tl.fromTo("#wire", { strokeDashoffset: wireLen }, { strokeDashoffset: 0, duration: 0.5, ease: "power3.out", immediateRender: false }, 15.5);
+      tl.to("#wire", { opacity: 0.3, duration: 0.25, ease: "sine.inOut", yoyo: true, repeat: 1 }, 16.0);
+      ["#keyL", "#keyR"].forEach((s) => {
+        tl.to(s, { boxShadow: "0 3px 10px rgba(0,0,0,0.45), 0 0 26px 6px rgba(245,158,11,0.8)", duration: 0.3, ease: "power2.out" }, 16.05);
+      });
+
+      // ---------- fade: finishes at EXACTLY 16.8 (16.5 + 0.3), zero buffer ----------
+      tl.fromTo("#content-all", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 16.5);
+      ["#scene", "#cupL", "#cupR", "#card", "#keyL", "#keyR", "#eq", "#oneway", "#wire"].forEach((s) => {
+        tl.to(s, { opacity: 0, duration: 0.3, ease: "power2.out" }, 16.5);
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

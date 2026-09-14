@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP34 dh_name — Diffie-Hellman, inside the padlock, in milliseconds</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* CORNER format, upper-left column x 70-640, y 215-590 over live footage.
+         DH_NAME take: brow ~640, zoom 1.08->1.0 about (540,720) -> 633.6 worst case.
+         Everything stays left of x=660 so the countdown reserve (x>=670,y<=330) is empty.
+         Drift 1 -> 1.012 about (350,400): top 215 -> 212.8, right 640 -> 643.5,
+         bottom 590 -> 592.3 (+ lens glow reach 1.6*14 = 22 -> 614 < 633.6). */
+      #wrap { position: absolute; inset: 0; transform-origin: 350px 400px; opacity: 0.5; }
+
+      /* the name chip: x 70-613, y 215-299 */
+      #name {
+        position: absolute; left: 78px; top: 215px; height: 84px; padding: 0 24px; border-radius: 16px;
+        background: linear-gradient(165deg, rgba(8, 24, 30, 0.72), rgba(4, 12, 18, 0.8));
+        border: 2px solid rgba(34, 211, 238, 0.8);
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45), 0 0 14px rgba(34, 211, 238, 0.25);
+        display: flex; align-items: center; white-space: nowrap;
+        font-size: 52px; font-weight: 900; letter-spacing: 1px; color: #f0fdfa;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+      }
+
+      /* the REAL Edge address bar (assets/padlock_edge_urlbar.png, 1234x50) in a browser-chrome card:
+         card x 70-640, y 340-410; the capture's left 622px shown at 0.9 -> 560x45 at (75,352) */
+      #bar-card {
+        position: absolute; left: 78px; top: 340px; width: 570px; height: 70px; border-radius: 14px;
+        background: rgba(255, 255, 255, 0.96); border: 2px solid rgba(148, 163, 184, 0.7);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.45); overflow: hidden; opacity: 0;
+      }
+      #bar-card img { position: absolute; left: 5px; top: 11px; width: 1110px; height: 45px; }
+      #lock-ring {
+        position: absolute; left: 82px; top: 358px; width: 36px; height: 36px; border-radius: 50%;
+        border: 3px solid #22d3ee; box-shadow: 0 0 10px rgba(34, 211, 238, 0.7); opacity: 0; transform-origin: 50% 50%;
+      }
+
+      /* the magnifier lens: 160px circle at x 100-260, y 430-590, showing the padlock at 4x */
+      #lens {
+        position: absolute; left: 100px; top: 430px; width: 160px; height: 160px; border-radius: 50%;
+        background: #fff; border: 4px solid #22d3ee; overflow: hidden; opacity: 0; transform-origin: 50% 50%;
+        box-shadow: 0 0 14px rgba(34, 211, 238, 0.6), 0 10px 20px rgba(0, 0, 0, 0.5);
+      }
+      #lens img { position: absolute; left: -12px; top: -20px; width: 4936px; height: 200px; transform-origin: 92px 100px; }
+      #leader-svg { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: visible; }
+      #leader { fill: none; stroke: #22d3ee; stroke-width: 3; stroke-linecap: round; opacity: 0; }
+
+      /* ACT 2: the stopwatch chip x 300-540, y 470-560 */
+      #clock {
+        position: absolute; left: 300px; top: 470px; width: 240px; height: 90px; border-radius: 16px;
+        background: linear-gradient(165deg, rgba(8, 24, 30, 0.72), rgba(4, 12, 18, 0.8));
+        border: 2px solid rgba(34, 211, 238, 0.8);
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
+        display: flex; align-items: center; gap: 16px; padding: 0 18px; opacity: 0; transform-origin: 50% 50%;
+      }
+      #clock svg { width: 60px; height: 66px; flex-shrink: 0; }
+      #ms { font-size: 44px; font-weight: 800; color: #a5f3fc; letter-spacing: 1px; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8); opacity: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="5.5" data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="5.5" data-track-index="1">
+        <div id="wrap">
+          <div id="name">DIFFIE-HELLMAN</div>
+
+          <div id="bar-card"><img src="assets/padlock_edge_urlbar.png" alt="" data-layout-allow-overflow="true" /></div>
+          <div id="lock-ring"></div>
+
+          <svg id="leader-svg" viewBox="0 0 1080 1920"><path id="leader" d="M108,392 L150,442" /></svg>
+          <div id="lens"><img src="assets/padlock_edge_urlbar.png" alt="" data-layout-allow-overflow="true" /></div>
+
+          <div id="clock">
+            <svg viewBox="0 0 60 66">
+              <rect x="24" y="0" width="12" height="8" rx="2" fill="#a5f3fc" />
+              <rect x="27" y="7" width="6" height="6" fill="#a5f3fc" />
+              <circle cx="30" cy="38" r="26" fill="rgba(165,243,252,0.08)" stroke="#a5f3fc" stroke-width="4" />
+              <circle cx="30" cy="38" r="3" fill="#a5f3fc" />
+              <line id="hand" x1="30" y1="38" x2="30" y2="18" stroke="#22d3ee" stroke-width="4" stroke-linecap="round" />
+            </svg>
+            <div id="ms" class="mono">ms</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      const leader = document.getElementById("leader");
+      const leaderLen = leader.getTotalLength();
+      leader.style.strokeDasharray = String(leaderLen);
+      leader.style.strokeDashoffset = String(leaderLen);
+
+      tl.fromTo("#wrap", { scale: 1 }, { scale: 1.012, duration: 5.5, ease: "sine.inOut" }, 0);
+
+      // ---------- ACT 1 @0 ("Diffie-Hellman"): the name slams in ----------
+      tl.fromTo("#wrap", { opacity: 0.5 }, { opacity: 1, duration: 0.3, ease: "power3.out" }, 0);
+      tl.fromTo("#name", { scale: 1.25, x: 0 }, { scale: 1, x: 0, duration: 0.3, ease: "power4.out" }, 0);
+      // "HTTPS" (1.47): the REAL address bar slides in under it
+      tl.fromTo("#bar-card", { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 1.47);
+      // "padlock" (2.29): a ring finds the tiny padlock...
+      tl.fromTo("#lock-ring", { opacity: 0, scale: 2.2 }, { opacity: 1, scale: 1, duration: 0.3, ease: "power3.out", immediateRender: false }, 2.29);
+
+      // ---------- TURN @2.6: the lens drops out of the ring and magnifies the padlock (click in the SFX pass) ----------
+      tl.fromTo("#leader", { opacity: 0 }, { opacity: 1, duration: 0.1, ease: "power2.out", immediateRender: false }, 2.6);
+      tl.fromTo("#leader", { strokeDashoffset: leaderLen }, { strokeDashoffset: 0, duration: 0.25, ease: "power3.out", immediateRender: false }, 2.6);
+      tl.fromTo("#lens", { opacity: 0, scale: 0.3, x: -60, y: -70 }, { opacity: 1, scale: 1, x: 0, y: 0, duration: 0.4, ease: "back.out(1.4)", immediateRender: false }, 2.7);
+      // the lock "clicks": one tight bounce of the magnified padlock
+      tl.fromTo("#lens img", { scale: 1 }, { scale: 1.12, duration: 0.12, ease: "power2.out", immediateRender: false }, 3.15);
+      tl.to("#lens img", { scale: 1, duration: 0.25, ease: "back.out(2)" }, 3.27);
+      tl.to("#lock-ring", { opacity: 0.45, duration: 0.3, ease: "power2.out" }, 3.2);
+
+      // ---------- ACT 2 @4.13 ("done in milliseconds"): the stopwatch ----------
+      tl.fromTo("#clock", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.6)", immediateRender: false }, 4.15);
+      // hand sweep on "milliseconds" (4.53): trig/onUpdate on the endpoint, never SVG rotation on a zero-width line
+      const hand = document.getElementById("hand");
+      const sweep = { a: -90 };
+      tl.to(sweep, {
+        a: 270, duration: 0.5, ease: "power2.inOut",
+        onUpdate: () => {
+          const r = (sweep.a * Math.PI) / 180;
+          hand.setAttribute("x2", String(30 + 20 * Math.cos(r)));
+          hand.setAttribute("y2", String(38 + 20 * Math.sin(r)));
+        },
+      }, 4.53);
+      tl.fromTo("#ms", { opacity: 0, x: -10 }, { opacity: 1, x: 0, duration: 0.25, ease: "power3.out", immediateRender: false }, 4.6);
+      tl.fromTo("#clock", { scale: 1 }, { scale: 1.05, duration: 0.12, ease: "power2.out", immediateRender: false }, 5.0);
+      tl.to("#clock", { scale: 1, duration: 0.18, ease: "power2.out" }, 5.12);
+
+      // ---------- fade: finishes at EXACTLY 5.5 (5.2 + 0.3), zero buffer ----------
+      tl.fromTo("#wrap", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 5.2);
+      ["#name", "#bar-card", "#lock-ring", "#lens", "#clock", "#ms", "#leader"].forEach((s) => {
+        tl.to(s, { opacity: 0, duration: 0.3, ease: "power2.out" }, 5.2);
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

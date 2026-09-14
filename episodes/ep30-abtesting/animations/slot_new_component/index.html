@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP30 new component — 1% then A/B</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; }
+      .fill { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* ---------- background (TAKEOVER). Glows sit left/low: the countdown reserve
+         (x>=670, y<=330) is plain dark gradient on every frame. ---------- */
+      #bg-fill { background: radial-gradient(120% 90% at 40% 12%, #0e1a17 0%, #090e12 45%, #05070a 80%, #030405 100%); }
+      #glow-green {
+        position: absolute; left: 30%; top: 40%; width: 1300px; height: 1200px;
+        transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(52, 211, 153, 0.14) 0%, rgba(52, 211, 153, 0) 60%);
+      }
+      #glow-blue {
+        position: absolute; left: 22%; top: 62%; width: 1300px; height: 1200px;
+        transform: translate(-50%, -50%); opacity: 0;
+        background: radial-gradient(circle, rgba(59, 130, 246, 0.16) 0%, rgba(59, 130, 246, 0) 60%);
+      }
+      #glow-orange {
+        position: absolute; left: 62%; top: 78%; width: 1300px; height: 1200px;
+        transform: translate(-50%, -50%); opacity: 0;
+        background: radial-gradient(circle, rgba(249, 115, 22, 0.15) 0%, rgba(249, 115, 22, 0) 60%);
+      }
+      #vignette {
+        background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 13%, rgba(0,0,0,0) 80%, rgba(0,0,0,0.6) 100%);
+      }
+
+      /* ---------- scene: push-in 1 -> 1.05 about (480,800).
+         Design band x 110-830, y 350-1200 resolves to x 91.5-847.5, y 327.5-1220.
+         Anything at x>=670 starts at y>=400 (-> 380 after push-in; glow reach <=29px). ---------- */
+      #scene { transform-origin: 480px 800px; }
+
+      /* ================= ACT 1 (green): 1%, watch, ramp, kill ================= */
+      #act1 { position: absolute; inset: 0; transform-origin: 480px 780px; opacity: 0.5; }
+
+      #toggle {
+        position: absolute; left: 110px; top: 400px; width: 200px; height: 88px;
+        border-radius: 44px; background: rgba(71, 85, 105, 0.92);
+        border: 3px solid rgba(148, 163, 184, 0.5);
+      }
+      #knob {
+        position: absolute; left: 6px; top: 6px; width: 70px; height: 70px; border-radius: 50%;
+        background: #f8fafc; box-shadow: 0 3px 6px rgba(0, 0, 0, 0.45);
+      }
+      #kicker {
+        position: absolute; left: 342px; top: 340px; font-size: 22px; line-height: 26px;
+        letter-spacing: 5px; color: #94a3b8; opacity: 0;
+      }
+      #num-wrap { position: absolute; left: 340px; top: 392px; width: 240px; height: 110px; }
+      .num {
+        position: absolute; left: 0; top: 0; width: 240px; height: 110px;
+        font-size: 110px; line-height: 110px; font-weight: 700; letter-spacing: -4px;
+        color: #6ee7b7; opacity: 0;
+        text-shadow: 0 3px 14px rgba(0, 0, 0, 0.7);
+      }
+      #kill {
+        position: absolute; left: 600px; top: 400px; width: 230px; height: 88px;
+        border-radius: 16px; background: #b91c1c; border: 3px solid #fca5a5;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 40px; font-weight: 900; letter-spacing: 6px; color: #fff1f2;
+        box-shadow: 0 0 12px rgba(239, 68, 68, 0.5); opacity: 0;
+      }
+
+      #metrics {
+        position: absolute; left: 110px; top: 530px; width: 720px; height: 270px;
+        border-radius: 16px; background: rgba(8, 12, 20, 0.9);
+        border: 2px solid rgba(148, 163, 184, 0.35); overflow: hidden; opacity: 0;
+      }
+      #m-head {
+        position: absolute; left: 0; top: 0; width: 716px; height: 34px;
+        display: flex; align-items: center; gap: 8px; padding: 0 14px;
+        background: rgba(30, 41, 59, 0.9); border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+      }
+      .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(148, 163, 184, 0.5); }
+      #m-title { font-size: 17px; color: #94a3b8; letter-spacing: 1px; margin-left: 6px; }
+      #spark { position: absolute; left: 0; top: 34px; width: 716px; height: 232px; }
+      .gridline { stroke: rgba(148, 163, 184, 0.14); stroke-width: 1; }
+      #line-g { fill: none; stroke: #34d399; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+      #area-g { fill: rgba(52, 211, 153, 0.14); opacity: 0; }
+      #line-r { fill: none; stroke: #ef4444; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+      .mk { fill: #a7f3d0; opacity: 0; }
+
+      #meter {
+        position: absolute; left: 110px; top: 850px; width: 720px; height: 16px; border-radius: 8px;
+        background: rgba(148, 163, 184, 0.2); opacity: 0;
+      }
+      #meter-fill {
+        position: absolute; left: 0; top: 0; height: 16px; width: 7px; border-radius: 8px;
+        background: linear-gradient(90deg, #34d399, #6ee7b7);
+        box-shadow: 0 0 10px rgba(52, 211, 153, 0.6);
+      }
+
+      /* the real Unleash rollout panel (environment toggle + "Gradual rollout"): 1290x230 crop
+         of the top of the panel, scaled 0.558 -> 720x128 */
+      #plate {
+        position: absolute; left: 110px; top: 920px; width: 720px; height: 128px;
+        border-radius: 12px; background: #ffffff; overflow: hidden;
+        border: 2px solid rgba(148, 163, 184, 0.6); opacity: 0;
+      }
+      #plate img { position: absolute; left: 0; top: 0; width: 720px; height: 223px; }
+      #real-tag {
+        position: absolute; left: 640px; top: 912px; padding: 2px 8px; border-radius: 6px;
+        background: rgba(15, 23, 42, 0.92); color: #cbd5e1; font-size: 15px; letter-spacing: 2px;
+        opacity: 0;
+      }
+
+      /* ================= ACT 2 (blue | orange): the split ================= */
+      #act2 { position: absolute; inset: 0; opacity: 0; }
+
+      #hl {
+        position: absolute; left: 110px; top: 350px; font-size: 72px; line-height: 80px;
+        font-weight: 900; letter-spacing: 2px; color: #e0f2fe; white-space: nowrap; opacity: 0;
+        text-shadow: 0 3px 16px rgba(0, 0, 0, 0.85);
+      }
+      #stamp {
+        position: absolute; left: 110px; top: 340px; width: 450px; height: 100px;
+        border: 6px solid #fbbf24; border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 60px; font-weight: 900; letter-spacing: 6px; color: #fbbf24;
+        transform: rotate(-6deg); opacity: 0;
+        background: rgba(20, 14, 4, 0.3);
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
+      }
+
+      #aud { position: absolute; left: 110px; top: 470px; width: 720px; height: 70px; }
+      .pp { position: absolute; top: 14px; width: 28px; height: 40px; opacity: 0; }
+      #tint-a {
+        position: absolute; left: 0; top: 0; width: 0; height: 70px; border-radius: 10px 0 0 10px;
+        background: rgba(59, 130, 246, 0.28); border: 2px solid rgba(96, 165, 250, 0.7);
+      }
+      #tint-b {
+        position: absolute; left: 360px; top: 0; width: 0; height: 70px; border-radius: 0 10px 10px 0;
+        background: rgba(249, 115, 22, 0.26); border: 2px solid rgba(251, 146, 60, 0.7);
+      }
+      #divider {
+        position: absolute; left: 468px; top: 462px; width: 4px; height: 86px; border-radius: 2px;
+        background: #f8fafc; transform-origin: 50% 0%; opacity: 0;
+      }
+      .tag {
+        position: absolute; top: 552px; font-size: 38px; line-height: 44px; font-weight: 800;
+        letter-spacing: 2px; opacity: 0; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85);
+      }
+      #tag-a { left: 276px; color: #93c5fd; }
+      #tag-b { left: 640px; color: #fdba74; }
+
+      .phone {
+        position: absolute; top: 620px; width: 240px; height: 380px; border-radius: 26px;
+        background: linear-gradient(170deg, rgba(14, 18, 28, 0.96), rgba(8, 11, 18, 0.98));
+        border: 3px solid rgba(148, 163, 184, 0.5); overflow: hidden; opacity: 0;
+      }
+      #ph-a { left: 150px; }
+      #ph-b { left: 490px; }
+      .status { position: absolute; left: 20px; top: 12px; font-size: 17px; color: #cbd5e1; letter-spacing: 1px; }
+      .vtag { position: absolute; right: 18px; top: 8px; font-size: 24px; font-weight: 900; }
+      #ph-a .vtag { color: #93c5fd; }
+      #ph-b .vtag { color: #fdba74; }
+      .app-h { position: absolute; left: 20px; top: 50px; font-size: 22px; font-weight: 800; color: #f1f5f9; }
+      .tile {
+        position: absolute; left: 18px; top: 92px; width: 198px; height: 130px; border-radius: 14px;
+        background: linear-gradient(160deg, #26334a 0%, #1a2436 100%); border: 1px solid rgba(148, 163, 184, 0.25);
+        overflow: hidden;
+      }
+      .tile svg { position: absolute; left: 44px; top: 12px; width: 110px; height: 110px; }
+      .price { position: absolute; left: 20px; top: 236px; font-size: 24px; color: #f8fafc; }
+      .btn {
+        position: absolute; left: 18px; top: 280px; width: 198px; height: 52px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.35);
+      }
+      #ph-a .btn { background: #2563eb; }
+      #ph-b .btn { background: #c2410c; }
+
+      #table {
+        position: absolute; left: 110px; top: 1040px; width: 720px; height: 160px;
+        border-radius: 16px; background: rgba(8, 12, 20, 0.9);
+        border: 2px solid rgba(148, 163, 184, 0.35); opacity: 0;
+      }
+      .trow {
+        position: absolute; left: 14px; width: 688px; height: 64px; border-radius: 12px;
+        border: 2px solid rgba(148, 163, 184, 0.0); opacity: 0;
+      }
+      #row-a { top: 12px; }
+      #row-b { top: 82px; }
+      .rl { position: absolute; left: 18px; top: 10px; font-size: 38px; line-height: 40px; font-weight: 900; }
+      #row-a .rl { color: #93c5fd; }
+      #row-b .rl { color: #fdba74; }
+      .rbar { position: absolute; left: 70px; top: 24px; height: 14px; border-radius: 7px; width: 0; }
+      #row-a .rbar { background: #3b82f6; }
+      #row-b .rbar { background: #f97316; }
+      .rv {
+        position: absolute; right: 18px; top: 10px; font-size: 40px; line-height: 40px; font-weight: 700;
+        color: #f8fafc; letter-spacing: -1px;
+      }
+      #check { position: absolute; left: 522px; top: 12px; width: 40px; height: 40px; opacity: 0; }
+
+      #flash { background: #ffffff; opacity: 0; pointer-events: none; }
+      #flash-red { background: #ef4444; opacity: 0; pointer-events: none; }
+      #dither { opacity: 1; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="14.4" data-width="1080" data-height="1920">
+      <section id="main-clip" class="clip fill" data-start="0" data-duration="14.4" data-track-index="1">
+        <div id="content-all" class="fill">
+          <div id="bg-fill" class="fill">
+            <div id="glow-green"></div>
+            <div id="glow-blue"></div>
+            <div id="glow-orange"></div>
+            <div id="vignette" class="fill"></div>
+          </div>
+
+          <div id="scene" class="fill">
+            <!-- ACT 1 -->
+            <div id="act1">
+              <div id="toggle"><div id="knob"></div></div>
+              <div id="kicker">ROLLOUT</div>
+              <div id="num-wrap">
+                <div class="num mono" id="n1">1%</div>
+                <div class="num mono" id="n5">5%</div>
+                <div class="num mono" id="n25">25%</div>
+                <div class="num mono" id="n0">0%</div>
+              </div>
+              <div id="kill">KILL</div>
+
+              <div id="metrics">
+                <div id="m-head"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div id="m-title" class="mono">metrics &middot; checkout conversion</div></div>
+                <svg id="spark" viewBox="0 0 716 232">
+                  <line class="gridline" x1="0" y1="58" x2="716" y2="58" />
+                  <line class="gridline" x1="0" y1="116" x2="716" y2="116" />
+                  <line class="gridline" x1="0" y1="174" x2="716" y2="174" />
+                  <path id="area-g" d="M30,190 L90,168 L150,176 L210,150 L270,154 L330,130 L390,118 L450,124 L510,98 L570,88 L600,80 L600,232 L30,232 Z" />
+                  <path id="line-g" d="M30,190 L90,168 L150,176 L210,150 L270,154 L330,130 L390,118 L450,124 L510,98 L570,88 L600,80" />
+                  <path id="line-r" d="M600,80 L630,124 L660,172 L690,206" />
+                  <circle class="mk" id="mk1" cx="210" cy="150" r="7" />
+                  <circle class="mk" id="mk2" cx="390" cy="118" r="7" />
+                  <circle class="mk" id="mk3" cx="570" cy="88" r="7" />
+                </svg>
+              </div>
+
+              <div id="meter"><div id="meter-fill"></div></div>
+
+              <div id="plate"><img src="assets/unleash_rollout_panel_crop.png" alt="" data-layout-allow-overflow="true" /></div>
+              <div id="real-tag" class="mono" data-layout-allow-overlap="true">REAL ROLLOUT UI</div>
+            </div>
+
+            <!-- ACT 2 -->
+            <div id="act2">
+              <div id="hl">A/B TEST</div>
+              <div id="stamp">DECISION</div>
+
+              <div id="aud">
+                <div id="tint-a"></div>
+                <div id="tint-b"></div>
+              </div>
+              <div id="divider"></div>
+              <div class="tag mono" id="tag-a">A</div>
+              <div class="tag mono" id="tag-b">B</div>
+
+              <div class="phone" id="ph-a">
+                <div class="status mono">9:41</div>
+                <div class="vtag">A</div>
+                <div class="app-h">Shop</div>
+                <div class="tile"><svg viewBox="0 0 110 110" fill="none"><path d="M20 66 V52 A35 35 0 0 1 90 52 V66" stroke="#93c5fd" stroke-width="7" stroke-linecap="round"/><rect x="12" y="60" width="20" height="32" rx="8" fill="#60a5fa"/><rect x="78" y="60" width="20" height="32" rx="8" fill="#60a5fa"/></svg></div>
+                <div class="price mono">$49</div>
+                <div class="btn">Buy now</div>
+              </div>
+              <div class="phone" id="ph-b">
+                <div class="status mono">9:41</div>
+                <div class="vtag">B</div>
+                <div class="app-h">Shop</div>
+                <div class="tile"><svg viewBox="0 0 110 110" fill="none"><path d="M20 66 V52 A35 35 0 0 1 90 52 V66" stroke="#fdba74" stroke-width="7" stroke-linecap="round"/><rect x="12" y="60" width="20" height="32" rx="8" fill="#fb923c"/><rect x="78" y="60" width="20" height="32" rx="8" fill="#fb923c"/></svg></div>
+                <div class="price mono">$49</div>
+                <div class="btn">Get it</div>
+              </div>
+
+              <div id="table">
+                <div class="trow" id="row-a"><div class="rl">A</div><div class="rbar" id="bar-a"></div><div class="rv mono">3.1%</div></div>
+                <div class="trow" id="row-b"><div class="rl">B</div><div class="rbar" id="bar-b"></div><div class="rv mono">4.4%</div>
+                  <svg id="check" viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="18" fill="#f97316"/><path d="M11 21 L17.5 27.5 L29 13" stroke="#fff7ed" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="flash" class="fill"></div>
+          <div id="flash-red" class="fill"></div>
+          <div id="dither" class="fill"></div>
+        </div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="grain-filter" x="0%" y="0%" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.04 0" />
+      </filter>
+    </svg>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      document.getElementById("dither").style.filter = "url(#grain-filter)";
+
+      // sparkline draw setup (deterministic)
+      ["line-g", "line-r"].forEach((id) => {
+        const el = document.getElementById(id);
+        const len = el.getTotalLength();
+        el.style.strokeDasharray = String(len);
+        el.style.strokeDashoffset = String(len);
+      });
+
+      // audience: 20 person glyphs at a 36px pitch (literal positions)
+      const aud = document.getElementById("aud");
+      const person = '<svg viewBox="0 0 28 40" fill="none"><circle cx="14" cy="10" r="8" fill="#cbd5e1"/><path d="M2 40 C2 27 7 23 14 23 C21 23 26 27 26 40 Z" fill="#cbd5e1"/></svg>';
+      const people = [];
+      for (let i = 0; i < 20; i++) {
+        const d = document.createElement("div");
+        d.className = "pp";
+        d.id = "pp" + i;
+        d.style.left = (4 + i * 36) + "px";
+        d.innerHTML = person;
+        aud.appendChild(d);
+        people.push("#" + d.id);
+      }
+
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // slow push-in under everything
+      tl.fromTo("#scene", { scale: 1 }, { scale: 1.05, duration: 14.4, ease: "sine.inOut" }, 0);
+
+      // ================= ACT 1 (green) =================
+      tl.fromTo("#act1", { opacity: 0.5 }, { opacity: 1, duration: 0.35, ease: "power3.out" }, 0);
+      tl.fromTo("#toggle", { y: 16 }, { y: 0, duration: 0.4, ease: "power3.out" }, 0);
+      // "one percent" (21.55 out -> 0.45): ON, and the number lands
+      tl.fromTo("#knob", { x: 0 }, { x: 112, duration: 0.18, ease: "power3.out", immediateRender: false }, 0.45);
+      tl.to("#toggle", { backgroundColor: "rgba(21,128,61,0.95)", borderColor: "rgba(74,222,128,0.8)", duration: 0.18, ease: "power2.out" }, 0.45);
+      tl.fromTo("#kicker", { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power2.out", immediateRender: false }, 0.5);
+      tl.fromTo("#n1", { opacity: 0, scale: 1.3 }, { opacity: 1, scale: 1, duration: 0.28, ease: "power4.out", immediateRender: false }, 0.5);
+      // "watch the metrics" (22.59-23.35 -> 1.49-2.25): the card, then the line draws
+      tl.fromTo("#metrics", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 1.1);
+      tl.to("#line-g", { strokeDashoffset: 0, duration: 1.5, ease: "power1.inOut" }, 1.5);
+      tl.to("#area-g", { opacity: 1, duration: 0.6, ease: "power2.out" }, 2.4);
+      [["#mk1", 1.95], ["#mk2", 2.35], ["#mk3", 2.8]].forEach(([s, t]) => {
+        tl.fromTo(s, { opacity: 0, scale: 0.4, transformOrigin: "50% 50%" }, { opacity: 1, scale: 1, transformOrigin: "50% 50%", duration: 0.22, ease: "back.out(1.8)", immediateRender: false }, t);
+      });
+      // the real rollout UI (1.75)
+      tl.fromTo("#plate", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.35, ease: "power3.out", immediateRender: false }, 1.75);
+      tl.fromTo("#real-tag", { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power2.out", immediateRender: false }, 1.9);
+      // "look good" (23.87 -> 2.77): the card glows once
+      tl.fromTo("#metrics", { borderColor: "rgba(148,163,184,0.35)" }, { borderColor: "rgba(52,211,153,0.9)", duration: 0.3, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 2.8);
+      // the ramp meter (3.2), then "ramp up" (24.59 -> 3.49): 1 -> 5 -> 25
+      tl.fromTo("#meter", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out", immediateRender: false }, 3.2);
+      tl.to("#n1", { opacity: 0, duration: 0.05, ease: "power2.out" }, 3.5);
+      tl.fromTo("#n5", { opacity: 0, scale: 1.2 }, { opacity: 1, scale: 1, duration: 0.2, ease: "power3.out", immediateRender: false }, 3.52);
+      tl.fromTo("#meter-fill", { width: 7 }, { width: 36, duration: 0.3, ease: "power2.out", immediateRender: false }, 3.5);
+      tl.to("#n5", { opacity: 0, duration: 0.05, ease: "power2.out" }, 3.88);
+      tl.fromTo("#n25", { opacity: 0, scale: 1.2 }, { opacity: 1, scale: 1, duration: 0.2, ease: "power3.out", immediateRender: false }, 3.9);
+      tl.fromTo("#meter-fill", { width: 36 }, { width: 180, duration: 0.35, ease: "power2.out", immediateRender: false }, 3.88);
+      // "something breaks" (25.29 -> 4.19): the line turns and drops, KILL appears
+      tl.fromTo("#kill", { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.5)", immediateRender: false }, 4.2);
+      tl.to("#line-r", { strokeDashoffset: 0, duration: 0.5, ease: "power2.in" }, 4.3);
+      tl.to("#metrics", { borderColor: "rgba(239,68,68,0.8)", duration: 0.3, ease: "power2.out" }, 4.6);
+      // "kill it instantly" (26.21 -> 5.11): slam, one-frame drop to 0
+      tl.fromTo("#kill", { scale: 1 }, { scale: 1.35, duration: 0.08, ease: "power2.out", immediateRender: false }, 5.1);
+      tl.to("#kill", { scale: 1, duration: 0.18, ease: "power4.out" }, 5.18);
+      tl.fromTo("#flash-red", { opacity: 0 }, { opacity: 0.45, duration: 0.05, ease: "power3.out", immediateRender: false }, 5.12);
+      tl.to("#flash-red", { opacity: 0, duration: 0.3, ease: "power3.out" }, 5.17);
+      tl.set("#meter-fill", { width: 0 }, 5.24);
+      tl.to("#n25", { opacity: 0, duration: 0.04, ease: "power2.out" }, 5.22);
+      tl.fromTo("#n0", { opacity: 0 }, { opacity: 1, duration: 0.04, ease: "power2.out", immediateRender: false }, 5.24);
+      tl.to("#n0", { color: "#fca5a5", duration: 0.2, ease: "power2.out" }, 5.28);
+      tl.fromTo("#knob", { x: 112 }, { x: 0, duration: 0.14, ease: "power3.out", immediateRender: false }, 5.26);
+      tl.to("#toggle", { backgroundColor: "rgba(71,85,105,0.92)", borderColor: "rgba(148,163,184,0.5)", duration: 0.14, ease: "power2.out" }, 5.26);
+      tl.to("#plate", { opacity: 0.45, duration: 0.3, ease: "power2.out" }, 5.3);
+      tl.to("#real-tag", { opacity: 0.45, duration: 0.3, ease: "power2.out" }, 5.3);
+
+      // ================= TURN @6.41 ("Show version A" 27.51 out): phase shift =================
+      tl.fromTo("#flash", { opacity: 0 }, { opacity: 0.85, duration: 0.06, ease: "power3.out", immediateRender: false }, 6.4);
+      tl.to("#flash", { opacity: 0, duration: 0.26, ease: "power3.out" }, 6.46);
+      tl.to("#act1", { scale: 0.9, y: -40, opacity: 0, duration: 0.5, ease: "power3.out" }, 6.42);
+      tl.to("#glow-green", { opacity: 0.08, duration: 0.9, ease: "sine.inOut" }, 6.42);
+      tl.to("#glow-blue", { opacity: 1, duration: 0.9, ease: "sine.inOut" }, 6.42);
+      tl.to("#glow-orange", { opacity: 1, duration: 0.9, ease: "sine.inOut" }, 6.6);
+
+      // ================= ACT 2 (blue | orange) =================
+      tl.fromTo("#act2", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out", immediateRender: false }, 6.6);
+      people.forEach((p, i) => {
+        tl.fromTo(p, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.25, ease: "power3.out", immediateRender: false }, 6.7 + i * 0.02);
+      });
+      // "half your users" (28.37 -> 7.27): the wipe splits the audience
+      tl.fromTo("#divider", { opacity: 0, scaleY: 0 }, { opacity: 1, scaleY: 1, duration: 0.25, ease: "power3.out", immediateRender: false }, 7.27);
+      tl.fromTo("#tint-a", { width: 0 }, { width: 360, duration: 0.4, ease: "power2.inOut", immediateRender: false }, 7.27);
+      tl.fromTo("#tag-a", { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.25, ease: "power3.out", immediateRender: false }, 7.32);
+      tl.fromTo("#ph-a", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out", immediateRender: false }, 7.9);
+      // "version B" (29.27 -> 8.17): the other half
+      tl.fromTo("#tint-b", { width: 0 }, { width: 360, duration: 0.4, ease: "power2.inOut", immediateRender: false }, 8.17);
+      tl.fromTo("#tag-b", { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.25, ease: "power3.out", immediateRender: false }, 8.22);
+      tl.fromTo("#ph-b", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out", immediateRender: false }, 8.85);
+      // "Compare the numbers" (30.37 -> 9.27): the result table
+      tl.fromTo("#table", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.35, ease: "power3.out", immediateRender: false }, 9.35);
+      tl.fromTo("#row-a", { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 9.5);
+      tl.fromTo("#bar-a", { width: 0 }, { width: 300, duration: 0.5, ease: "power2.out", immediateRender: false }, 9.6);
+      tl.fromTo("#row-b", { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 10.1);
+      tl.fromTo("#bar-b", { width: 0 }, { width: 426, duration: 0.5, ease: "power2.out", immediateRender: false }, 10.2);
+      // "A/B test" (31.97 -> 10.87): the headline names it
+      tl.fromTo("#hl", { opacity: 0, x: 26 }, { opacity: 1, x: 0, duration: 0.35, ease: "power3.out", immediateRender: false }, 10.87);
+      // B lights up (11.5), then the check on "decisions" (33.51 -> 12.41)
+      tl.to("#row-b", { borderColor: "rgba(251,146,60,0.9)", backgroundColor: "rgba(60,26,6,0.55)", duration: 0.3, ease: "power2.out" }, 11.5);
+      tl.fromTo("#row-b", { boxShadow: "0 0 0px rgba(249,115,22,0)" }, { boxShadow: "0 0 16px rgba(249,115,22,0.55)", duration: 0.35, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 11.6);
+      tl.fromTo("#check", { opacity: 0, scale: 0.4, transformOrigin: "50% 50%" }, { opacity: 1, scale: 1, transformOrigin: "50% 50%", duration: 0.25, ease: "back.out(1.8)", immediateRender: false }, 12.4);
+      // "actual numbers" (34.67 -> 13.57): the headline yields to the stamp
+      tl.to("#hl", { opacity: 0, duration: 0.25, ease: "power2.in" }, 13.25);
+      tl.fromTo("#stamp", { opacity: 0, scale: 1.7 }, { opacity: 1, scale: 1, duration: 0.26, ease: "power4.out", immediateRender: false }, 13.57);
+      tl.to("#table", { y: 5, duration: 0.07, ease: "power2.out" }, 13.63);
+      tl.to("#table", { y: 0, duration: 0.16, ease: "power2.out" }, 13.7);
+
+      // ================= fade: finishes at EXACTLY 14.4 (14.1 + 0.3), zero buffer =================
+      tl.fromTo("#content-all", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 14.1);
+      ["#scene", "#act2", "#stamp", "#table", "#ph-a", "#ph-b", "#hl", "#tag-a", "#tag-b", "#divider", "#row-a", "#row-b"].forEach((s) => {
+        tl.to(s, { opacity: 0, duration: 0.3, ease: "power2.out" }, 14.1);
+      });
+      people.forEach((p) => { tl.to(p, { opacity: 0, duration: 0.3, ease: "power2.out" }, 14.1); });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

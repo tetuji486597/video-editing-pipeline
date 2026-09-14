@@ -1,0 +1,172 @@
+{
+  "version": 1,
+  "sources": {
+    "ep35": "C:/Users/gordo/Downloads/drive-download-20260905T030037Z-1-002/Teleprompter-2026-04-09_21-49-38.mp4"
+  },
+  "ranges": [
+    {
+      "source": "ep35",
+      "start": 10.22,
+      "end": 13.04,
+      "beat": "INTRO",
+      "quote": "Monolith versus microservices in 30 seconds.",
+      "reason": "Only intro take: 'Monolith versus microservices in 30 seconds.' Acoustic onset 10.24 vs ASR 'Monolith' start 10.28 (delta +0.04); acoustic tail 12.92 vs ASR 'seconds.' box end 12.80. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    },
+    {
+      "source": "ep35",
+      "start": 28.02,
+      "end": 34.72,
+      "beat": "HOOK",
+      "quote": "So Amazon split its app into thousands of services, and most startups who copy that move are making a mistake. Here's the real trade-off.",
+      "reason": "Second take, complete. Acoustic onset 28.04 vs ASR 'So' start 28.08 (delta +0.04); acoustic tail 34.60 vs ASR 'trade-off.' box end 34.58. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    },
+    {
+      "source": "ep35",
+      "start": 52.18,
+      "end": 61.64,
+      "beat": "PROBLEM",
+      "quote": "A monolith is one big code base that deploys as a single unit. It's simple to start with, but at huge scale, one team's change can break everything, and you have to deploy the whole thing every time.",
+      "reason": "Second take; the first breaks on 'once team change'. Acoustic onset 52.20 vs ASR 'A' start 52.18 (delta -0.02); acoustic tail 61.52 vs ASR 'time.' box end 63.14. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    },
+    {
+      "source": "ep35",
+      "start": 85.12,
+      "end": 91.28,
+      "beat": "BUILD",
+      "quote": "Microservices split the app into small independent services. A team owns each one and deploys it on its own schedule.",
+      "reason": "Second take ('Mm, no, not that one' rejected the first). Acoustic onset 85.14 vs ASR 'Microservices' start 85.15 (delta +0.01); acoustic tail 91.16 vs ASR 'schedule.' box end 91.13. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    },
+    {
+      "source": "ep35",
+      "start": 96.16,
+      "end": 112.8,
+      "beat": "NEW_COMPONENT",
+      "quote": "That buys independent scaling and faster teams, but it adds real complexity. Every call now crosses a network and can fail in new ways, and debugging gets much harder. Honestly, microservices solve an organizational problem. If you don't have lots of teams stepping on each other, a monolith is usually the smarter choice.",
+      "reason": "Only take, read continuously. Acoustic onset 96.18 vs ASR 'That' start 96.20 (delta +0.02); acoustic tail 112.68 vs ASR 'choice.' box end 112.64. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    },
+    {
+      "source": "ep35",
+      "start": 126.64,
+      "end": 133.12,
+      "beat": "PAYOFF",
+      "quote": "So microservices fix a people problem, so check that you actually have one. Next, we'll look at how to update an app with zero downtime",
+      "reason": "Last take, starts on 'So' after the sigh. Acoustic onset 126.66 vs ASR 'So' start 126.67 (delta +0.01); acoustic tail 133.00 vs ASR 'downtime' box end 132.97. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    }
+  ],
+  "grade": "eq=contrast=1.15:saturation=1.05,colorbalance=rs=-0.04:gs=0.02:bs=0.05:rm=0.01:gm=0.0:bm=-0.01:rh=0.06:gh=0.02:bh=-0.06,vignette=angle=0.7,unsharp=5:5",
+  "overlays": [
+    {
+      "file": "animations/slot_tiktok_title/render.webm",
+      "start_in_output": 0.0,
+      "duration": 2.8333
+    },
+    {
+      "file": "animations/slot_hook/render.webm",
+      "start_in_output": 3.35,
+      "duration": 6.3
+    },
+    {
+      "file": "animations/slot_problem/render.webm",
+      "start_in_output": 10.15,
+      "duration": 9.0
+    },
+    {
+      "file": "animations/slot_build/render.webm",
+      "start_in_output": 19.65,
+      "duration": 6.4
+    },
+    {
+      "file": "animations/slot_new_component/render.webm",
+      "start_in_output": 26.6,
+      "duration": 15.7
+    },
+    {
+      "file": "animations/slot_payoff/render.webm",
+      "start_in_output": 42.8,
+      "duration": 4.8
+    },
+    {
+      "file": "animations/slot_countdown/render.webm",
+      "start_in_output": 2.8333,
+      "duration": 45.5417,
+      "x": 690,
+      "y": 205,
+      "_note": "Countdown gag: 30 -> 0 over the whole remaining video (make_countdown.py). Last in the list so it sits on top of takeovers; every content slot keeps x>=670,y<=330 clear."
+    }
+  ],
+  "subtitles": "master.ass",
+  "_variant": "Single variant. Intro is the recorded \"Explaining X in 30 seconds\" line; the episode number is only on the sticker.",
+  "_zoom_note": "Slow face-anchored zoom about (540,720), magnitude 1.08, alternating per range so the drift is continuous across cuts (render.py supersampled zoom chain).",
+  "_edge_note": "Every range START/END measured acoustically by edl_from_takes.py (20ms RMS, threshold = 20th-percentile floor + 8 dB): start = onset - 0.12s, end = first 120ms dead-air after the last word + 0.12s, capped at the ASR box end + 0.7s so sighs and throat-clears after a take are excluded.",
+  "_beat_windows_output_timeline": {
+    "INTRO": [
+      0.0,
+      2.8333
+    ],
+    "HOOK": [
+      2.8333,
+      9.5417
+    ],
+    "PROBLEM": [
+      9.5417,
+      19.0417
+    ],
+    "BUILD": [
+      19.0417,
+      25.2083
+    ],
+    "NEW_COMPONENT": [
+      25.2083,
+      41.875
+    ],
+    "PAYOFF": [
+      41.875,
+      48.375
+    ]
+  },
+  "total_duration_s": 48.375,
+  "_windows_note": "Output-timeline windows on render.py's real 24fps extract grid: each segment's rendered duration is ceil((end-start)*24)/24, not the raw source span. Verified against rendered clips where measurable. Overlay start_in_output values are derived from THESE numbers.",
+  "_overlay_note": "EP35 overlays (built 2026-09-04). Formats in beat order: sticker (INTRO), half-panel VS card (HOOK), motion graphic block+DEPLOY (PROBLEM), TAKEOVER shatter (BUILD, the episode's only takeover), transparent band gauge/tangle/stamp (NEW_COMPONENT), corner stamp checklist (PAYOFF). Every slot except the sticker keeps the countdown reserve x>=670,y<=330 at alpha 0 (probed on decoded alpha, every frame). Landings (output s): hook VS badge 4.10; swarm 'thousands of services' 4.55-5.60; 'copying' chip+X 7.50/7.90 on 'making a mistake' 7.37-8.07; balance beam 8.50-8.85 on 'real trade-off' 8.67-9.39. problem block cells 10.50-11.72 on 'one big code base' 10.38-11.16; DEPLOY press 12.45 on 'single unit' 12.30-12.68; tick 13.15 on 'simple' 12.90; amber change cell 15.10 on 'one team's change' 14.76-15.22; red wave 15.90-16.70 on 'break everything' 15.74-16.63; heavy redeploy crawl 17.67-18.87 on 'deploy the whole thing every time' 17.40-19.00. build shatter 20.15 on 'split' 19.93-20.20; OWN TEAM + avatars 22.60-23.28 on 'a team owns each one' 22.42-23.28; deploy buttons 23.85 on 'deploys it' 23.70-24.10; OWN SCHEDULE + staggered presses 24.50-25.23 on 'own schedule' 24.60-25.05. new_component gauge climbs 27.75-29.25 on 'adds real complexity' 27.69-29.13; Amazon 2008 graph inset 28.35; packets 29.2-32.5 on 'every call crosses a network'; red X 31.45 on 'fail in new ways' 31.17-32.22; magnifier 32.5-34.05 on 'debugging gets much harder' 32.45-34.07; PEOPLE PROBLEM stamp 36.15 on 'organizational problem' 35.91-36.94; tiles regroup into one block 39.85-40.6 on 'a monolith' 39.80-40.37; check 41.10 on 'smarter' 41.03-41.29. payoff line 2 43.40 on 'people problem' 43.36-43.96; tick 44.45 on 'check' 44.45-44.67; team avatars 45.00-45.30 + bump 45.60 on 'actually have one' 44.99-45.76. Gap audit (end -> next start): sticker 2.8333 -> hook 3.35 (0.517, across the INTRO/HOOK cut); hook 9.65 -> problem 10.15 (0.50); problem 19.15 -> build 19.65 (0.50); build 26.05 -> new_component 26.60 (0.55); new_component 42.30 -> payoff 42.80 (0.50); payoff ends 47.60, 0.775 before the last frame. All gaps are deliberate (>=0.5s) and every overlay fades to alpha 0 at exactly its declared duration. Tails past the beat end: hook +0.11, problem +0.11, build +0.84, new_component +0.43, payoff -0.775 (all <= 1.0s)."
+}

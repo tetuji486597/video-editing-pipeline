@@ -1,0 +1,96 @@
+{
+ "video": "final_nosfx.mp4",
+ "out": "final.mp4",
+ "cues": [
+  {
+   "at": 0.25,
+   "sfx": "tt_click_trim",
+   "vol": 1.54,
+   "why": "INTRO: sticker pops"
+  },
+  {
+   "at": 3.33,
+   "sfx": "tt_notif_trim",
+   "vol": 0.39,
+   "why": "HOOK: diff rings light on the two phones (on 'slightly different')"
+  },
+  {
+   "at": 5.73,
+   "sfx": "pop_bubble",
+   "vol": 0.5,
+   "why": "HOOK: the ? pops (on 'can tell')"
+  },
+  {
+   "at": 7.98,
+   "sfx": "bass_hit",
+   "vol": 0.17,
+   "why": "PROBLEM: 100% dial slams to full (on 'one hundred percent')"
+  },
+  {
+   "at": 10.16,
+   "sfx": "tt_error_glitch",
+   "vol": 0.5,
+   "why": "PROBLEM: red error cascade across the avatars (on 'broken')"
+  },
+  {
+   "at": 13.12,
+   "sfx": "rewind",
+   "vol": 0.38,
+   "why": "PROBLEM: the ROLLBACK lever drags (on 'rolling back')"
+  },
+  {
+   "at": 16.93,
+   "sfx": "tt_mouse_click",
+   "vol": 1.71,
+   "why": "BUILD: the toggle flips (on 'flip')"
+  },
+  {
+   "at": 18.93,
+   "sfx": "swoosh_deep",
+   "vol": 0.19,
+   "why": "BUILD: code card dims to a ghost (on 'dark')"
+  },
+  {
+   "at": 21.52,
+   "sfx": "ding",
+   "vol": 0.24,
+   "why": "NEW_COMPONENT: 1% toggle + sparkline (on 'one percent')"
+  },
+  {
+   "at": 26.18,
+   "sfx": "tt_wrong_buzzer",
+   "vol": 0.25,
+   "why": "NEW_COMPONENT: KILL button slams, meter drops (on 'kill it')"
+  },
+  {
+   "at": 27.66,
+   "sfx": "shutter",
+   "vol": 1.2,
+   "why": "NEW_COMPONENT: audience bar splits A|B (on 'version A')"
+  },
+  {
+   "at": 34.64,
+   "sfx": "stamp",
+   "vol": 0.62,
+   "why": "NEW_COMPONENT: DECISION stamp (on 'actual numbers')"
+  },
+  {
+   "at": 39.09,
+   "sfx": "tt_sparkle_trim",
+   "vol": 1.49,
+   "why": "AI_ANGLE: the wedge lights (on 'small slice')"
+  },
+  {
+   "at": 42.69,
+   "sfx": "tt_bass_drop",
+   "vol": 0.11,
+   "why": "PAYOFF: ship-box goes dark (on 'ship it dark')"
+  },
+  {
+   "at": 43.73,
+   "sfx": "tt_correct_ding",
+   "vol": 0.3,
+   "why": "PAYOFF: 1% pie lights (on 'one percent')"
+  }
+ ]
+}

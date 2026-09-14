@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP35 payoff — split when your teams need it</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+
+      /* CORNER STAMP, upper-left. Output 42.8-47.6 inside PAYOFF 41.875-48.375.
+         Card x 80-620, y 220-460 (shadow 0 10px 12px -> bottom reach 489; brow ~640,
+         zoom 1.08->1.0 worst ~634). Entirely left of x=660, so the countdown reserve
+         (x>=670, y<=330) is never touched. Inside: two headline lines (6 words total)
+         at local y 30-78 / 88-136 -> abs 250-298 / 308-356; checkbox local (30,150)
+         -> abs x 110-162, y 370-422; four avatars abs x 190-402, y 374-418; spark at
+         abs x 278-314, y 378-414 between avatars 2 and 3 (over graphics, never text).
+         Pairwise: line 2 bottom 356 vs checkbox top 370 = 14px box gap, but the text's
+         glyphs end ~8px above the box (line-height 56 on a 48px face) -> ~22px visual,
+         and they are stacked list rows by design. */
+      #card {
+        position: absolute; left: 80px; top: 220px; width: 540px; height: 240px; border-radius: 22px;
+        background: linear-gradient(165deg, rgba(13, 18, 28, 0.66), rgba(7, 10, 16, 0.72));
+        border: 2px solid rgba(148, 163, 184, 0.4);
+        box-shadow: 0 10px 12px rgba(0, 0, 0, 0.45); opacity: 0.5;
+      }
+      .line {
+        position: absolute; left: 28px; font-size: 48px; line-height: 56px; font-weight: 800;
+        letter-spacing: -0.5px; color: #f1f5f9; white-space: nowrap;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85);
+      }
+      #l1 { top: 22px; opacity: 0.5; }
+      #l2 { top: 80px; opacity: 0; color: #6ee7b7; }
+      #box {
+        position: absolute; left: 30px; top: 150px; width: 52px; height: 52px; border-radius: 10px;
+        border: 3px solid rgba(203, 213, 225, 0.75); background: rgba(255, 255, 255, 0.06); opacity: 0;
+      }
+      #box svg { width: 46px; height: 46px; position: absolute; left: 0; top: 0; }
+      #tick { fill: none; stroke: #22c55e; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+      .pav {
+        position: absolute; top: 154px; width: 44px; height: 44px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center; opacity: 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+      }
+      .pav svg { width: 26px; height: 26px; }
+      #spark { position: absolute; left: 198px; top: 158px; width: 36px; height: 36px; opacity: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="4.8" data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="4.8" data-track-index="1">
+        <div id="card">
+          <div id="l1" class="line">SPLIT WHEN YOUR</div>
+          <div id="l2" class="line">TEAMS NEED IT</div>
+          <div id="box">
+            <svg viewBox="0 0 46 46"><path id="tick" d="M10 24 L20 34 L37 13" /></svg>
+          </div>
+          <div id="avs"></div>
+          <div id="spark" data-layout-allow-overlap="true">
+            <svg viewBox="0 0 36 36" fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round">
+              <path d="M18 3 L18 10 M18 26 L18 33 M3 18 L10 18 M26 18 L33 18 M7.4 7.4 L12.3 12.3 M23.7 23.7 L28.6 28.6 M28.6 7.4 L23.7 12.3 M12.3 23.7 L7.4 28.6" />
+            </svg>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+
+      // four team avatars, hard-coded x (card-local): 110, 166, 222, 278
+      const cols = ["#f472b6", "#fbbf24", "#a78bfa", "#60a5fa"];
+      const person = '<svg viewBox="0 0 26 26" fill="none"><circle cx="13" cy="9" r="5" fill="#0b0f16"/><path d="M4 24 C4 17 8 15 13 15 C18 15 22 17 22 24 Z" fill="#0b0f16"/></svg>';
+      const avs = document.getElementById("avs");
+      cols.forEach((c, i) => {
+        const d = document.createElement("div");
+        d.className = "pav"; d.id = "pav" + i;
+        d.style.left = (110 + 56 * i) + "px"; d.style.background = c;
+        d.innerHTML = person;
+        avs.appendChild(d);
+      });
+      const tick = document.getElementById("tick");
+      const tlen = tick.getTotalLength();
+      tick.style.strokeDasharray = String(tlen);
+      tick.style.strokeDashoffset = String(tlen);
+
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ---------- ACT 1: the card lands, line by line ----------
+      tl.fromTo("#card", { opacity: 0.5, y: 22 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 0);
+      tl.fromTo("#l1", { opacity: 0.5, x: -20 }, { opacity: 1, x: 0, duration: 0.4, ease: "power3.out" }, 0);
+      // "people problem" (0.56-1.16)
+      tl.fromTo("#l2", { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, 0.6);
+      tl.fromTo("#box", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.6)", immediateRender: false }, 0.95);
+
+      // ---------- TURN @1.65 ("check" 1.65-1.87): the tick ----------
+      tl.to("#tick", { strokeDashoffset: 0, duration: 0.3, ease: "power3.out" }, 1.65);
+      tl.to("#box", { borderColor: "rgba(34,197,94,0.95)", scale: 1.15, duration: 0.12, ease: "power2.out" }, 1.65);
+      tl.to("#box", { scale: 1, duration: 0.3, ease: "power2.out" }, 1.77);
+      tl.to("#card", { borderColor: "rgba(52,211,153,0.7)", duration: 0.4, ease: "power2.out" }, 1.7);
+
+      // ---------- ACT 2 @2.2 ("that you actually have one" 2.19-2.96): the teams, and the check ----------
+      cols.forEach((c, i) => {
+        tl.fromTo("#pav" + i, { opacity: 0, scale: 0.3 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.8)", immediateRender: false }, 2.2 + i * 0.09);
+      });
+      // two of them step on each other (2.8): the thing you are checking for
+      tl.to("#pav1", { x: 7, duration: 0.14, ease: "power2.inOut" }, 2.8);
+      tl.to("#pav2", { x: -7, duration: 0.14, ease: "power2.inOut" }, 2.8);
+      tl.fromTo("#spark", { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1.25, duration: 0.14, ease: "power3.out", immediateRender: false }, 2.88);
+      tl.to("#spark", { opacity: 0, scale: 1.5, duration: 0.3, ease: "power2.out" }, 3.02);
+      tl.to("#pav1", { x: 0, duration: 0.3, ease: "power2.inOut" }, 3.05);
+      tl.to("#pav2", { x: 0, duration: 0.3, ease: "power2.inOut" }, 3.05);
+      // a second, smaller bump so the hold is never static (3.7)
+      tl.to("#pav1", { x: 5, duration: 0.14, ease: "power2.inOut" }, 3.7);
+      tl.to("#pav2", { x: -5, duration: 0.14, ease: "power2.inOut" }, 3.7);
+      tl.fromTo("#spark", { opacity: 0, scale: 0.5 }, { opacity: 0.8, scale: 1.0, duration: 0.12, ease: "power3.out", immediateRender: false }, 3.78);
+      tl.to("#spark", { opacity: 0, scale: 1.3, duration: 0.25, ease: "power2.out" }, 3.9);
+      tl.to("#pav1", { x: 0, duration: 0.3, ease: "power2.inOut" }, 3.95);
+      tl.to("#pav2", { x: 0, duration: 0.3, ease: "power2.inOut" }, 3.95);
+
+      // ---------- fade: finishes at EXACTLY 4.8 (4.5 + 0.3), zero buffer; per-leaf ----------
+      tl.fromTo("#card", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 4.5);
+      ["#l1", "#l2", "#box", ".pav", "#spark"].forEach((s) => {
+        tl.to(s, { opacity: 0, duration: 0.3, ease: "power2.out" }, 4.5);
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

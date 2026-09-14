@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>EP30 hook — same app, two versions</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+      .mono { font-family: "JetBrains Mono", Menlo, monospace; }
+
+      /* HALF-PANEL over live footage, upper band. HOOK frame grid-measured at
+         1080x1920: hair top ~120, brow ~680, eyes ~760, face x 200-800. Everything
+         here ends by y=595 (+shadow reach 8+1.6*10=24 -> 619), 61px above the brow.
+         COUNTDOWN RESERVE (x>=670, y<=330) stays empty: the phones end at x=650
+         (shadow reach 650+16=666 < 670) and the "?" column starts at y=380.
+         Ambient drift 1 -> 1.015 about (380,400): x 90 -> 85.6, x 840 -> 847,
+         y 215 -> 212, y 595 -> 598. Band x 70-870 / y 200-1280 holds. */
+      #wrap { position: absolute; inset: 0; transform-origin: 380px 400px; opacity: 0.5; }
+
+      .phone {
+        position: absolute; top: 215px; width: 260px; height: 380px;
+        border-radius: 28px;
+        background: linear-gradient(170deg, rgba(10, 14, 22, 0.58), rgba(6, 9, 15, 0.64));
+        border: 3px solid rgba(148, 163, 184, 0.55);
+        box-shadow: 0 8px 10px rgba(0, 0, 0, 0.4);
+        overflow: hidden;
+      }
+      #ph-a { left: 90px; }               /* x 90-350 */
+      #ph-b { left: 390px; opacity: 0; }  /* x 390-650, enters at 0.6 */
+
+      .status { position: absolute; left: 22px; top: 12px; font-size: 18px; color: #cbd5e1; letter-spacing: 1px; }
+      .sig { position: absolute; right: 22px; top: 16px; display: flex; gap: 4px; align-items: flex-end; height: 14px; }
+      .sig div { width: 4px; background: #cbd5e1; border-radius: 1px; }
+      .app-h { position: absolute; left: 22px; top: 48px; font-size: 24px; font-weight: 800; color: #f1f5f9; letter-spacing: 0.5px; }
+      .cart { position: absolute; right: 22px; top: 48px; width: 26px; height: 26px; }
+
+      .tile {
+        position: absolute; left: 20px; top: 92px; width: 220px; height: 130px;
+        border-radius: 14px; overflow: hidden;
+        background: linear-gradient(160deg, #26334a 0%, #1a2436 100%);
+        border: 1px solid rgba(148, 163, 184, 0.25);
+      }
+      .tile svg { position: absolute; left: 55px; top: 12px; width: 110px; height: 110px; }
+      .sheen {
+        position: absolute; left: -90px; top: -30px; width: 70px; height: 200px;
+        background: linear-gradient(100deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.14) 50%, rgba(255,255,255,0) 100%);
+        transform: rotate(14deg);
+      }
+      .price { position: absolute; left: 22px; top: 236px; font-size: 26px; color: #f8fafc; }
+      .sub { position: absolute; left: 22px; top: 238px; font-size: 18px; color: #94a3b8; margin-left: 70px; }
+
+      .btn {
+        position: absolute; left: 20px; top: 276px; width: 220px; height: 52px;
+        border-radius: 12px; background: #3b82f6;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.35);
+      }
+      .btn span {
+        position: absolute; left: 0; top: 0; width: 220px; height: 52px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 24px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px;
+      }
+      .btn .lbl-get { opacity: 0; }
+
+      /* the diff ring: local 268-336, inside the phone; the label row starts at 346 */
+      .ring {
+        position: absolute; left: 12px; top: 268px; width: 236px; height: 68px;
+        border: 3px solid #fbbf24; border-radius: 16px;
+        box-shadow: 0 0 12px rgba(251, 191, 36, 0.6);
+        opacity: 0;
+      }
+      .who {
+        position: absolute; left: 0; top: 346px; width: 254px; text-align: center;
+        font-size: 22px; color: #fde68a; letter-spacing: 1px; opacity: 0;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85);
+      }
+
+      /* the hero glyph, right column: box x 690-840, y 380-550 (glyph body ~395-535).
+         text-shadow 18px -> reach 29px: top 366 (> 330), right 844+ (< 870). */
+      #q {
+        position: absolute; left: 690px; top: 380px; width: 150px; height: 170px;
+        font-size: 170px; line-height: 170px; font-weight: 900; text-align: center;
+        color: #fbbf24; opacity: 0;
+        text-shadow: 0 3px 18px rgba(0, 0, 0, 0.85);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="4.1" data-width="1080" data-height="1920">
+      <section id="scene" class="clip" data-start="0" data-duration="4.1" data-track-index="1">
+        <div id="wrap">
+          <div id="ph-a" class="phone">
+            <div class="status mono">9:41</div>
+            <div class="sig"><div style="height:5px"></div><div style="height:8px"></div><div style="height:11px"></div><div style="height:14px"></div></div>
+            <div class="app-h">Shop</div>
+            <svg class="cart" viewBox="0 0 26 26" fill="none"><path d="M2 3h4l3 13h11l3-9H8" stroke="#cbd5e1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="21" r="2" fill="#cbd5e1"/><circle cx="19" cy="21" r="2" fill="#cbd5e1"/></svg>
+            <div class="tile">
+              <svg viewBox="0 0 110 110" fill="none">
+                <path d="M20 66 V52 A35 35 0 0 1 90 52 V66" stroke="#93c5fd" stroke-width="7" stroke-linecap="round"/>
+                <rect x="12" y="60" width="20" height="32" rx="8" fill="#60a5fa"/>
+                <rect x="78" y="60" width="20" height="32" rx="8" fill="#60a5fa"/>
+              </svg>
+              <div class="sheen" id="sheen-a" data-layout-allow-overflow="true"></div>
+            </div>
+            <div class="price mono">$49</div>
+            <div class="btn" id="btn-a"><span class="lbl-buy">Buy now</span></div>
+            <div class="ring" id="ring-a"></div>
+            <div class="who mono" id="who-a">you</div>
+          </div>
+
+          <div id="ph-b" class="phone">
+            <div class="status mono">9:41</div>
+            <div class="sig"><div style="height:5px"></div><div style="height:8px"></div><div style="height:11px"></div><div style="height:14px"></div></div>
+            <div class="app-h">Shop</div>
+            <svg class="cart" viewBox="0 0 26 26" fill="none"><path d="M2 3h4l3 13h11l3-9H8" stroke="#cbd5e1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="21" r="2" fill="#cbd5e1"/><circle cx="19" cy="21" r="2" fill="#cbd5e1"/></svg>
+            <div class="tile">
+              <svg viewBox="0 0 110 110" fill="none">
+                <path d="M20 66 V52 A35 35 0 0 1 90 52 V66" stroke="#93c5fd" stroke-width="7" stroke-linecap="round"/>
+                <rect x="12" y="60" width="20" height="32" rx="8" fill="#60a5fa"/>
+                <rect x="78" y="60" width="20" height="32" rx="8" fill="#60a5fa"/>
+              </svg>
+              <div class="sheen" id="sheen-b" data-layout-allow-overflow="true"></div>
+            </div>
+            <div class="price mono">$49</div>
+            <div class="btn" id="btn-b"><span class="lbl-buy" id="lbl-buy-b">Buy now</span><span class="lbl-get" id="lbl-get-b">Get it</span></div>
+            <div class="ring" id="ring-b"></div>
+            <div class="who mono" id="who-b">your friend</div>
+          </div>
+
+          <div id="q">?</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      gsap.defaults({ lazy: false });
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ambient drift under everything (no CSS transform on #wrap -> fromTo is safe)
+      tl.fromTo("#wrap", { scale: 1 }, { scale: 1.015, duration: 4.1, ease: "sine.inOut" }, 0);
+
+      // ---------- ACT 1: two identical phones (entrance at t=0; frame-0 opacity 0.5 from CSS) ----------
+      tl.fromTo("#wrap", { opacity: 0.5 }, { opacity: 1, duration: 0.35, ease: "power3.out" }, 0);
+      tl.fromTo("#ph-a", { y: 30 }, { y: 0, duration: 0.45, ease: "power3.out" }, 0);
+      tl.fromTo("#ph-b", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out", immediateRender: false }, 0.6);
+      // ambient sheen sweeps (one each, done by 2.2)
+      tl.fromTo("#sheen-a", { x: 0 }, { x: 330, duration: 0.9, ease: "sine.inOut" }, 0.9);
+      tl.fromTo("#sheen-b", { x: 0 }, { x: 330, duration: 0.9, ease: "sine.inOut", immediateRender: false }, 1.3);
+
+      // ---------- TURN @1.06 ("slightly different" 3.36-3.90 out): B drifts off-spec ----------
+      tl.to("#btn-b", { backgroundColor: "#15803d", duration: 0.3, ease: "power2.out" }, 1.06);
+      tl.to("#lbl-buy-b", { opacity: 0, duration: 0.25, ease: "power2.out" }, 1.06);
+      tl.fromTo("#lbl-get-b", { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power2.out", immediateRender: false }, 1.1);
+      // thin rings call out the diff, one at a time ("different versions" 3.72-4.32 -> 1.42-2.02)
+      tl.fromTo("#ring-b", { opacity: 0, scale: 1.12 }, { opacity: 1, scale: 1, duration: 0.3, ease: "power3.out", immediateRender: false }, 1.45);
+      tl.fromTo("#ring-a", { opacity: 0, scale: 1.12 }, { opacity: 1, scale: 1, duration: 0.3, ease: "power3.out", immediateRender: false }, 2.05);
+      // ring pulses: odd repeats, both complete before the rings fade at 2.85
+      tl.fromTo("#ring-b", { boxShadow: "0 0 12px rgba(251,191,36,0.6)" }, { boxShadow: "0 0 22px rgba(251,191,36,0.95)", duration: 0.3, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 1.85);
+      tl.fromTo("#ring-a", { boxShadow: "0 0 12px rgba(251,191,36,0.6)" }, { boxShadow: "0 0 22px rgba(251,191,36,0.95)", duration: 0.2, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 2.4);
+
+      // ---------- ACT 2 @2.75 ("and none of them can tell" 5.16-6.14 -> 2.86-3.84) ----------
+      tl.fromTo("#who-a", { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 2.75);
+      tl.to("#ring-a", { opacity: 0, duration: 0.3, ease: "power2.out" }, 2.85);
+      tl.to("#ring-b", { opacity: 0, duration: 0.3, ease: "power2.out" }, 2.85);
+      tl.fromTo("#who-b", { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, ease: "power3.out", immediateRender: false }, 3.35);
+      // the question lands ON "can tell" (5.76 out -> local 3.46)
+      tl.fromTo("#q", { opacity: 0, scale: 1.6 }, { opacity: 1, scale: 1, duration: 0.3, ease: "power4.out", immediateRender: false }, 3.46);
+
+      // ---------- fade: finishes at EXACTLY 4.1 (3.8 + 0.3), zero buffer ----------
+      tl.fromTo("#wrap", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 3.8);
+      // transformed leaves fade with it (phones carry y, q carries scale, rings scale)
+      ["#ph-a", "#ph-b", "#q", "#who-a", "#who-b"].forEach((s) => {
+        tl.to(s, { opacity: 0, duration: 0.3, ease: "power2.out" }, 3.8);
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

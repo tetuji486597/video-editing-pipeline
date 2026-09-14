@@ -1,0 +1,172 @@
+{
+  "version": 1,
+  "sources": {
+    "ep32": "C:/Users/gordo/Downloads/drive-download-20260905T030037Z-1-001/Teleprompter-2026-04-09_21-20-35.mp4"
+  },
+  "ranges": [
+    {
+      "source": "ep32",
+      "start": 8.1,
+      "end": 10.42,
+      "beat": "INTRO",
+      "quote": "Explaining replication in 30 seconds.",
+      "reason": "Second of two intro takes: 'Explaining replication in 30 seconds.' Acoustic onset 8.12 vs ASR 'Explaining' start 8.14 (delta +0.02); acoustic tail 10.30 vs ASR 'seconds.' box end 10.12. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    },
+    {
+      "source": "ep32",
+      "start": 15.7,
+      "end": 21.42,
+      "beat": "HOOK",
+      "quote": "So a server dies and users don't notice a thing. That's replication and failover doing their job.",
+      "reason": "Only take. Acoustic onset 15.72 vs ASR 'So' start 15.78 (delta +0.06); acoustic tail 21.30 vs ASR 'job.' box end 21.32. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    },
+    {
+      "source": "ep32",
+      "start": 26.62,
+      "end": 33.94,
+      "beat": "PROBLEM",
+      "quote": "If all your data sits on one machine and it fails, you're down, and you may have lost data for good. That's unacceptable for anything important.",
+      "reason": "Only take. Acoustic onset 26.64 vs ASR 'If' start 26.68 (delta +0.04); acoustic tail 33.82 vs ASR 'important.' box end 33.81. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    },
+    {
+      "source": "ep32",
+      "start": 40.48,
+      "end": 48.24,
+      "beat": "BUILD",
+      "quote": "So we replicate live copies of the data on several machines. One is the leader and takes the rights, and the followers copy every change.",
+      "reason": "Only take. Acoustic onset 40.50 vs ASR 'So' start 40.60 (delta +0.10); acoustic tail 48.12 vs ASR 'change.' box end 48.08. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    },
+    {
+      "source": "ep32",
+      "start": 103.78,
+      "end": 117.96,
+      "beat": "NEW_COMPONENT",
+      "quote": "If the leader dies the system notices and promotes a follower to be the new leader. That's failover and the traffic reroutes on its own often within seconds. The copies also serve reads day-to-day which spreads the load. The whole point is redundancy so no single machine is irreplaceable.",
+      "reason": "Fourth take, the first complete read of the whole beat. Acoustic onset 103.80 vs ASR 'If' start 103.86 (delta +0.06); acoustic tail 117.84 vs ASR 'irreplaceable.' box end 118.76. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.0,
+        "to": 1.08,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    },
+    {
+      "source": "ep32",
+      "start": 141.74,
+      "end": 148.36,
+      "beat": "PAYOFF",
+      "quote": "So redundancy looks like waste until the day that it saves you. Next, we'll look at the traffic cop that decides which of those servers you talk to",
+      "reason": "Last take; earlier ones stumble on traffic cop / servers. Acoustic onset 141.76 vs ASR 'So' start 141.80 (delta +0.04); acoustic tail 148.24 vs ASR 'to' box end 148.18. Start = onset - 0.12, end = tail + 0.12.",
+      "zoom": {
+        "mode": "slow",
+        "from": 1.08,
+        "to": 1.0,
+        "focal_x": 540,
+        "focal_y": 720
+      }
+    }
+  ],
+  "grade": "eq=contrast=1.15:saturation=1.05,colorbalance=rs=-0.04:gs=0.02:bs=0.05:rm=0.01:gm=0.0:bm=-0.01:rh=0.06:gh=0.02:bh=-0.06,vignette=angle=0.7,unsharp=5:5",
+  "overlays": [
+    {
+      "file": "animations/slot_tiktok_title/render.webm",
+      "start_in_output": 0.0,
+      "duration": 2.3333
+    },
+    {
+      "file": "animations/slot_hook/render.webm",
+      "start_in_output": 2.6,
+      "duration": 5.4
+    },
+    {
+      "file": "animations/slot_problem/render.webm",
+      "start_in_output": 8.5,
+      "duration": 6.9
+    },
+    {
+      "file": "animations/slot_build/render.webm",
+      "start_in_output": 15.9,
+      "duration": 7.1
+    },
+    {
+      "file": "animations/slot_new_component/render.webm",
+      "start_in_output": 23.5,
+      "duration": 13.5
+    },
+    {
+      "file": "animations/slot_payoff/render.webm",
+      "start_in_output": 37.7,
+      "duration": 4.8
+    },
+    {
+      "file": "animations/slot_countdown/render.webm",
+      "start_in_output": 2.3333,
+      "duration": 41.7084,
+      "x": 690,
+      "y": 205,
+      "_note": "Countdown gag: 30 -> 0 over the whole remaining video (make_countdown.py). Last in the list so it sits on top of takeovers; every content slot keeps x>=670,y<=330 clear."
+    }
+  ],
+  "subtitles": "master.ass",
+  "_variant": "Single variant. Intro is the recorded \"Explaining X in 30 seconds\" line; the episode number is only on the sticker.",
+  "_zoom_note": "Slow face-anchored zoom about (540,720), magnitude 1.08, alternating per range so the drift is continuous across cuts (render.py supersampled zoom chain).",
+  "_edge_note": "Every range START/END measured acoustically by edl_from_takes.py (20ms RMS, threshold = 20th-percentile floor + 8 dB): start = onset - 0.12s, end = first 120ms dead-air after the last word + 0.12s, capped at the ASR box end + 0.7s so sighs and throat-clears after a take are excluded.",
+  "_beat_windows_output_timeline": {
+    "INTRO": [
+      0.0,
+      2.3333
+    ],
+    "HOOK": [
+      2.3333,
+      8.0833
+    ],
+    "PROBLEM": [
+      8.0833,
+      15.4167
+    ],
+    "BUILD": [
+      15.4167,
+      23.2083
+    ],
+    "NEW_COMPONENT": [
+      23.2083,
+      37.4167
+    ],
+    "PAYOFF": [
+      37.4167,
+      44.0417
+    ]
+  },
+  "total_duration_s": 44.0417,
+  "_windows_note": "Output-timeline windows on render.py's real 24fps extract grid: each segment's rendered duration is ceil((end-start)*24)/24, not the raw source span. Verified against rendered clips where measurable. Overlay start_in_output values are derived from THESE numbers.",
+  "_overlay_note": "EP32 overlays (built 2026-09-05). Formats in beat order: sticker (INTRO) / corner accent (HOOK, upper-left, real githubstatus.com capture inset) / TAKEOVER (PROBLEM) / motion graphic (BUILD, upper band) / TAKEOVER (NEW_COMPONENT) / transparent band (PAYOFF, upper band, status capture callback) = 4 distinct, 2 takeovers, no adjacent repeat. Windows: title 0.000-2.333 (fade ends on the INTRO end); hook 2.600-8.000 (lead 0.27; fire on 'dies' @rel 0.40, 'nobody noticed' @1.85, REPLICATION @3.10, FAILOVER @3.98); problem 8.500-15.400 (lead 0.42; rows fill by 'machine', blackout on 'fails' @1.52, DOWN @2.24, rows->ash + counter to 0 over 'lost data for good' 3.5-4.64); build 15.900-23.000 (lead 0.48; followers on 'live copies' @0.85/1.45, crown on 'leader' @3.80, writes @4.30-5.20, FOLLOWERS @5.60, pulse on 'copy every change' @6.20); new_component 23.500-37.000 (lead 0.29; flames on 'dies' @0.45, flatline on 'notices' @1.25, crown hop on 'promotes' @1.90, FAILOVER + flash @3.90, reroute @5.05-5.65, '< 5s' on 'seconds' @6.75, read arrows on 'serve reads' @8.2-8.6, spare badges on 'redundancy' @11.15-11.65); payoff 37.700-42.500 (lead 0.28; 'waste?' @0.92, shield + 'saved you' on 'saves you' @2.16-2.34, status page @2.70; no tease chip). Gap audit: title->hook 0.267s (deliberate, hook lead), hook->problem 0.500s, problem->build 0.500s, build->new_component 0.500s, new_component->payoff 0.700s, payoff->end 1.542s; every render fades to alpha 0 at exactly its declared duration (check_fade.py). The countdown chip (slot_countdown, coordinator-composited at x690/y205 from 2.333 to the last frame) is NOT in this array; every slot except the sticker keeps x>=670,y<=330 empty (decoded-alpha probe, takeovers judged by composited luma in that box)."
+}
